@@ -526,9 +526,9 @@ export default {
                 params.append("type", 0);
                 params.append("songId", this.id);
                 setCollect(params).then((res) => {
-                    if (res.code == 1) {
+                    if (res.code == 20000 || res.success === true) {
                         this.$store.commit("setIsActive", true);
-                        this.notify("收藏成功", "success");
+                        this.notify(res.message || "收藏成功", "success");
                     } else if (res.code == 2) {
                         // this.notify("已收藏", "warning");
                       this.$confirm('是否取消收藏？', '提示', {
@@ -536,11 +536,13 @@ export default {
                         cancelButtonText: '取消',
                         type: 'warning'
                       }).then(() => {
-                        this.notify("删除收藏成功" + this.userId + this.id, "success");
                         const userId = this.userId;
                         const songId = this.id;
-                        delCollectOfUserId(userId,songId).then((res) => {
-                          this.$store.commit("setIsActive", false);
+                        delCollectOfUserId(userId,songId).then((delRes) => {
+                          if (delRes === true) {
+                            this.$store.commit("setIsActive", false);
+                            this.notify("取消收藏成功", "success");
+                          }
                         })
 
 
@@ -552,7 +554,7 @@ export default {
                       });
                       // this.$store.commit("setIsActive", false);
                       }else {
-                        this.notify("收藏失败", "error");
+                        this.notify(res.message || "收藏失败", "error");
                     }
                 });
             } else {

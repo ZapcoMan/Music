@@ -36,11 +36,11 @@ export default {
         },
          //上传成功
         handleAvatorSuccess(res,file){
-            if(res.code == 1){
+            if(res.code == 20000 || res.success === true){
                 this.$store.commit('setAvator',res.data.avator);
-                this.notify('修改成功','success');
+                this.notify(res.message || '修改成功','success');
             }else{
-                this.notify('修改失败','error');
+                this.notify(res.message || '修改失败','error');
             }
         },
         //上传之前的校验

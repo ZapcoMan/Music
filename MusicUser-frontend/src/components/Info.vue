@@ -120,14 +120,14 @@ export default {
             params.append('location',this.registerForm.location);
             updateUserMsg(params)
                 .then(res => {
-                    if(res.code == 1){
+                    if(res.code == 20000 || res.success === true){
                         _this.$store.commit('setUsername',this.registerForm.username);
-                        _this.notify('修改成功','success');
+                        _this.notify(res.message || '修改成功','success');
                         setTimeout(function(){
                             _this.$router.push({path: '/'});
                         },2000);
                     }else{
-                        _this.notify('修改失败','error');
+                        _this.notify(res.message || '修改失败','error');
                     }
                 })
                 .catch(err => {
