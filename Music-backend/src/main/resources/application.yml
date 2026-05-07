@@ -99,3 +99,10 @@ pagehelper:
   reasonable: true
   support-methods-arguments: true
   params: count=countSql
+
+#JWT配置
+jwt:
+  # JWT密钥(生产环境请使用更复杂的密钥并放在环境变量中)
+  secret: MusicWebsiteSecretKey2026ForJWTTokenGenerationAndValidation
+  # Token过期时间(毫秒),默认24小时
+  expiration: 86400000

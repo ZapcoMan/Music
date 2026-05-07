@@ -5,19 +5,25 @@ import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
 import com.github.pagehelper.PageInfo;
+import com.shanzhu.music.annotation.RateLimit;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.entity.vo.ConsumerLoginVo;
 import com.shanzhu.music.entity.vo.UploadConsumerPicVo;
 import com.shanzhu.music.service.ConsumerService;
+import com.shanzhu.music.utils.IpUtils;
+import com.shanzhu.music.utils.JwtUtils;
 import com.shanzhu.music.utils.PathUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 前台用户相关 控制层
@@ -31,6 +37,8 @@ import java.util.List;
 public class ConsumerController {
 
     private final ConsumerService consumerService;
+    private final JwtUtils jwtUtils;
+    private final IpUtils ipUtils;
 
     /**
      * 添加前台用户
@@ -223,31 +231,46 @@ public class ConsumerController {
     }
 
     /**
-     * 前台用户登录
+     * 前台用户登录(JWT + IP绑定)
      *
      * @param username 用户名
      * @param password 用户密码
-     * @return 登录用户信息
+     * @param request  HttpServletRequest
+     * @return 登录用户信息和Token
      */
     @PostMapping(value = "/login")
-    public R<ConsumerLoginVo> login(String username, String password) {
+    @RateLimit(key = "login:consumer:", timeWindow = 60, maxRequests = 5, message = "登录尝试次数过多，请60秒后再试")
+    public R<Map<String, Object>> login(String username, String password, HttpServletRequest request) {
         if (StrUtil.isBlank(username) || StrUtil.isBlank(password)) {
             return R.error("用户名或者密码不能为空");
         }
 
-        //保存到前端用户的对象中
-        Consumer consumer = new Consumer();
-        consumer.setUsername(username);
-        consumer.setPassword(password);
+        //获取客户端IP地址
+        String ip = ipUtils.getIpAddress(request);
 
-        //验证成功
-        if (consumerService.verifyPassword(username, password)) {
-            ConsumerLoginVo consumerLoginVo = new ConsumerLoginVo();
-            consumerLoginVo.setUserMsg(consumerService.getByUsername(username));
-            return R.ok("登录成功", consumerLoginVo);
+        //验证用户名和密码
+        if (!consumerService.verifyPassword(username, password)) {
+            log.warn("用户登录失败 - username={}, ip={}", username, ip);
+            return R.error("用户名或密码错误");
         }
 
-        return R.error("用户名或密码错误");
+        //获取用户信息
+        Consumer consumer = consumerService.getByUsername(username);
+        if (consumer == null) {
+            return R.error("用户不存在");
+        }
+
+        //生成JWT Token(包含用户ID、用户名、用户类型、IP地址)
+        String token = jwtUtils.generateToken(consumer.getId(), username, "consumer", ip);
+
+        //构建返回结果
+        Map<String, Object> result = new HashMap<>();
+        result.put("userMsg", consumer);
+        result.put("token", token);
+        result.put("expiresIn", 86400); // Token过期时间(秒)
+
+        log.info("用户登录成功 - userId={}, username={}, ip={}", consumer.getId(), username, ip);
+        return R.ok("登录成功", result);
     }
 
 }
