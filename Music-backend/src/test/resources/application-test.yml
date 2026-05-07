@@ -1,0 +1,40 @@
+# 测试环境配置
+spring:
+  # H2 内存数据库配置
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  
+  # Flyway 配置 - 测试时禁用
+  flyway:
+    enabled: false
+  
+  # Redis 配置 - 测试时使用嵌入式或 Mock
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+# MyBatis 配置
+mybatis:
+  type-aliases-package: com.shanzhu.music.entity
+  mapper-locations: classpath:mapper/*.xml
+
+# PageHelper 配置
+pagehelper:
+  helper-dialect: mysql
+  reasonable: true
+  support-methods-arguments: true
+
+# JWT 配置(测试用简单密钥)
+jwt:
+  secret: TestSecretKeyForUnitTesting2026
+  expiration: 86400000
+
+# 日志配置
+logging:
+  level:
+    com.shanzhu.music: DEBUG
+    org.springframework: WARN
