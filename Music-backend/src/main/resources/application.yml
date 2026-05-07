@@ -148,3 +148,20 @@ springdoc:
     - group: 'default'
       paths-to-match: '/**'
       packages-to-scan: com.shanzhu.music.controller
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.shanzhu.music: INFO
+    com.shanzhu.music.mapper: DEBUG  # MyBatis SQL 日志
+    org.springframework: WARN
+    org.springframework.security: INFO
+    org.hibernate: WARN
+    com.alibaba.druid: WARN
+    org.springframework.data.redis: WARN
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30
+      total-size-cap: 10GB
