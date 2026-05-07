@@ -5,6 +5,7 @@ import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.mapper.ConsumerMapper;
 import com.shanzhu.music.service.ConsumerService;
+import com.shanzhu.music.utils.PasswordUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,24 +21,32 @@ public class ConsumerServiceImpl implements ConsumerService {
     private final ConsumerMapper consumerMapper;
 
     /**
-     * 添加前台用户
+     * 添加前台用户（密码加密）
      *
      * @param consumer 前台用户信息
      * @return 结果
      */
     @Override
     public Boolean insert(Consumer consumer) {
+        // 对密码进行BCrypt加密
+        if (consumer.getPassword() != null && !consumer.getPassword().isEmpty()) {
+            consumer.setPassword(PasswordUtils.encode(consumer.getPassword()));
+        }
         return consumerMapper.insert(consumer) > 0;
     }
 
     /**
-     * 修改前台用户
+     * 修改前台用户（密码加密）
      *
      * @param consumer 前台用户信息
      * @return 结果
      */
     @Override
     public Boolean update(Consumer consumer) {
+        // 如果密码不为空，则加密
+        if (consumer.getPassword() != null && !consumer.getPassword().isEmpty()) {
+            consumer.setPassword(PasswordUtils.encode(consumer.getPassword()));
+        }
         return consumerMapper.update(consumer) > 0;
     }
 
@@ -74,15 +83,21 @@ public class ConsumerServiceImpl implements ConsumerService {
     }
 
     /**
-     * 查看密码是否正确
+     * 查看密码是否正确（BCrypt验证）
      *
      * @param username 用户名
-     * @param password 密码
+     * @param password 明文密码
      * @return 结果
      */
     @Override
     public Boolean verifyPassword(String username, String password) {
-        return consumerMapper.verifyPassword(username, password) > 0;
+        // 先查询用户获取加密后的密码
+        Consumer consumer = consumerMapper.getByUsername(username);
+        if (consumer == null) {
+            return false;
+        }
+        // 使用BCrypt验证明文密码与加密密码是否匹配
+        return PasswordUtils.matches(password, consumer.getPassword());
     }
 
     /**

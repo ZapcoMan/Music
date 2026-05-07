@@ -5,72 +5,130 @@ import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.mapper.SongMapper;
 import com.shanzhu.music.service.SongService;
+import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 歌曲 服务层实现类
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SongServiceImpl implements SongService {
 
     private final SongMapper songMapper;
+    private final RedisUtils redisUtils;
+    
+    // Redis缓存键前缀
+    private static final String SONG_CACHE_KEY = "music:song:";
+    private static final String ALL_SONG_KEY = SONG_CACHE_KEY + "all";
+    private static final String SONG_BY_SINGER_KEY = SONG_CACHE_KEY + "singer:";
+    private static final long CACHE_EXPIRE_HOURS = 24; // 缓存过期时间24小时
 
     /**
-     * 添加歌曲
+     * 添加歌曲（清除缓存）
      *
      * @param song 歌曲信息
      * @return 结果
      */
     @Override
     public Boolean insert(Song song) {
-        return songMapper.insert(song) > 0;
+        Boolean result = songMapper.insert(song) > 0;
+        if (result) {
+            redisUtils.deleteObject(ALL_SONG_KEY);
+            redisUtils.deleteObject(SONG_BY_SINGER_KEY + song.getSingerId());
+            log.info("新增歌曲，清除缓存");
+        }
+        return result;
     }
 
     /**
-     * 更新歌曲
+     * 更新歌曲（清除缓存）
      *
      * @param song 歌曲信息
      * @return 结果
      */
     @Override
     public Boolean update(Song song) {
-        return songMapper.update(song) > 0;
+        Boolean result = songMapper.update(song) > 0;
+        if (result) {
+            redisUtils.deleteObject(ALL_SONG_KEY);
+            redisUtils.deleteObject(SONG_CACHE_KEY + song.getId());
+            redisUtils.deleteObject(SONG_BY_SINGER_KEY + song.getSingerId());
+            log.info("更新歌曲，清除缓存");
+        }
+        return result;
     }
 
     /**
-     * 删除歌曲
+     * 删除歌曲（清除缓存）
      *
      * @param id 歌曲id
      * @return 删除结果
      */
     @Override
     public Boolean delete(Integer id) {
-        return songMapper.delete(id) > 0;
+        Song song = songMapper.selectByPrimaryKey(id);
+        Boolean result = songMapper.delete(id) > 0;
+        if (result && song != null) {
+            redisUtils.deleteObject(ALL_SONG_KEY);
+            redisUtils.deleteObject(SONG_CACHE_KEY + id);
+            redisUtils.deleteObject(SONG_BY_SINGER_KEY + song.getSingerId());
+            log.info("删除歌曲，清除缓存");
+        }
+        return result;
     }
 
     /**
-     * 根据歌曲id查询歌曲对象
+     * 根据歌曲id查询歌曲对象（带缓存）
      *
      * @param id 歌曲id
      * @return 歌曲
      */
     @Override
     public Song selectByPrimaryKey(Integer id) {
-        return songMapper.selectByPrimaryKey(id);
+        String cacheKey = SONG_CACHE_KEY + id;
+        
+        Object cachedData = redisUtils.getCacheObject(cacheKey);
+        if (cachedData != null) {
+            log.info("从Redis缓存获取歌曲数据，id={}", id);
+            return (Song) cachedData;
+        }
+        
+        log.info("从数据库查询歌曲数据，id={}", id);
+        Song song = songMapper.selectByPrimaryKey(id);
+        
+        if (song != null) {
+            redisUtils.setCacheObject(cacheKey, song, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
+        }
+        
+        return song;
     }
 
     /**
-     * 查询所有歌曲
+     * 查询所有歌曲（带缓存）
      *
      * @return 歌曲列表
      */
     @Override
     public List<Song> allSong() {
-        return songMapper.allSong();
+        Object cachedData = redisUtils.getCacheObject(ALL_SONG_KEY);
+        if (cachedData != null) {
+            log.info("从Redis缓存获取所有歌曲数据");
+            return (List<Song>) cachedData;
+        }
+        
+        log.info("从数据库查询所有歌曲数据");
+        List<Song> songs = songMapper.allSong();
+        
+        redisUtils.setCacheObject(ALL_SONG_KEY, songs, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
+        
+        return songs;
     }
 
     /**
@@ -97,14 +155,27 @@ public class SongServiceImpl implements SongService {
 
 
     /**
-     * 根据歌手id查询歌曲
+     * 根据歌手id查询歌曲（带缓存）
      *
      * @param singerId 歌手id
      * @return 歌曲列表
      */
     @Override
     public List<Song> songOfSingerId(Integer singerId) {
-        return songMapper.songOfSingerId(singerId);
+        String cacheKey = SONG_BY_SINGER_KEY + singerId;
+        
+        Object cachedData = redisUtils.getCacheObject(cacheKey);
+        if (cachedData != null) {
+            log.info("从Redis缓存获取歌手歌曲列表，singerId={}", singerId);
+            return (List<Song>) cachedData;
+        }
+        
+        log.info("从数据库查询歌手歌曲列表，singerId={}", singerId);
+        List<Song> songs = songMapper.songOfSingerId(singerId);
+        
+        redisUtils.setCacheObject(cacheKey, songs, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
+        
+        return songs;
     }
     
     /**

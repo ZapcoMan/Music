@@ -12,4 +12,8 @@
     <select id="verifyPassword" resultType="java.lang.Integer">
         select count(*) from admin where name=#{username} and password=#{password}
     </select>
+
+    <select id="getByName" resultMap="BaseResultMap" parameterType="java.lang.String">
+        select id, name, password from admin where name = #{name}
+    </select>
 </mapper>
