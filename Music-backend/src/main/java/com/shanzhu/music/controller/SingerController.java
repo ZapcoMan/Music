@@ -3,7 +3,7 @@ package com.shanzhu.music.controller;
 import cn.hutool.core.date.DatePattern;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Singer;
 import com.shanzhu.music.entity.vo.UploadPicVo;

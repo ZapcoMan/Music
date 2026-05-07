@@ -5,7 +5,7 @@
   <div class="the-header">
     <div class="header-logo" @click="goHome">
         <img :src="require('../assets/img/logo02.jpg')" style="height: 30px;">
-        <span style="color: rgba(67,52,166,0.71)">青岛科技大学音乐网</span>
+        <span style="color: rgba(67,52,166,0.71)">音乐网</span>
     </div>
     <ul class="navbar">
         <li :class="{active: item.name == activeName}" v-for="item in navMsg" :key="item.path" @click="goPage(item.path,item.name)">
@@ -15,7 +15,7 @@
             <div class="header-search">
                 <input type="text" placeholder="搜索音乐" @keyup.enter="goSearch()" v-model="keywords">
                 <div class="search-btn" @click="goSearch()">
-                    <i class="iconfont icon-search-button" style="font-size: 28px;color:white;"></i>
+<!--                    <i class="iconfont icon-search-button" style="font-size: 28px;color:white;"></i>-->
                 </div>
             </div>
         </li>
