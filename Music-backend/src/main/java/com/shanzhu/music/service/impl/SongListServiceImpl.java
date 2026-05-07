@@ -7,12 +7,14 @@ import com.shanzhu.music.entity.po.SongList;
 import com.shanzhu.music.mapper.SongListMapper;
 import com.shanzhu.music.mapper.SongMapper;
 import com.shanzhu.music.service.SongListService;
+import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 歌单 服务层实现类
@@ -24,59 +26,118 @@ public class SongListServiceImpl implements SongListService {
 
     private final SongListMapper songListMapper;
     private final SongMapper songMapper;
+    private final RedisUtils redisUtils;
+    
+    // Redis缓存键前缀
+    private static final String SONG_LIST_CACHE_KEY = "music:songlist:";
+    private static final String ALL_SONG_LIST_KEY = SONG_LIST_CACHE_KEY + "all";
+    private static final long CACHE_EXPIRE_HOURS = 24; // 缓存过期时间24小时
 
     /**
-     * 增加歌单
+     * 增加歌单（清除缓存）
      *
      * @param songList 歌单信息
      * @return 结果
      */
     @Override
     public Boolean insert(SongList songList) {
-        return songListMapper.insert(songList) > 0;
+        Boolean result = songListMapper.insert(songList) > 0;
+        // 插入成功后清除缓存
+        if (result) {
+            redisUtils.deleteObject(ALL_SONG_LIST_KEY);
+            log.info("新增歌单，清除缓存");
+        }
+        return result;
     }
 
     /**
-     * 修改歌单
+     * 修改歌单（清除缓存）
      *
      * @param songList 歌单信息
      * @return 结果
      */
     @Override
     public Boolean update(SongList songList) {
-        return songListMapper.update(songList) > 0;
+        Boolean result = songListMapper.update(songList) > 0;
+        // 更新成功后清除缓存
+        if (result) {
+            redisUtils.deleteObject(ALL_SONG_LIST_KEY);
+            // 清除单个歌单缓存
+            redisUtils.deleteObject(SONG_LIST_CACHE_KEY + songList.getId());
+            log.info("更新歌单，清除缓存");
+        }
+        return result;
     }
 
     /**
-     * 删除歌单
+     * 删除歌单（清除缓存）
      *
      * @param id 歌单id
      * @return 删除结果
      */
     @Override
     public Boolean delete(Integer id) {
-        return songListMapper.delete(id) > 0;
+        Boolean result = songListMapper.delete(id) > 0;
+        // 删除成功后清除缓存
+        if (result) {
+            redisUtils.deleteObject(ALL_SONG_LIST_KEY);
+            redisUtils.deleteObject(SONG_LIST_CACHE_KEY + id);
+            log.info("删除歌单，清除缓存");
+        }
+        return result;
     }
 
     /**
-     * 查询歌单
+     * 查询歌单（带缓存）
      *
      * @param id 歌单id
      * @return 歌单
      */
     @Override
     public SongList selectByPrimaryKey(Integer id) {
-        return songListMapper.selectByPrimaryKey(id);
+        String cacheKey = SONG_LIST_CACHE_KEY + id;
+        
+        // 先从Redis缓存中获取
+        Object cachedData = redisUtils.getCacheObject(cacheKey);
+        if (cachedData != null) {
+            log.info("从Redis缓存获取歌单数据，id={}", id);
+            return (SongList) cachedData;
+        }
+        
+        // 缓存未命中，从数据库查询
+        log.info("从数据库查询歌单数据，id={}", id);
+        SongList songList = songListMapper.selectByPrimaryKey(id);
+        
+        // 存入Redis缓存，设置24小时过期
+        if (songList != null) {
+            redisUtils.setCacheObject(cacheKey, songList, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
+        }
+        
+        return songList;
     }
 
     /**
-     * 查询所有歌单
+     * 查询所有歌单（带缓存）
      *
      * @return 歌单列表
      */
     @Override
     public List<SongList> allSongList() {
-        return songListMapper.allSongList();
+        // 先从Redis缓存中获取
+        Object cachedData = redisUtils.getCacheObject(ALL_SONG_LIST_KEY);
+        if (cachedData != null) {
+            log.info("从Redis缓存获取所有歌单数据");
+            return (List<SongList>) cachedData;
+        }
+        
+        // 缓存未命中，从数据库查询
+        log.info("从数据库查询所有歌单数据");
+        List<SongList> songList = songListMapper.allSongList();
+        
+        // 存入Redis缓存，设置24小时过期
+        redisUtils.setCacheObject(ALL_SONG_LIST_KEY, songList, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
+        
+        return songList;
     }
 
     /**

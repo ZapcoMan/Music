@@ -1,8 +1,3 @@
-# YML是一种文件格式，全称为YAML（YAML Ain't Markup Language），SpringBoot通常使用YML作为项目配置。
-# 它是一种人类可读的、简洁明了的数据序列化格式。YAML文件格式通常用于配置文件、数据交换、消息传递和其他应用程序。
-# 可以通过文本编辑器进行编辑，也可以通过程序进行解析。YML文件格式是一种以层级缩进的方式表示程序数据结构的格式。
-# 在数据表示方面比XML等格式更加简洁清晰易读。YML文件格式通常以“.yml”为扩展名。
-
 # 服务端口
 server:
   port: 9171
@@ -18,21 +13,59 @@ spring:
 
   # 数据库配置
   datasource:
-#    url: jdbc:mysql://124.223.95.146:3306/DB_Music?zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8
-#    username: root
-#    password: f048fac128243533
     url: jdbc:mysql://localhost:3308/DB_Music?zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8
     username: root
     password: admin
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.alibaba.druid.pool.DruidDataSource
-    initialSize: 5
-    minIdle: 5
-    maxWait: 60000
+    # Druid 连接池配置
+    druid:
+      initial-size: 5              # 初始连接数
+      min-idle: 5                  # 最小空闲连接数
+      max-active: 20               # 最大活跃连接数
+      max-wait: 60000              # 获取连接最大等待时间(毫秒)
+      time-between-eviction-runs-millis: 60000  # 检测间隔时间
+      min-evictable-idle-time-millis: 300000    # 最小生存时间
+      validation-query: SELECT 1   # 验证查询
+      test-while-idle: true        # 空闲时检测
+      test-on-borrow: false        # 借出时不检测
+      test-on-return: false        # 归还时不检测
+      pool-prepared-statements: true           # 开启PSCache
+      max-pool-prepared-statement-per-connection-size: 20  # PSCache大小
+      # 配置监控统计拦截的filters
+      filters: stat,wall
+      # 通过connectProperties属性来打开mergeSql功能；慢SQL记录
+      connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+      # 配置DruidStatFilter
+      web-stat-filter:
+        enabled: true
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.bmp,*.png,*.css,*.ico,/druid/*"
+      # 配置DruidStatViewServlet
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+        login-username: admin
+        login-password: admin
   #Json配置
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
+  
+  #Redis配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
   #文件上传相关配置
   servlet:
     multipart:

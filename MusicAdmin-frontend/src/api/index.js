@@ -7,6 +7,8 @@ export const getLoginStatus = (params) => post(`admin/login/status`,params);
 //============歌手相关================
 //查询歌手
 export const getAllSinger =() => get(`singer/allSinger`);
+//分页查询歌手
+export const getSingerByPage =(pageNum, pageSize) => get(`singer/allSingerByPage?pageNum=${pageNum}&pageSize=${pageSize}`);
 //添加歌手
 export const setSinger = (params) => post(`singer/add`,params);
 //编辑歌手

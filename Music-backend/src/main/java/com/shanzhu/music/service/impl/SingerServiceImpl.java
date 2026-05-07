@@ -5,70 +5,123 @@ import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.entity.po.Singer;
 import com.shanzhu.music.mapper.SingerMapper;
 import com.shanzhu.music.service.SingerService;
+import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 歌手 服务层实现类
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SingerServiceImpl implements SingerService {
 
     private final SingerMapper singerMapper;
+    private final RedisUtils redisUtils;
+    
+    // Redis缓存键前缀
+    private static final String SINGER_CACHE_KEY = "music:singer:";
+    private static final String ALL_SINGER_KEY = SINGER_CACHE_KEY + "all";
+    private static final long CACHE_EXPIRE_HOURS = 24; // 缓存过期时间24小时
 
     /**
-     * 添加歌手
+     * 添加歌手（清除缓存）
      * @param singer 歌手信息
      * @return 结果
      */
     @Override
     public Boolean insert(Singer singer) {
-        return singerMapper.insert(singer) > 0;
+        Boolean result = singerMapper.insert(singer) > 0;
+        if (result) {
+            redisUtils.deleteObject(ALL_SINGER_KEY);
+            log.info("新增歌手，清除缓存");
+        }
+        return result;
     }
 
     /**
-     * 修改歌手
+     * 修改歌手（清除缓存）
      * @param singer 歌手信息
      * @return 结果
      */
     @Override
     public Boolean update(Singer singer) {
-        return singerMapper.update(singer) > 0;
+        Boolean result = singerMapper.update(singer) > 0;
+        if (result) {
+            redisUtils.deleteObject(ALL_SINGER_KEY);
+            redisUtils.deleteObject(SINGER_CACHE_KEY + singer.getId());
+            log.info("更新歌手，清除缓存");
+        }
+        return result;
     }
 
     /**
-     * 删除歌手
+     * 删除歌手（清除缓存）
      *
      * @param id 歌手id
      * @return 删除结果
      */
     @Override
     public Boolean delete(Integer id) {
-        return singerMapper.delete(id) > 0;
+        Boolean result = singerMapper.delete(id) > 0;
+        if (result) {
+            redisUtils.deleteObject(ALL_SINGER_KEY);
+            redisUtils.deleteObject(SINGER_CACHE_KEY + id);
+            log.info("删除歌手，清除缓存");
+        }
+        return result;
     }
 
     /**
-     * 查询歌手
+     * 查询歌手（带缓存）
      *
      * @param id 歌手id
      * @return 歌手
      */
     @Override
     public Singer selectByPrimaryKey(Integer id) {
-        return singerMapper.selectByPrimaryKey(id);
+        String cacheKey = SINGER_CACHE_KEY + id;
+        
+        Object cachedData = redisUtils.getCacheObject(cacheKey);
+        if (cachedData != null) {
+            log.info("从Redis缓存获取歌手数据，id={}", id);
+            return (Singer) cachedData;
+        }
+        
+        log.info("从数据库查询歌手数据，id={}", id);
+        Singer singer = singerMapper.selectByPrimaryKey(id);
+        
+        if (singer != null) {
+            redisUtils.setCacheObject(cacheKey, singer, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
+        }
+        
+        return singer;
     }
 
     /**
-     * 查询所有歌手
+     * 查询所有歌手（带缓存）
      *
      * @return 歌手列表
      */
     @Override
     public List<Singer> allSinger() {
-        return singerMapper.allSinger();
+        Object cachedData = redisUtils.getCacheObject(ALL_SINGER_KEY);
+        if (cachedData != null) {
+            log.info("从Redis缓存获取所有歌手数据");
+            return (List<Singer>) cachedData;
+        }
+        
+        log.info("从数据库查询所有歌手数据");
+        List<Singer> singers = singerMapper.allSinger();
+        
+        redisUtils.setCacheObject(ALL_SINGER_KEY, singers, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
+        
+        return singers;
     }
 
     /**
