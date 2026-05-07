@@ -6,19 +6,28 @@ import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.mapper.ConsumerMapper;
 import com.shanzhu.music.service.ConsumerService;
 import com.shanzhu.music.utils.PasswordUtils;
+import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 前台用户相关 服务层实现类
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ConsumerServiceImpl implements ConsumerService {
 
     private final ConsumerMapper consumerMapper;
+    private final RedisUtils redisUtils;
+    
+    // Redis缓存键前缀
+    private static final String CONSUMER_CACHE_KEY = "music:consumer:";
+    private static final long CACHE_EXPIRE_HOURS = 24; // 缓存过期时间24小时
 
     /**
      * 添加前台用户（密码加密）
@@ -51,25 +60,47 @@ public class ConsumerServiceImpl implements ConsumerService {
     }
 
     /**
-     * 删除前端用户
+     * 删除前端用户（清除缓存）
      *
      * @param id 用户id
      * @return 结果
      */
     @Override
     public Boolean delete(Integer id) {
-        return consumerMapper.delete(id) > 0;
+        Consumer consumer = consumerMapper.selectByPrimaryKey(id);
+        Boolean result = consumerMapper.delete(id) > 0;
+        if (result && consumer != null) {
+            redisUtils.deleteObject(CONSUMER_CACHE_KEY + id);
+            redisUtils.deleteObject(CONSUMER_CACHE_KEY + "username:" + consumer.getUsername());
+            log.info("删除用户，清除缓存");
+        }
+        return result;
     }
 
     /**
-     * 根据主键查询整个对象
+     * 根据主键查询整个对象（带缓存）
      *
      * @param id 主键id
      * @return 前台用户
      */
     @Override
     public Consumer selectByPrimaryKey(Integer id) {
-        return consumerMapper.selectByPrimaryKey(id);
+        String cacheKey = CONSUMER_CACHE_KEY + id;
+        
+        Object cachedData = redisUtils.getCacheObject(cacheKey);
+        if (cachedData != null) {
+            log.info("从Redis缓存获取用户数据，id={}", id);
+            return (Consumer) cachedData;
+        }
+        
+        log.info("从数据库查询用户数据，id={}", id);
+        Consumer consumer = consumerMapper.selectByPrimaryKey(id);
+        
+        if (consumer != null) {
+            redisUtils.setCacheObject(cacheKey, consumer, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
+        }
+        
+        return consumer;
     }
 
     /**
@@ -83,7 +114,7 @@ public class ConsumerServiceImpl implements ConsumerService {
     }
 
     /**
-     * 查看密码是否正确（BCrypt验证）
+     * 查看密码是否正确（BCrypt验证，带缓存）
      *
      * @param username 用户名
      * @param password 明文密码
@@ -91,8 +122,8 @@ public class ConsumerServiceImpl implements ConsumerService {
      */
     @Override
     public Boolean verifyPassword(String username, String password) {
-        // 先查询用户获取加密后的密码
-        Consumer consumer = consumerMapper.getByUsername(username);
+        // 先查询用户获取加密后的密码（带缓存）
+        Consumer consumer = getByUsername(username);
         if (consumer == null) {
             return false;
         }
@@ -101,14 +132,29 @@ public class ConsumerServiceImpl implements ConsumerService {
     }
 
     /**
-     * 根据账号查询
+     * 根据账号查询（带缓存）
      *
      * @param username 账号名
      * @return 前端用户
      */
     @Override
     public Consumer getByUsername(String username) {
-        return consumerMapper.getByUsername(username);
+        String cacheKey = CONSUMER_CACHE_KEY + "username:" + username;
+        
+        Object cachedData = redisUtils.getCacheObject(cacheKey);
+        if (cachedData != null) {
+            log.info("从Redis缓存获取用户数据，username={}", username);
+            return (Consumer) cachedData;
+        }
+        
+        log.info("从数据库查询用户数据，username={}", username);
+        Consumer consumer = consumerMapper.getByUsername(username);
+        
+        if (consumer != null) {
+            redisUtils.setCacheObject(cacheKey, consumer, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
+        }
+        
+        return consumer;
     }
     
     /**

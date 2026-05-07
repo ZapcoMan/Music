@@ -4,12 +4,14 @@ import com.hankcs.hanlp.HanLP;
 import com.shanzhu.music.entity.po.Comment;
 import com.shanzhu.music.mapper.CommentMapper;
 import com.shanzhu.music.service.CommentService;
+import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Resource;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -21,16 +23,32 @@ import java.util.stream.Collectors;
 public class CommentServiceImpl implements CommentService {
     @Resource
     private final CommentMapper commentMapper;
+    private final RedisUtils redisUtils;
+    
+    // Redis缓存键前缀
+    private static final String COMMENT_CACHE_KEY = "music:comment:";
+    private static final long CACHE_EXPIRE_HOURS = 2; // 评论缓存2小时（评论变化较频繁）
 
     /**
-     * 添加评论
+     * 添加评论（清除缓存）
      *
      * @param comment 评论内容
      * @return 添加结果
      */
     @Override
     public Boolean insert(Comment comment) {
-        return commentMapper.insert(comment) > 0;
+        Boolean result = commentMapper.insert(comment) > 0;
+        if (result) {
+            // 清除相关缓存
+            if (comment.getSongId() != null) {
+                redisUtils.deleteObject(COMMENT_CACHE_KEY + "song:" + comment.getSongId());
+            }
+            if (comment.getSongListId() != null) {
+                redisUtils.deleteObject(COMMENT_CACHE_KEY + "songlist:" + comment.getSongListId());
+            }
+            log.info("新增评论，清除缓存");
+        }
+        return result;
     }
 
     /**
@@ -45,14 +63,25 @@ public class CommentServiceImpl implements CommentService {
     }
 
     /**
-     * 删除评论
+     * 删除评论（清除缓存）
      *
      * @param id 评论id
      * @return 删除结果
      */
     @Override
     public Boolean delete(Integer id) {
-        return commentMapper.delete(id) > 0;
+        Comment comment = commentMapper.selectByPrimaryKey(id);
+        Boolean result = commentMapper.delete(id) > 0;
+        if (result && comment != null) {
+            if (comment.getSongId() != null) {
+                redisUtils.deleteObject(COMMENT_CACHE_KEY + "song:" + comment.getSongId());
+            }
+            if (comment.getSongListId() != null) {
+                redisUtils.deleteObject(COMMENT_CACHE_KEY + "songlist:" + comment.getSongListId());
+            }
+            log.info("删除评论，清除缓存");
+        }
+        return result;
     }
 
     /**
@@ -77,25 +106,51 @@ public class CommentServiceImpl implements CommentService {
     }
 
     /**
-     * 查询某个歌曲下的所有评论
+     * 查询某个歌曲下的所有评论（带缓存）
      *
      * @param songId 歌曲id
      * @return 评论列表
      */
     @Override
     public List<Comment> commentOfSongId(Integer songId) {
-        return commentMapper.commentOfSongId(songId);
+        String cacheKey = COMMENT_CACHE_KEY + "song:" + songId;
+        
+        Object cachedData = redisUtils.getCacheObject(cacheKey);
+        if (cachedData != null) {
+            log.info("从Redis缓存获取歌曲评论，songId={}", songId);
+            return (List<Comment>) cachedData;
+        }
+        
+        log.info("从数据库查询歌曲评论，songId={}", songId);
+        List<Comment> comments = commentMapper.commentOfSongId(songId);
+        
+        redisUtils.setCacheObject(cacheKey, comments, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
+        
+        return comments;
     }
 
     /**
-     * 查询某个歌单下的所有评论
+     * 查询某个歌单下的所有评论（带缓存）
      *
      * @param songListId 歌单id
      * @return 评论列表
      */
     @Override
     public List<Comment> commentOfSongListId(Integer songListId) {
-        return commentMapper.commentOfSongListId(songListId);
+        String cacheKey = COMMENT_CACHE_KEY + "songlist:" + songListId;
+        
+        Object cachedData = redisUtils.getCacheObject(cacheKey);
+        if (cachedData != null) {
+            log.info("从Redis缓存获取歌单评论，songListId={}", songListId);
+            return (List<Comment>) cachedData;
+        }
+        
+        log.info("从数据库查询歌单评论，songListId={}", songListId);
+        List<Comment> comments = commentMapper.commentOfSongListId(songListId);
+        
+        redisUtils.setCacheObject(cacheKey, comments, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
+        
+        return comments;
     }
 
 
