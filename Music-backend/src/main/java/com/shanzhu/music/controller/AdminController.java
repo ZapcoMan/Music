@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
@@ -48,8 +49,8 @@ public class AdminController {
     @RequestMapping(value = "/admin/login/status", method = RequestMethod.POST)
     @RateLimit(key = "login:admin:", timeWindow = 60, maxRequests = 5, message = "登录尝试次数过多，请60秒后再试")
     public R<Map<String, Object>> loginStatus(
-            @Parameter(description = "管理员账号", required = true, example = "admin") String name,
-            @Parameter(description = "管理员密码", required = true, example = "123456") String password,
+            @Parameter(description = "管理员账号", required = true, example = "admin") @RequestParam String name,
+            @Parameter(description = "管理员密码", required = true, example = "123456") @RequestParam String password,
             HttpServletRequest request) {
         log.info("管理员登录请求 - username={}", name);
         

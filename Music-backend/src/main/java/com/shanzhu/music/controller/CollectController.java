@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -30,7 +31,7 @@ public class CollectController {
      * @return 添加结果
      */
     @PostMapping(value = "/add")
-    public R addCollect(Integer userId, Byte type, Integer songId) {
+    public R addCollect(@RequestParam Integer userId, @RequestParam Byte type, @RequestParam Integer songId) {
         if (songId == null) {
             return R.error("收藏歌曲为空");
         }
@@ -58,7 +59,7 @@ public class CollectController {
      * @return 删除结果
      */
     @GetMapping(value = "/delete")
-    public Boolean deleteCollect(Integer userId, Integer songId) {
+    public Boolean deleteCollect(@RequestParam Integer userId, @RequestParam Integer songId) {
         return CollectService.deleteByUserIdSongId(userId, songId);
     }
 
@@ -79,7 +80,7 @@ public class CollectController {
      * @return 收藏列表
      */
     @GetMapping(value = "/collectOfUserId")
-    public List<Collect> collectOfUserId(Integer userId) {
+    public List<Collect> collectOfUserId(@RequestParam Integer userId) {
         return CollectService.collectOfUserId(userId);
     }
 

@@ -29,8 +29,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins(
-                        "*",   // MusicUser-frontend
-                        "http://localhost:9172"    // MusicAdmin-frontend
+                        "http://localhost:8080",   // MusicUser-frontend
+                        "http://localhost:8081",   // MusicAdmin-frontend
+                        "http://localhost:9172"    // MusicAdmin-frontend (alternative port)
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")

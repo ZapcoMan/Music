@@ -59,17 +59,21 @@ class ConsumerControllerTest extends BaseTest {
     @Order(3)
     @DisplayName("测试用户注册")
     void testSignUp() throws Exception {
+        String jsonRequest = "{" +
+                "\"username\":\"newuser2026\"," +
+                "\"password\":\"123456\"," +
+                "\"sex\":1," +
+                "\"phoneNum\":\"13800138002\"," +
+                "\"email\":\"newuser@example.com\"," +
+                "\"birth\":\"1995-06-15\"," +
+                "\"introduction\":\"新用户\"," +
+                "\"location\":\"深圳\"," +
+                "\"avator\":\"/userImages/test.jpg\"" +
+                "}";
+        
         mockMvc.perform(MockMvcRequestBuilders.post("/consumer/add")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("username", "newuser2026")
-                .param("password", "123456")
-                .param("sex", "1")
-                .param("phoneNum", "13800138002")
-                .param("email", "newuser@example.com")
-                .param("birth", "1995-06-15")
-                .param("introduction", "新用户")
-                .param("location", "深圳")
-                .param("avator", "/userImages/test.jpg"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonRequest))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         
         System.out.println("用户注册接口测试通过");
@@ -97,17 +101,22 @@ class ConsumerControllerTest extends BaseTest {
     @Order(5)
     @DisplayName("测试修改用户信息")
     void testUpdateConsumer() throws Exception {
+        String jsonRequest = "{" +
+                "\"id\":1," +
+                "\"username\":\"testuser\"," +
+                "\"password\":\"123456\"," +
+                "\"sex\":1," +
+                "\"phoneNum\":\"13800138000\"," +
+                "\"email\":\"test@example.com\"," +
+                "\"birth\":\"1990-01-01\"," +
+                "\"introduction\":\"修改后的简介\"," +
+                "\"location\":\"广州\"," +
+                "\"avator\":\"/userImages/test.jpg\"" +
+                "}";
+        
         mockMvc.perform(MockMvcRequestBuilders.post("/consumer/update")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("id", "1")
-                .param("username", "testuser")
-                .param("sex", "1")
-                .param("phoneNum", "13800138000")
-                .param("email", "test@example.com")
-                .param("birth", "1990-01-01")
-                .param("introduction", "修改后的简介")
-                .param("location", "广州")
-                .param("avator", "/userImages/test.jpg"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonRequest))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         
         System.out.println("修改用户信息接口测试通过");

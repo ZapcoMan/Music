@@ -227,7 +227,7 @@ public class ConsumerController {
      */
     @PostMapping(value = "/login")
     @RateLimit(key = "login:consumer:", timeWindow = 60, maxRequests = 5, message = "登录尝试次数过多，请60秒后再试")
-    public R<Map<String, Object>> login(String username, String password, HttpServletRequest request) {
+    public R<Map<String, Object>> login(@RequestParam String username, @RequestParam String password, HttpServletRequest request) {
         if (StrUtil.isBlank(username) || StrUtil.isBlank(password)) {
             return R.error("用户名或者密码不能为空");
         }
