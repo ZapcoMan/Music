@@ -1,9 +1,42 @@
 ## 项目名称
 * 音乐网站
+
 ## 项目介绍
 
-**项目架构**：基于 Vue + Spring Boot + MyBatis 开发，前端采用 Vue 和 Element-UI 框架开发
-**中间件**： 使用redis 作为中间件 以提升系统的性能
+**项目架构**：基于 Vue + Spring Boot + MyBatis 开发，前端采用 Vue 和 Element-UI 框架开发  
+**中间件**：使用 Redis 作为缓存中间件以提升系统性能  
+**部署方式**：支持 Docker 容器化部署，一键启动所有服务
+
+## 🚀 快速开始 (Docker)
+
+### 前置要求
+- Docker 20.10+
+- Docker Compose 2.0+
+
+### 一键启动
+
+**Windows (PowerShell)**:
+```powershell
+.\deploy.ps1 start
+```
+
+**Linux/Mac**:
+```bash
+chmod +x deploy.sh
+./deploy.sh start
+```
+
+### 访问地址
+
+| 服务 | 地址 |
+|------|------|
+| 管理端 | http://localhost:8080 |
+| 用户端 | http://localhost:8081 |
+| API文档 | http://localhost:9171/swagger-ui.html |
+
+详细部署文档请查看:
+- [Docker 快速开始](DOCKER_QUICKSTART.md)
+- [Docker 完整部署指南](DOCKER_DEPLOYMENT.md)
 
 ## 功能实现
 

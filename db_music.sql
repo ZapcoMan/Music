@@ -1,17 +1,17 @@
 /*
  Navicat Premium Data Transfer
 
- Source Server         : mysql80
+ Source Server         : phpstudy mysql8.0
  Source Server Type    : MySQL
- Source Server Version : 80013
- Source Host           : localhost:3308
+ Source Server Version : 80012
+ Source Host           : localhost:3306
  Source Schema         : db_music
 
  Target Server Type    : MySQL
- Target Server Version : 80013
+ Target Server Version : 80012
  File Encoding         : 65001
 
- Date: 25/05/2024 01:21:53
+ Date: 07/05/2026 20:14:13
 */
 
 SET NAMES utf8mb4;
@@ -31,7 +31,7 @@ CREATE TABLE `admin`  (
 -- ----------------------------
 -- Records of admin
 -- ----------------------------
-INSERT INTO `admin` VALUES (1, 'admin', '123456');
+INSERT INTO `admin` VALUES (1, 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy');
 
 -- ----------------------------
 -- Table structure for collect
@@ -177,6 +177,30 @@ INSERT INTO `consumer` VALUES (48, '爱喝奶茶', '123456', 0, '', '', '2024-05
 INSERT INTO `consumer` VALUES (49, '顺利毕业版', '123456', 0, '', '', '2024-05-07 00:00:00', '', '', '/img/user.jpg', '2024-05-20 22:03:20', '2024-05-20 22:03:20');
 INSERT INTO `consumer` VALUES (50, '喜欢恶习差评', '123456', 0, '', '', '2024-05-10 00:00:00', '', '', '/img/user.jpg', '2024-05-20 22:44:29', '2024-05-20 22:44:29');
 INSERT INTO `consumer` VALUES (51, '总是给好评', '123456', 1, '', '', '2011-05-03 00:00:00', '', '', '/img/user.jpg', '2024-05-20 22:45:29', '2024-05-20 22:45:29');
+
+-- ----------------------------
+-- Table structure for flyway_schema_history
+-- ----------------------------
+DROP TABLE IF EXISTS `flyway_schema_history`;
+CREATE TABLE `flyway_schema_history`  (
+  `installed_rank` int(11) NOT NULL,
+  `version` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `description` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `type` varchar(20) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `script` varchar(1000) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `checksum` int(11) NULL DEFAULT NULL,
+  `installed_by` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `installed_on` timestamp(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+  `execution_time` int(11) NOT NULL,
+  `success` tinyint(1) NOT NULL,
+  PRIMARY KEY (`installed_rank`) USING BTREE,
+  INDEX `flyway_schema_history_s_idx`(`success`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of flyway_schema_history
+-- ----------------------------
+INSERT INTO `flyway_schema_history` VALUES (1, '1', 'Create Tables', 'SQL', 'V1__Create_Tables.sql', 1803123112, 'root', '2026-05-07 17:59:07', 1785, 1);
 
 -- ----------------------------
 -- Table structure for list_song
