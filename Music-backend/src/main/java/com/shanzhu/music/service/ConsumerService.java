@@ -2,7 +2,6 @@ package com.shanzhu.music.service;
 
 import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.entity.po.Consumer;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import java.util.List;
 
