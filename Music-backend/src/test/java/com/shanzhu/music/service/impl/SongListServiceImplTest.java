@@ -142,7 +142,8 @@ class SongListServiceImplTest extends BaseTest {
     @Order(8)
     @DisplayName("测试根据风格查询")
     void testSongListOfStyle() {
-        List<SongList> songLists = songListService.songListOfStyle("华语");
+        // SongListService 中对应的方法是 likeStyle
+        List<SongList> songLists = songListService.likeStyle("%华语%");
         assertNotNull(songLists, "查询结果不应为空");
         System.out.println("华语风格歌单数量: " + songLists.size());
     }
