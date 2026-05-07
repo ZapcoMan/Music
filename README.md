@@ -207,7 +207,7 @@ chmod +x deploy.sh && ./deploy.sh start
 ✅ 自动启动 MySQL、Redis、后端、前端五个服务  
 ✅ 访问 http://localhost:8080 (管理端) 或 http://localhost:8081 (用户端) 即可使用
 
-📖 详细说明：[DOCKER_QUICKSTART.md](DOCKER_QUICKSTART.md) | [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)
+📖 详细说明：[DOCKER_QUICK_START.md](DOCKER_QUICK_START.md) | [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)
 
 ---
 
@@ -333,6 +333,8 @@ Music/
 ### Swagger UI
 
 启动后端后访问: http://localhost:9171/swagger-ui.html
+
+📖 完整 API 开发文档：[API 开发文档.md](API%20开发文档.md)
 
 ### 主要接口模块
 
@@ -486,7 +488,7 @@ docker-compose -f docker-compose.prod.yml up -d
 - MySQL: `3306`
 - Redis: `6379`
 
-详细文档: [Docker 部署指南](DOCKER_DEPLOYMENT.md)
+详细文档: [Docker 部署指南](DOCKER_DEPLOYMENT.md) | [Docker 快速开始](DOCKER_QUICK_START.md)
 
 ### 传统部署
 
