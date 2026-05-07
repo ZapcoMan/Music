@@ -26,11 +26,11 @@ public class OperationLogServiceImpl implements OperationLogService {
      */
     @Async
     @Override
-    public void logOperation(OperationLog log) {
+    public void logOperation(OperationLog operationLog) {
         try {
-            log.setCreateTime(new Date());
-            operationLogMapper.insert(log);
-            log.debug("操作日志记录成功 - userId={}, operation={}", log.getUserId(), log.getOperationType());
+            operationLog.setCreateTime(new Date());
+            operationLogMapper.insert(operationLog);
+            log.debug("操作日志记录成功 - userId={}, operation={}", operationLog.getUserId(), operationLog.getOperationType());
         } catch (Exception e) {
             log.error("操作日志记录失败", e);
         }
