@@ -90,7 +90,7 @@ public class SingerController {
         Singer singer = new Singer();
         singer.setId(Integer.parseInt(id));
         singer.setName(name);
-        singer.setSex(new Byte(sex));
+        singer.setSex(Byte.parseByte(sex));
         singer.setBirth(birthDate);
         singer.setLocation(location);
         singer.setIntroduction(introduction);

@@ -170,10 +170,10 @@ public class SongController {
         if (songService.update(song)) {
             UploadPicVo uploadPicVo = new UploadPicVo();
             uploadPicVo.setPic(storeAvatorPath);
-            return new R(1, "上传成功", uploadPicVo);
+            return R.ok("上传成功", uploadPicVo);
         }
 
-        return R.error(0, "上传失败");
+        return R.error("上传失败");
     }
 
     /**
@@ -214,10 +214,10 @@ public class SongController {
         if (songService.update(song)) {
             UploadSongVo uploadSongVo = new UploadSongVo();
             uploadSongVo.setAvator(storeAvatorPath);
-            return new R(1, "上传成功", uploadSongVo);
+            return R.ok("上传成功", uploadSongVo);
         }
 
-        return R.error(0, "上传失败");
+        return R.error("上传失败");
     }
 
     /**

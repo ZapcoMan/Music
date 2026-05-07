@@ -11,7 +11,7 @@ import java.util.Map;
  */
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL) // 只序列化非 null 的字段
-public class R {
+public class R<T> {
     // 表示操作是否成功
     private Boolean success;
     // 状态码
@@ -20,7 +20,7 @@ public class R {
     private String message;
 
     // 存放数据的 Object
-    private Object data;
+    private T data;
 
     // 存放数据的 Map
     private Map<String, Object> dataMap = new HashMap<>();
@@ -37,8 +37,28 @@ public class R {
         return r;
     }
 
-    public static R success(Object data) {
-        R result = new R();
+    // 通用返回成功并携带数据的方法
+    public static <T> R<T> ok(T data) {
+        R<T> r = new R<>();
+        r.setSuccess(ResultCodeEnum.SUCCESS.getSuccess());
+        r.setCode(ResultCodeEnum.SUCCESS.getCode());
+        r.setMessage(ResultCodeEnum.SUCCESS.getMessage());
+        r.setData(data);
+        return r;
+    }
+
+    // 通用返回成功并携带消息和数据的方法
+    public static <T> R<T> ok(String message, T data) {
+        R<T> r = new R<>();
+        r.setSuccess(ResultCodeEnum.SUCCESS.getSuccess());
+        r.setCode(ResultCodeEnum.SUCCESS.getCode());
+        r.setMessage(message);
+        r.setData(data);
+        return r;
+    }
+
+    public static <T> R<T> success(T data) {
+        R<T> result = new R<>();
         result.setCode(ResultCodeEnum.SUCCESS.getCode());
         result.setData(data);
         result.setMessage("请求成功");
@@ -82,33 +102,33 @@ public class R {
      **/
 
     // 自定义返回数据的方法，接受一个 Map 作为参数
-    public R data(Map<String, Object> map) {
+    public R<T> data(Map<String, Object> map) {
         this.setData(null); // 清空 data
         this.setDataMap(map);
         return this;
     }
 
     // 通用设置data的方法，接受一个键值对作为参数
-    public R data(String key, Object value) {
+    public R<T> data(String key, Object value) {
         this.setData(null); // 清空 data
         this.dataMap.put(key, value);
         return this;
     }
 
     // 自定义状态信息的方法
-    public R message(String message) {
+    public R<T> message(String message) {
         this.setMessage(message);
         return this;
     }
 
     // 自定义状态码的方法
-    public R code(Integer code) {
+    public R<T> code(Integer code) {
         this.setCode(code);
         return this;
     }
 
     // 自定义返回结果的方法
-    public R success(Boolean success) {
+    public R<T> success(Boolean success) {
         this.setSuccess(success);
         return this;
     }

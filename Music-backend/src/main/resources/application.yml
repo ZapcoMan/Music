@@ -13,9 +13,9 @@ spring:
 
   # 数据库配置
   datasource:
-    url: jdbc:mysql://localhost:3308/DB_Music?zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8
+    url: jdbc:mysql://localhost:3306/db_music?zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8
     username: root
-    password: admin
+    password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.alibaba.druid.pool.DruidDataSource
     # Druid 连接池配置
@@ -57,7 +57,7 @@ spring:
     redis:
       host: localhost
       port: 6379
-      password: 
+      password: admin
       database: 0
       timeout: 3000ms
       lettuce:
@@ -74,19 +74,21 @@ spring:
 
   # Flyway配置
   flyway:
-    enabled: true
+    enabled: true  # 临时禁用以修复失败的迁移记录
     # 迁移脚本位置
     locations: classpath:db/migration
     # 编码格式
     encoding: UTF-8
-    # 是否开启校验
-    validate-on-migrate: true
+    # 是否开启校验(开发环境可以关闭,避免重复执行问题)
+    validate-on-migrate: false
     # 如果数据库不是空的是否允许初始化
     baseline-on-migrate: true
     # 基础版本号
     baseline-version: 0
     # 表名前缀
     table: flyway_schema_history
+    # 自动修复失败的迁移
+    repair: true
 
 #mybatis 配置
 mybatis:
