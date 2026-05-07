@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
@@ -26,8 +27,18 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private final RedisTemplate<String, Object> redisTemplate;
     private final IpUtils ipUtils;
 
+    // API限流全局开关
+    @Value("${rate-limit.enabled:true}")
+    private boolean rateLimitEnabled;
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        // 检查全局开关是否开启
+        if (!rateLimitEnabled) {
+            log.debug("API限流已全局关闭");
+            return true;
+        }
+
         // 只处理方法级别的请求
         if (!(handler instanceof HandlerMethod)) {
             return true;

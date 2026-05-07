@@ -104,6 +104,10 @@ jwt:
   secret: MusicWebsiteSecretKey2026ForJWTTokenGenerationAndValidation
   expiration: 86400000  # 24小时
 
+# API限流配置
+rate-limit:
+  enabled: true  # 开发环境开启限流
+
 # Actuator监控配置 - 开发环境开放所有端点
 management:
   endpoints:

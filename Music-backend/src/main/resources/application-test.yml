@@ -79,6 +79,10 @@ jwt:
   secret: TestSecretKeyForJUnitTestingOnly
   expiration: 3600000  # 1小时
 
+# API限流配置
+rate-limit:
+  enabled: false  # 测试环境关闭限流,避免影响单元测试
+
 # Actuator监控配置 - 测试环境开放
 management:
   endpoints:
