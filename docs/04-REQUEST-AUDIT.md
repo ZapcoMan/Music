@@ -1,8 +1,8 @@
-# 请求/响应日志拦截器配置说明
+# 请求/响应审计日志
 
 ## 📋 概述
 
-项目已配置 **RequestResponseLoggingInterceptor**,用于记录所有 API 请求和响应的详细信息,便于:
+项目已配置 **RequestResponseLoggingInterceptor**，用于记录所有 API 请求和响应的详细信息，便于：
 - 🔍 问题排查和调试
 - 📊 性能监控和分析
 - 🛡️ 安全审计和追溯
@@ -14,33 +14,33 @@
 
 ### 1. 请求日志记录
 
-记录以下信息:
-- ✅ 请求ID (唯一标识)
+记录以下信息：
+- ✅ 请求ID（唯一标识）
 - ✅ 请求时间
-- ✅ 请求方法 (GET/POST/PUT/DELETE)
+- ✅ 请求方法（GET/POST/PUT/DELETE）
 - ✅ 请求URL
 - ✅ 查询参数
-- ✅ 客户端IP (支持代理)
+- ✅ 客户端IP（支持代理）
 - ✅ User-Agent
 - ✅ Content-Type
-- ✅ 请求头 (脱敏处理)
-- ✅ 请求体 (POST/PUT/PATCH,脱敏处理)
+- ✅ 请求头（脱敏处理）
+- ✅ 请求体（POST/PUT/PATCH，脱敏处理）
 
 ### 2. 响应日志记录
 
-记录以下信息:
-- ✅ 请求ID (与请求对应)
+记录以下信息：
+- ✅ 请求ID（与请求对应）
 - ✅ 响应状态码
-- ✅ 耗时 (毫秒)
+- ✅ 耗时（毫秒）
 - ✅ 异常信息
 
 ### 3. 智能特性
 
-- 🔐 **敏感信息脱敏**: 自动隐藏密码、Token、Cookie
-- ⚡ **性能监控**: 超过3秒的慢请求会发出警告
-- 🎯 **请求追踪**: 每个请求有唯一ID,便于链路追踪
-- 🌐 **真实IP获取**: 支持多层代理场景
-- 📦 **大内容截断**: 请求体超过10KB自动截断
+- 🔐 **敏感信息脱敏**：自动隐藏密码、Token、Cookie
+- ⚡ **性能监控**：超过3秒的慢请求会发出警告
+- 🎯 **请求追踪**：每个请求有唯一ID，便于链路追踪
+- 🌐 **真实IP获取**：支持多层代理场景
+- 📦 **大内容截断**：请求体超过10KB自动截断
 
 ---
 
@@ -89,7 +89,7 @@
 【异常信息】    : NullPointerException: Cannot invoke method on null object
 ============================
 
-ERROR c.s.m.interceptor.RequestResponseLoggingInterceptor - 请求处理异常 - URL: /song/detail, Method: GET
+ERROR c.s.m.interceptor.RequestResponseLoggingInterceptor - 请求处理异常
 java.lang.NullPointerException: Cannot invoke method on null object
     at com.shanzhu.music.service.SongService.getDetail(SongService.java:45)
     ...
@@ -101,7 +101,7 @@ java.lang.NullPointerException: Cannot invoke method on null object
 
 ### 1. 拦截器注册
 
-位置: `WebMvcConfig.java`
+位置：`WebMvcConfig.java`
 
 ```java
 registry.addInterceptor(requestResponseLoggingInterceptor)
@@ -117,7 +117,7 @@ registry.addInterceptor(requestResponseLoggingInterceptor)
 
 ### 2. 排除路径
 
-以下路径不会被记录:
+以下路径不会被记录：
 - `/actuator/**` - Spring Boot Actuator 监控端点
 - `/swagger-ui/**` - Swagger UI 静态资源
 - `/v3/api-docs/**` - OpenAPI 文档接口
@@ -140,17 +140,17 @@ registry.addInterceptor(requestResponseLoggingInterceptor)
 ### 自动脱敏的字段
 
 #### 请求头
-- `Authorization`: `Bearer eyJhbGci***` (只显示前15字符)
-- `Cookie`: `***` (完全隐藏)
+- `Authorization`: `Bearer eyJhbGci***`（只显示前15字符）
+- `Cookie`: `***`（完全隐藏）
 
-#### 请求体 (JSON格式)
+#### 请求体（JSON格式）
 - `password`: `"***"`
 - `token`: `"***"`
 - `secret`: `"***"`
 
 ### 自定义脱敏规则
 
-编辑 `RequestResponseLoggingInterceptor.java`:
+编辑 `RequestResponseLoggingInterceptor.java`：
 
 ```java
 private String maskSensitiveBody(String body, String contentType) {
@@ -167,9 +167,9 @@ private String maskSensitiveBody(String body, String contentType) {
 
 ### 慢请求阈值
 
-当前配置: **3000ms (3秒)**
+当前配置：**3000ms（3秒）**
 
-修改阈值:
+修改阈值：
 ```java
 if (duration > 5000) {  // 改为5秒
     log.warn("⚠️ 慢请求警告 - URL: {}, 耗时: {} ms", request.getRequestURI(), duration);
@@ -178,10 +178,10 @@ if (duration > 5000) {  // 改为5秒
 
 ### 性能优化建议
 
-1. **异步日志**: 已配置 Logback AsyncAppender
-2. **限制日志长度**: 请求体最大10KB
-3. **排除不必要路径**: 减少无效日志
-4. **生产环境调整**: 可降低日志级别为 WARN
+1. **异步日志**：已配置 Logback AsyncAppender
+2. **限制日志长度**：请求体最大10KB
+3. **排除不必要路径**：减少无效日志
+4. **生产环境调整**：可降低日志级别为 WARN
 
 ---
 
@@ -189,9 +189,9 @@ if (duration > 5000) {  // 改为5秒
 
 ### 1. 问题排查
 
-**场景**: 用户反馈某个接口报错
+**场景**：用户反馈某个接口报错
 
-**操作**:
+**操作**：
 ```bash
 # 搜索特定请求ID
 grep "1715097600000-1234" logs/music-backend-all.log
@@ -205,9 +205,9 @@ grep "响应状态.*: 5" logs/music-backend-error.log
 
 ### 2. 性能分析
 
-**场景**: 分析接口响应时间
+**场景**：分析接口响应时间
 
-**操作**:
+**操作**：
 ```bash
 # 查找慢请求
 grep "慢请求警告" logs/music-backend-warn.log
@@ -218,9 +218,9 @@ grep "耗时" logs/music-backend-info.log | awk '{sum+=$NF; count++} END {print 
 
 ### 3. 安全审计
 
-**场景**: 检查是否有异常访问
+**场景**：检查是否有异常访问
 
-**操作**:
+**操作**：
 ```bash
 # 查看某个IP的所有请求
 grep "192.168.1.100" logs/music-backend-all.log
@@ -234,9 +234,9 @@ grep "客户端IP" logs/music-backend-all.log | sort | uniq -c | sort -rn
 
 ### 4. 接口调用统计
 
-**场景**: 统计接口调用频率
+**场景**：统计接口调用频率
 
-**操作**:
+**操作**：
 ```bash
 # 统计各接口的调用次数
 grep "请求URL" logs/music-backend-info.log | sort | uniq -c | sort -rn
@@ -292,9 +292,9 @@ logging:
 
 ## 🔍 常见问题
 
-### Q1: 如何关闭请求日志?
+### Q1: 如何关闭请求日志？
 
-**A**: 在 `application.yml` 中设置:
+**A**: 在 `application.yml` 中设置：
 ```yaml
 logging:
   level:
@@ -303,7 +303,7 @@ logging:
 
 或在 `WebMvcConfig` 中注释掉拦截器注册。
 
-### Q2: 日志太多怎么办?
+### Q2: 日志太多怎么办？
 
 **A**: 
 1. 排除不必要的路径
@@ -311,7 +311,7 @@ logging:
 3. 增加日志滚动策略的保留天数
 4. 使用 ELK 等日志分析工具
 
-### Q3: 如何查看特定用户的操作?
+### Q3: 如何查看特定用户的操作？
 
 **A**: 
 ```bash
@@ -322,30 +322,20 @@ grep "userId=123" logs/music-backend-all.log
 grep "192.168.1.100" logs/music-backend-all.log
 ```
 
-### Q4: 请求体为什么没有记录?
+### Q4: 请求体为什么没有记录？
 
 **A**: 
 - 只有 POST/PUT/PATCH 方法会记录请求体
 - GET/DELETE 方法没有请求体
 - 请求体为空时不记录
 
-### Q5: 如何添加更多脱敏规则?
+### Q5: 如何添加更多脱敏规则？
 
-**A**: 编辑 `maskSensitiveBody()` 方法:
+**A**: 编辑 `maskSensitiveBody()` 方法：
 ```java
 body = body.replaceAll("\"email\"\\s*:\\s*\"[^\"]*\"", "\"email\":\"***\"");
 body = body.replaceAll("\"address\"\\s*:\\s*\"[^\"]*\"", "\"address\":\"***\"");
 ```
-
----
-
-## 📁 文件清单
-
-| 文件 | 路径 | 说明 |
-|------|------|------|
-| `RequestResponseLoggingInterceptor.java` | `src/main/java/.../interceptor/` | 拦截器实现 (243行) |
-| `WebMvcConfig.java` | `src/main/java/.../config/` | 拦截器注册 (已更新) |
-| `REQUEST_LOGGING_CONFIG.md` | 本文件 | 配置说明文档 |
 
 ---
 
@@ -357,7 +347,7 @@ body = body.replaceAll("\"address\"\\s*:\\s*\"[^\"]*\"", "\"address\":\"***\"");
 - 微服务调用链
 
 ### 2. 日志分析平台
-- ELK Stack (Elasticsearch + Logstash + Kibana)
+- ELK Stack（Elasticsearch + Logstash + Kibana）
 - Grafana Loki
 - Splunk
 
@@ -373,16 +363,35 @@ body = body.replaceAll("\"address\"\\s*:\\s*\"[^\"]*\"", "\"address\":\"***\"");
 
 ---
 
+## 📁 文件清单
+
+| 文件 | 路径 | 说明 |
+|------|------|------|
+| `RequestResponseLoggingInterceptor.java` | `interceptor/` | 拦截器实现（243行） |
+| `WebMvcConfig.java` | `config/` | 拦截器注册（已更新） |
+
+---
+
+## 🎉 总结
+
+### 已完成的功能
+✅ 完整的请求/响应日志记录  
+✅ 唯一请求ID追踪  
+✅ 性能监控和慢请求警告  
+✅ 安全审计支持  
+✅ 敏感信息自动脱敏  
+✅ 真实IP获取（支持代理）  
+
+### 优势
+🔍 易于问题排查  
+📊 性能监控可视化  
+🛡️ 安全审计完整  
+🔐 敏感信息保护  
+
+---
+
 ## 📖 参考文档
 
 - [Spring Interceptors](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-config/interceptors.html)
 - [ContentCachingRequestWrapper](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/util/ContentCachingRequestWrapper.html)
 - [SLF4J Best Practices](https://www.slf4j.org/faq.html)
-
----
-
-**配置完成时间**: 2026-05-07  
-**拦截器类**: `RequestResponseLoggingInterceptor.java` (243 行)  
-**执行顺序**: Order 0 (最先执行)  
-
-🎉 **请求/响应日志拦截器配置完成!**
