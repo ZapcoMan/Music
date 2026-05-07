@@ -1,41 +1,40 @@
-### IntelliJ IDEA ###
+######################################
+# IntelliJ IDEA
+######################################
+.idea/
+*.iml
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
-.idea/*
-*.iml
 
-./target/
-./.idea/*.iml
+######################################
+# VS Code
+######################################
+.vscode/
 
-### NetBeans ###
+######################################
+# NetBeans
+######################################
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
-!*.idea/
-### VS Code ###
-.vscode/
-!*.iml
-.DS_Store
-./.idea/ *
-Music-backend/target/
-Music-backend/.idea
 
-# Compiled class file
+######################################
+# Maven
+######################################
+target/
+Music-backend/target/
+
+######################################
+# Compiled files
+######################################
 *.class
 
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
+######################################
+# Package Files
+######################################
 *.jar
 *.war
 *.nar
@@ -44,6 +43,28 @@ Music-backend/.idea
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+######################################
+# Log files
+######################################
+*.log
+
+######################################
+# BlueJ files
+######################################
+*.ctxt
+
+######################################
+# Mobile Tools for Java (J2ME)
+######################################
+.mtj.tmp/
+
+######################################
+# JVM crash logs
+######################################
 hs_err_pid*
 replay_pid*
+
+######################################
+# macOS
+######################################
+.DS_Store
