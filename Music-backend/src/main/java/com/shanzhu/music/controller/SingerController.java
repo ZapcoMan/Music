@@ -6,10 +6,12 @@ import cn.hutool.core.date.DateUtil;
 import com.alibaba.fastjson2.JSONObject;
 import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.common.R;
+import com.shanzhu.music.entity.dto.SingerRequest;
 import com.shanzhu.music.entity.po.Singer;
 import com.shanzhu.music.entity.vo.UploadPicVo;
 import com.shanzhu.music.service.SingerService;
 import com.shanzhu.music.utils.PathUtils;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,33 +33,26 @@ public class SingerController {
     /**
      * 添加歌手
      *
-     * @param name         姓名
-     * @param sex          性别
-     * @param pic          头像
-     * @param birth        生日
-     * @param location     地区
-     * @param introduction 简介
+     * @param request 歌手信息
      * @return 添加结果
      */
     @PostMapping(value = "/add")
-    public R addSinger(
-            String name,
-            Byte sex,
-            String pic,
-            String birth,
-            String location,
-            String introduction
-    ) {
+    public R addSinger(@Valid @RequestBody SingerRequest request) {
         //把生日转换成Date格式
-        DateTime birthDate = DateUtil.parse(birth, DatePattern.NORM_DATE_PATTERN);
+        DateTime birthDate = null;
+        if (request.getBirth() != null && !request.getBirth().isEmpty()) {
+            birthDate = DateUtil.parse(request.getBirth(), DatePattern.NORM_DATE_PATTERN);
+        }
+        
         //保存到歌手的对象中
         Singer singer = new Singer();
-        singer.setName(name);
-        singer.setSex(sex);
-        singer.setPic(pic);
+        singer.setName(request.getName());
+        singer.setSex(request.getSex());
+        singer.setPic("");
         singer.setBirth(birthDate);
-        singer.setLocation(location);
-        singer.setIntroduction(introduction);
+        singer.setLocation(request.getLocation());
+        singer.setIntroduction(request.getIntroduction());
+        
         //保存成功
         if (singerService.insert(singer)) {
             return R.ok("添加成功");
@@ -68,32 +63,26 @@ public class SingerController {
     /**
      * 修改歌手
      *
-     * @param name         姓名
-     * @param sex          性别
-     * @param birth        生日
-     * @param location     地区
-     * @param introduction 简介
+     * @param request 歌手信息
      * @return 结果
      */
     @PostMapping(value = "/update")
-    public R updateSinger(
-            String id,
-            String name,
-            String sex,
-            String birth,
-            String location,
-            String introduction
-    ) {
+    public R updateSinger(@Valid @RequestBody SingerRequest request) {
         //把生日转换成Date格式
-        DateTime birthDate = DateUtil.parse(birth, DatePattern.NORM_DATE_PATTERN);
+        DateTime birthDate = null;
+        if (request.getBirth() != null && !request.getBirth().isEmpty()) {
+            birthDate = DateUtil.parse(request.getBirth(), DatePattern.NORM_DATE_PATTERN);
+        }
+        
         //保存到歌手的对象中
         Singer singer = new Singer();
-        singer.setId(Integer.parseInt(id));
-        singer.setName(name);
-        singer.setSex(Byte.parseByte(sex));
+        singer.setId(request.getId());
+        singer.setName(request.getName());
+        singer.setSex(request.getSex());
         singer.setBirth(birthDate);
-        singer.setLocation(location);
-        singer.setIntroduction(introduction);
+        singer.setLocation(request.getLocation());
+        singer.setIntroduction(request.getIntroduction());
+        
         //保存成功
         if (singerService.update(singer)) {
             return R.ok("修改成功");

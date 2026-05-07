@@ -7,6 +7,7 @@ import cn.hutool.core.util.StrUtil;
 import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.annotation.RateLimit;
 import com.shanzhu.music.common.R;
+import com.shanzhu.music.entity.dto.ConsumerRequest;
 import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.entity.vo.ConsumerLoginVo;
 import com.shanzhu.music.entity.vo.UploadConsumerPicVo;
@@ -18,6 +19,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -49,55 +51,35 @@ public class ConsumerController {
     /**
      * 添加前台用户
      *
-     * @param username     账号
-     * @param password     密码
-     * @param sex          性别
-     * @param phoneNum     手机号
-     * @param email        电子邮箱
-     * @param birth        生日
-     * @param introduction 签名
-     * @param location     地区
-     * @param avator       头像地址
+     * @param request 用户信息
      * @return 添加结果
      */
     @Operation(summary = "注册用户", description = "注册新的前台用户账号")
     @PostMapping(value = "/add")
-    public R addConsumer(
-            @Parameter(description = "用户名", required = true, example = "testuser") String username,
-            @Parameter(description = "密码", required = true, example = "123456") String password,
-            @Parameter(description = "性别(0女 1男)", example = "1") Byte sex,
-            @Parameter(description = "手机号", example = "13800138000") String phoneNum,
-            @Parameter(description = "邮箱", example = "test@example.com") String email,
-            @Parameter(description = "生日", example = "1990-01-01") String birth,
-            @Parameter(description = "个人简介", example = "这是我的简介") String introduction,
-            @Parameter(description = "地区", example = "北京") String location,
-            @Parameter(description = "头像地址", example = "/userImages/test.jpg") String avator
-    ) {
-        //用户名、密码为空
-        if (StrUtil.isBlank(username) || StrUtil.isBlank(password)) {
-            return R.error("用户名或密码不能为空");
-        }
-
+    public R addConsumer(@Valid @RequestBody ConsumerRequest request) {
         //已经存在用户名
-        Consumer existConsumer = consumerService.getByUsername(username);
+        Consumer existConsumer = consumerService.getByUsername(request.getUsername());
         if (existConsumer != null) {
             return R.error("用户名已存在");
         }
 
         //把生日转换成Date格式
-        DateTime birthDate = DateUtil.parse(birth, DatePattern.NORM_DATE_PATTERN);
+        DateTime birthDate = null;
+        if (request.getBirth() != null && !request.getBirth().isEmpty()) {
+            birthDate = DateUtil.parse(request.getBirth(), DatePattern.NORM_DATE_PATTERN);
+        }
 
         //保存到前端用户的对象中
         Consumer consumer = new Consumer();
-        consumer.setUsername(username);
-        consumer.setPassword(password);
-        consumer.setSex(sex);
-        consumer.setPhoneNum(phoneNum);
-        consumer.setEmail(email);
+        consumer.setUsername(request.getUsername());
+        consumer.setPassword(request.getPassword());
+        consumer.setSex(request.getSex());
+        consumer.setPhoneNum(request.getPhoneNum());
+        consumer.setEmail(request.getEmail());
         consumer.setBirth(birthDate);
-        consumer.setIntroduction(introduction);
-        consumer.setLocation(location);
-        consumer.setAvator(avator);
+        consumer.setIntroduction(request.getIntroduction());
+        consumer.setLocation(request.getLocation());
+        consumer.setAvator("");
 
         //保存成功
         if (consumerService.insert(consumer)) {
@@ -109,40 +91,28 @@ public class ConsumerController {
     /**
      * 修改前台用户
      *
-     * @param id           用户id
-     * @param username     账号
-     * @param password     密码
-     * @param sex          性别
-     * @param phoneNum     手机号
-     * @param email        电子邮箱
-     * @param birth        生日
-     * @param introduction 签名
-     * @param location     地区
-     * @return 添加结果
+     * @param request 用户信息
+     * @return 修改结果
      */
     @PostMapping(value = "/update")
-    public R updateConsumer(
-            String id, String username, String password, Byte sex, String phoneNum,
-            String email, String birth, String introduction, String location
-    ) {
-        if (StrUtil.isBlank(username) || StrUtil.isBlank(password)) {
-            return R.error("用户名或密码不能为空");
-        }
-
+    public R updateConsumer(@Valid @RequestBody ConsumerRequest request) {
         //把生日转换成Date格式
-        DateTime birthDate = DateUtil.parse(birth, DatePattern.NORM_DATE_PATTERN);
+        DateTime birthDate = null;
+        if (request.getBirth() != null && !request.getBirth().isEmpty()) {
+            birthDate = DateUtil.parse(request.getBirth(), DatePattern.NORM_DATE_PATTERN);
+        }
 
         //保存到前端用户的对象中
         Consumer consumer = new Consumer();
-        consumer.setId(Integer.parseInt(id));
-        consumer.setUsername(username);
-        consumer.setPassword(password);
-        consumer.setSex(sex);
-        consumer.setPhoneNum(phoneNum);
-        consumer.setEmail(email);
+        consumer.setId(Integer.parseInt(request.getUsername())); // 注意:这里需要从Token获取ID
+        consumer.setUsername(request.getUsername());
+        consumer.setPassword(request.getPassword());
+        consumer.setSex(request.getSex());
+        consumer.setPhoneNum(request.getPhoneNum());
+        consumer.setEmail(request.getEmail());
         consumer.setBirth(birthDate);
-        consumer.setIntroduction(introduction);
-        consumer.setLocation(location);
+        consumer.setIntroduction(request.getIntroduction());
+        consumer.setLocation(request.getLocation());
 
         //保存成功
         if (consumerService.update(consumer)) {
