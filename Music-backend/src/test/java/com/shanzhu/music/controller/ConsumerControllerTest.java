@@ -102,7 +102,6 @@ class ConsumerControllerTest extends BaseTest {
     @DisplayName("测试修改用户信息")
     void testUpdateConsumer() throws Exception {
         String jsonRequest = "{" +
-                "\"id\":1," +
                 "\"username\":\"testuser\"," +
                 "\"password\":\"123456\"," +
                 "\"sex\":1," +

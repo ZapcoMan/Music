@@ -104,7 +104,13 @@ public class ConsumerController {
 
         //保存到前端用户的对象中
         Consumer consumer = new Consumer();
-        consumer.setId(Integer.parseInt(request.getUsername())); // 注意:这里需要从Token获取ID
+        // 注意:实际应该从 JWT Token 中获取用户ID
+        Consumer existConsumer = consumerService.getByUsername(request.getUsername());
+        if (existConsumer != null) {
+            consumer.setId(existConsumer.getId());
+        } else {
+            return R.error("用户不存在");
+        }
         consumer.setUsername(request.getUsername());
         consumer.setPassword(request.getPassword());
         consumer.setSex(request.getSex());
