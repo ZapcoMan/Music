@@ -5,7 +5,8 @@ out/
 .idea/*
 *.iml
 
-
+./target/
+./.idea/*.iml
 ### Eclipse ###
 .apt_generated
 .classpath
@@ -30,8 +31,9 @@ bin/
 !*.iml
 ### Mac OS ###
 .DS_Store
-
-
+./.idea/ *
+Music-backend/target/
+Music-backend/.idea
 
 # Compiled class file
 *.class
