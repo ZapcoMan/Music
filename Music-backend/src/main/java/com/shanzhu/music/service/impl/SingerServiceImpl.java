@@ -30,7 +30,7 @@ public class SingerServiceImpl implements SingerService {
     private static final long CACHE_EXPIRE_HOURS = 24; // 缓存过期时间24小时
 
     /**
-     * 添加歌手（清除缓存）
+     * 添加歌手（延时双删缓存）
      * @param singer 歌手信息
      * @return 结果
      */
@@ -38,14 +38,15 @@ public class SingerServiceImpl implements SingerService {
     public Boolean insert(Singer singer) {
         Boolean result = singerMapper.insert(singer) > 0;
         if (result) {
-            redisUtils.deleteObject(ALL_SINGER_KEY);
-            log.info("新增歌手，清除缓存");
+            // 使用延时双删策略
+            redisUtils.deleteWithDelay(ALL_SINGER_KEY);
+            log.info("新增歌手，延时双删缓存");
         }
         return result;
     }
 
     /**
-     * 修改歌手（清除缓存）
+     * 修改歌手（延时双删缓存）
      * @param singer 歌手信息
      * @return 结果
      */
@@ -53,15 +54,16 @@ public class SingerServiceImpl implements SingerService {
     public Boolean update(Singer singer) {
         Boolean result = singerMapper.update(singer) > 0;
         if (result) {
-            redisUtils.deleteObject(ALL_SINGER_KEY);
-            redisUtils.deleteObject(SINGER_CACHE_KEY + singer.getId());
-            log.info("更新歌手，清除缓存");
+            // 使用延时双删策略
+            redisUtils.deleteWithDelay(ALL_SINGER_KEY);
+            redisUtils.deleteWithDelay(SINGER_CACHE_KEY + singer.getId());
+            log.info("更新歌手，延时双删缓存");
         }
         return result;
     }
 
     /**
-     * 删除歌手（清除缓存）
+     * 删除歌手（延时双删缓存）
      *
      * @param id 歌手id
      * @return 删除结果
@@ -70,9 +72,10 @@ public class SingerServiceImpl implements SingerService {
     public Boolean delete(Integer id) {
         Boolean result = singerMapper.delete(id) > 0;
         if (result) {
-            redisUtils.deleteObject(ALL_SINGER_KEY);
-            redisUtils.deleteObject(SINGER_CACHE_KEY + id);
-            log.info("删除歌手，清除缓存");
+            // 使用延时双删策略
+            redisUtils.deleteWithDelay(ALL_SINGER_KEY);
+            redisUtils.deleteWithDelay(SINGER_CACHE_KEY + id);
+            log.info("删除歌手，延时双删缓存");
         }
         return result;
     }

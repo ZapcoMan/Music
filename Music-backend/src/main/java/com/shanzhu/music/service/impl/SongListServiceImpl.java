@@ -34,7 +34,7 @@ public class SongListServiceImpl implements SongListService {
     private static final long CACHE_EXPIRE_HOURS = 24; // 缓存过期时间24小时
 
     /**
-     * 增加歌单（清除缓存）
+     * 增加歌单（延时双删缓存）
      *
      * @param songList 歌单信息
      * @return 结果
@@ -42,16 +42,16 @@ public class SongListServiceImpl implements SongListService {
     @Override
     public Boolean insert(SongList songList) {
         Boolean result = songListMapper.insert(songList) > 0;
-        // 插入成功后清除缓存
+        // 插入成功后使用延时双删清除缓存
         if (result) {
-            redisUtils.deleteObject(ALL_SONG_LIST_KEY);
-            log.info("新增歌单，清除缓存");
+            redisUtils.deleteWithDelay(ALL_SONG_LIST_KEY);
+            log.info("新增歌单，延时双删缓存");
         }
         return result;
     }
 
     /**
-     * 修改歌单（清除缓存）
+     * 修改歌单（延时双删缓存）
      *
      * @param songList 歌单信息
      * @return 结果
@@ -59,18 +59,18 @@ public class SongListServiceImpl implements SongListService {
     @Override
     public Boolean update(SongList songList) {
         Boolean result = songListMapper.update(songList) > 0;
-        // 更新成功后清除缓存
+        // 更新成功后使用延时双删清除缓存
         if (result) {
-            redisUtils.deleteObject(ALL_SONG_LIST_KEY);
+            redisUtils.deleteWithDelay(ALL_SONG_LIST_KEY);
             // 清除单个歌单缓存
-            redisUtils.deleteObject(SONG_LIST_CACHE_KEY + songList.getId());
-            log.info("更新歌单，清除缓存");
+            redisUtils.deleteWithDelay(SONG_LIST_CACHE_KEY + songList.getId());
+            log.info("更新歌单，延时双删缓存");
         }
         return result;
     }
 
     /**
-     * 删除歌单（清除缓存）
+     * 删除歌单（延时双删缓存）
      *
      * @param id 歌单id
      * @return 删除结果
@@ -78,11 +78,11 @@ public class SongListServiceImpl implements SongListService {
     @Override
     public Boolean delete(Integer id) {
         Boolean result = songListMapper.delete(id) > 0;
-        // 删除成功后清除缓存
+        // 删除成功后使用延时双删清除缓存
         if (result) {
-            redisUtils.deleteObject(ALL_SONG_LIST_KEY);
-            redisUtils.deleteObject(SONG_LIST_CACHE_KEY + id);
-            log.info("删除歌单，清除缓存");
+            redisUtils.deleteWithDelay(ALL_SONG_LIST_KEY);
+            redisUtils.deleteWithDelay(SONG_LIST_CACHE_KEY + id);
+            log.info("删除歌单，延时双删缓存");
         }
         return result;
     }

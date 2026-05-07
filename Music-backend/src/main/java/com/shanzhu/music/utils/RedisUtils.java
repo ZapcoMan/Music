@@ -1,6 +1,7 @@
 package com.shanzhu.music.utils;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -9,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Redis工具类
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RedisUtils {
@@ -86,5 +88,41 @@ public class RedisUtils {
      */
     public Long getExpire(final String key) {
         return redisTemplate.getExpire(key, TimeUnit.SECONDS);
+    }
+
+    /**
+     * 延时双删策略 - 先删除缓存，再更新数据库，最后再次删除缓存
+     * 用于解决高并发场景下的缓存与数据库不一致问题
+     *
+     * @param key           缓存键值
+     * @param delaySeconds  第二次删除的延迟时间（秒），默认3秒
+     */
+    public void deleteWithDelay(final String key, final long delaySeconds) {
+        // 第一次删除：立即删除缓存
+        redisTemplate.delete(key);
+        log.debug("延时双删 - 第一次删除缓存: {}", key);
+        
+        // 异步执行第二次删除
+        new Thread(() -> {
+            try {
+                // 等待指定时间
+                TimeUnit.SECONDS.sleep(delaySeconds);
+                // 第二次删除：确保清除可能在此期间生成的脏数据
+                redisTemplate.delete(key);
+                log.debug("延时双删 - 第二次删除缓存: {}", key);
+            } catch (InterruptedException e) {
+                log.error("延时双删中断异常: {}", key, e);
+                Thread.currentThread().interrupt();
+            }
+        }).start();
+    }
+
+    /**
+     * 延时双删策略 - 使用默认延迟时间3秒
+     *
+     * @param key 缓存键值
+     */
+    public void deleteWithDelay(final String key) {
+        deleteWithDelay(key, 3);
     }
 }

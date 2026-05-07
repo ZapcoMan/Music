@@ -27,7 +27,7 @@ public class CollectServiceImpl implements CollectService {
     private static final long CACHE_EXPIRE_HOURS = 12; // 缓存过期时间12小时
 
     /**
-     * 添加收藏（清除缓存）
+     * 添加收藏（延时双删缓存）
      *
      * @param collect 收藏信息
      * @return 结果
@@ -36,15 +36,15 @@ public class CollectServiceImpl implements CollectService {
     public Boolean insert(Collect collect) {
         Boolean result = collectMapper.insert(collect) > 0;
         if (result) {
-            // 清除用户收藏列表缓存
-            redisUtils.deleteObject(COLLECT_CACHE_KEY + "user:" + collect.getUserId());
-            log.info("新增收藏，清除缓存，userId={}", collect.getUserId());
+            // 使用延时双删策略清除用户收藏列表缓存
+            redisUtils.deleteWithDelay(COLLECT_CACHE_KEY + "user:" + collect.getUserId());
+            log.info("新增收藏，延时双删缓存，userId={}", collect.getUserId());
         }
         return result;
     }
 
     /**
-     * 删除收藏（清除缓存）
+     * 删除收藏（延时双删缓存）
      *
      * @param id 收藏id
      * @return 结果
@@ -63,14 +63,15 @@ public class CollectServiceImpl implements CollectService {
         
         Boolean result = collectMapper.delete(id) > 0;
         if (result && userId != null) {
-            redisUtils.deleteObject(COLLECT_CACHE_KEY + "user:" + userId);
-            log.info("删除收藏，清除缓存，userId={}", userId);
+            // 使用延时双删策略清除缓存
+            redisUtils.deleteWithDelay(COLLECT_CACHE_KEY + "user:" + userId);
+            log.info("删除收藏，延时双删缓存，userId={}", userId);
         }
         return result;
     }
 
     /**
-     * 删除收藏（清除缓存）
+     * 删除收藏（延时双删缓存）
      *
      * @param userId 用户id
      * @param songId 歌曲id
@@ -80,8 +81,9 @@ public class CollectServiceImpl implements CollectService {
     public Boolean deleteByUserIdSongId(Integer userId, Integer songId) {
         Boolean result = collectMapper.deleteByUserIdSongId(userId, songId) > 0;
         if (result) {
-            redisUtils.deleteObject(COLLECT_CACHE_KEY + "user:" + userId);
-            log.info("删除收藏，清除缓存，userId={}", userId);
+            // 使用延时双删策略清除缓存
+            redisUtils.deleteWithDelay(COLLECT_CACHE_KEY + "user:" + userId);
+            log.info("删除收藏，延时双删缓存，userId={}", userId);
         }
         return result;
     }

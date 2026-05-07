@@ -30,7 +30,7 @@ public class CommentServiceImpl implements CommentService {
     private static final long CACHE_EXPIRE_HOURS = 2; // 评论缓存2小时（评论变化较频繁）
 
     /**
-     * 添加评论（清除缓存）
+     * 添加评论（延时双删缓存）
      *
      * @param comment 评论内容
      * @return 添加结果
@@ -39,14 +39,14 @@ public class CommentServiceImpl implements CommentService {
     public Boolean insert(Comment comment) {
         Boolean result = commentMapper.insert(comment) > 0;
         if (result) {
-            // 清除相关缓存
+            // 使用延时双删策略清除相关缓存
             if (comment.getSongId() != null) {
-                redisUtils.deleteObject(COMMENT_CACHE_KEY + "song:" + comment.getSongId());
+                redisUtils.deleteWithDelay(COMMENT_CACHE_KEY + "song:" + comment.getSongId());
             }
             if (comment.getSongListId() != null) {
-                redisUtils.deleteObject(COMMENT_CACHE_KEY + "songlist:" + comment.getSongListId());
+                redisUtils.deleteWithDelay(COMMENT_CACHE_KEY + "songlist:" + comment.getSongListId());
             }
-            log.info("新增评论，清除缓存");
+            log.info("新增评论，延时双删缓存");
         }
         return result;
     }
@@ -63,7 +63,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     /**
-     * 删除评论（清除缓存）
+     * 删除评论（延时双删缓存）
      *
      * @param id 评论id
      * @return 删除结果
@@ -73,13 +73,14 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = commentMapper.selectByPrimaryKey(id);
         Boolean result = commentMapper.delete(id) > 0;
         if (result && comment != null) {
+            // 使用延时双删策略清除相关缓存
             if (comment.getSongId() != null) {
-                redisUtils.deleteObject(COMMENT_CACHE_KEY + "song:" + comment.getSongId());
+                redisUtils.deleteWithDelay(COMMENT_CACHE_KEY + "song:" + comment.getSongId());
             }
             if (comment.getSongListId() != null) {
-                redisUtils.deleteObject(COMMENT_CACHE_KEY + "songlist:" + comment.getSongListId());
+                redisUtils.deleteWithDelay(COMMENT_CACHE_KEY + "songlist:" + comment.getSongListId());
             }
-            log.info("删除评论，清除缓存");
+            log.info("删除评论，延时双删缓存");
         }
         return result;
     }
