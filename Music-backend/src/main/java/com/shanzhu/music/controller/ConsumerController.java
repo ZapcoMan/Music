@@ -14,6 +14,9 @@ import com.shanzhu.music.service.ConsumerService;
 import com.shanzhu.music.utils.IpUtils;
 import com.shanzhu.music.utils.JwtUtils;
 import com.shanzhu.music.utils.PathUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +39,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/consumer")
 @RequiredArgsConstructor
+@Tag(name = "前台用户管理", description = "前台用户注册、登录、信息查询等接口")
 public class ConsumerController {
 
     private final ConsumerService consumerService;
@@ -56,10 +60,18 @@ public class ConsumerController {
      * @param avator       头像地址
      * @return 添加结果
      */
+    @Operation(summary = "注册用户", description = "注册新的前台用户账号")
     @PostMapping(value = "/add")
     public R addConsumer(
-            String username, String password, Byte sex, String phoneNum, String email,
-            String birth, String introduction, String location, String avator
+            @Parameter(description = "用户名", required = true, example = "testuser") String username,
+            @Parameter(description = "密码", required = true, example = "123456") String password,
+            @Parameter(description = "性别(0女 1男)", example = "1") Byte sex,
+            @Parameter(description = "手机号", example = "13800138000") String phoneNum,
+            @Parameter(description = "邮箱", example = "test@example.com") String email,
+            @Parameter(description = "生日", example = "1990-01-01") String birth,
+            @Parameter(description = "个人简介", example = "这是我的简介") String introduction,
+            @Parameter(description = "地区", example = "北京") String location,
+            @Parameter(description = "头像地址", example = "/userImages/test.jpg") String avator
     ) {
         //用户名、密码为空
         if (StrUtil.isBlank(username) || StrUtil.isBlank(password)) {
@@ -156,8 +168,9 @@ public class ConsumerController {
      * @param id 主键id
      * @return 前台用户
      */
+    @Operation(summary = "查询用户详情", description = "根据ID查询前台用户详细信息")
     @GetMapping(value = "/selectByPrimaryKey")
-    public Consumer selectByPrimaryKey(Integer id) {
+    public Consumer selectByPrimaryKey(@Parameter(description = "用户ID", required = true, example = "1") Integer id) {
         return consumerService.selectByPrimaryKey(id);
     }
 
@@ -166,6 +179,7 @@ public class ConsumerController {
      *
      * @return 前台用户
      */
+    @Operation(summary = "查询所有用户", description = "查询所有前台用户列表")
     @GetMapping(value = "/allConsumer")
     public List<Consumer> allConsumer() {
         return consumerService.allConsumer();
@@ -178,10 +192,11 @@ public class ConsumerController {
      * @param pageSize 每页大小，默认10
      * @return 分页结果
      */
+    @Operation(summary = "分页查询用户", description = "分页查询所有前台用户")
     @GetMapping(value = "/allConsumerByPage")
     public R<PageInfo<Consumer>> allConsumerByPage(
-            @RequestParam(defaultValue = "1") int pageNum,
-            @RequestParam(defaultValue = "10") int pageSize
+            @Parameter(description = "页码", example = "1") @RequestParam(defaultValue = "1") int pageNum,
+            @Parameter(description = "每页大小", example = "10") @RequestParam(defaultValue = "10") int pageSize
     ) {
         PageInfo<Consumer> pageInfo = consumerService.allConsumerByPage(pageNum, pageSize);
         return R.ok(pageInfo);

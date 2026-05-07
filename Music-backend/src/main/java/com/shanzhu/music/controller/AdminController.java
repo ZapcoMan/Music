@@ -7,6 +7,9 @@ import com.shanzhu.music.mapper.AdminMapper;
 import com.shanzhu.music.service.AdminService;
 import com.shanzhu.music.utils.IpUtils;
 import com.shanzhu.music.utils.JwtUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +28,7 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "管理员管理", description = "管理员登录和管理相关接口")
 public class AdminController {
 
     private final AdminService adminService;
@@ -40,9 +44,13 @@ public class AdminController {
      * @param request  HttpServletRequest
      * @return 登录结果和Token
      */
+    @Operation(summary = "管理员登录", description = "管理员使用账号密码登录,返回JWT Token(IP绑定)")
     @RequestMapping(value = "/admin/login/status", method = RequestMethod.POST)
     @RateLimit(key = "login:admin:", timeWindow = 60, maxRequests = 5, message = "登录尝试次数过多，请60秒后再试")
-    public R<Map<String, Object>> loginStatus(String name, String password, HttpServletRequest request) {
+    public R<Map<String, Object>> loginStatus(
+            @Parameter(description = "管理员账号", required = true, example = "admin") String name,
+            @Parameter(description = "管理员密码", required = true, example = "123456") String password,
+            HttpServletRequest request) {
         log.info("管理员登录请求 - username={}", name);
         
         //获取客户端IP地址
@@ -78,6 +86,7 @@ public class AdminController {
      *
      * @return modelAndView
      */
+    @Operation(summary = "管理页面", description = "返回后台管理页面")
     @GetMapping(value = "/manage")
     public ModelAndView index() {
         return new ModelAndView("/src/main/resources/static/screenIndex/index.html");
