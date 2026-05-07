@@ -33,7 +33,7 @@
             border
             style="width: 100%"
             height="680px"
-            :data="data"
+            :data="tableData"
             @selection-change="handleSelectionChange"
         >
             <el-table-column type="selection" width="40"></el-table-column>
@@ -132,11 +132,13 @@
         <div class="pagination">
             <el-pagination
                 background
-                layout="total,prev,pager,next"
+                layout="total, sizes, prev, pager, next, jumper"
                 :current-page="currentPage"
                 :page-size="pageSize"
-                :total="tableData.length"
+                :total="total"
+                :page-sizes="[5, 10, 20, 50]"
                 @current-change="handleCurrentChange"
+                @size-change="handleSizeChange"
             >
             </el-pagination>
         </div>
@@ -265,7 +267,7 @@
 </template>
 
 <script>
-import { setSinger, getAllSinger, updateSinger, delSinger } from "../api/index";
+import { setSinger, getSingerByPage, updateSinger, delSinger } from "../api/index";
 import { mixin } from "../mixins/index";
 export default {
     mixins: [mixin],
@@ -292,37 +294,13 @@ export default {
                 introduction: "",
             },
             tableData: [],
-            tempData: [],
             select_word: "",
-            pageSize: 5, //分页每页大小
+            pageSize: 10, //分页每页大小
             currentPage: 1, //当前页
+            total: 0, //总记录数
             idx: -1, //当前选择项
             multipleSelection: [], //哪些项已经打勾
         };
-    },
-    computed: {
-        //计算当前搜索结果表里的数据
-        data() {
-            return this.tableData.slice(
-                (this.currentPage - 1) * this.pageSize,
-                this.currentPage * this.pageSize
-            );
-        },
-    },
-    watch: {
-        //搜索框里面的内容发生变化的时候，搜索结果table列表的内容跟着它的内容发生变化
-        select_word: function () {
-            if (this.select_word == "") {
-                this.tableData = this.tempData;
-            } else {
-                this.tableData = [];
-                for (let item of this.tempData) {
-                    if (item.name.includes(this.select_word)) {
-                        this.tableData.push(item);
-                    }
-                }
-            }
-        },
     },
     created() {
         this.getData();
@@ -331,15 +309,21 @@ export default {
         //获取当前页
         handleCurrentChange(val) {
             this.currentPage = val;
+            this.getData();
         },
-        //查询所有歌手
+        //改变每页大小
+        handleSizeChange(val) {
+            this.pageSize = val;
+            this.currentPage = 1;
+            this.getData();
+        },
+        //查询所有歌手（服务端分页）
         getData() {
-            this.tempData = [];
-            this.tableData = [];
-            getAllSinger().then((res) => {
-                this.tempData = res;
-                this.tableData = res;
-                this.currentPage = 1;
+            getSingerByPage(this.currentPage, this.pageSize).then((res) => {
+                if (res.code === 1) {
+                    this.tableData = res.data.list;
+                    this.total = res.data.total;
+                }
             });
         },
         //添加歌手

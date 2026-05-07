@@ -33,6 +33,8 @@ export const allSong =() => get(`song/allSong`);
 //============歌单相关================
 //查询歌单
 export const getAllSongList =() => get(`songList/allSongList`);
+//分页查询歌单
+export const getSongListByPage =(pageNum, pageSize) => get(`songList/allSongListByPage?pageNum=${pageNum}&pageSize=${pageSize}`);
 //添加歌单
 export const setSongList = (params) => post(`songList/add`,params);
 //编辑歌单
@@ -51,6 +53,8 @@ export const delListSong = (songId,songListId) => get(`listSong/delete?songId=${
 //============用户相关================
 //查询用户
 export const getAllConsumer =() => get(`consumer/allConsumer`);
+//分页查询用户
+export const getConsumerByPage =(pageNum, pageSize) => get(`consumer/allConsumerByPage?pageNum=${pageNum}&pageSize=${pageSize}`);
 //添加用户
 export const setConsumer = (params) => post(`consumer/add`,params);
 //编辑用户
