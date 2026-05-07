@@ -101,6 +101,8 @@ export default {
       },
       goMenuList(path){
           if(path == 0){
+              // 清除Token和用户信息
+              localStorage.removeItem('userToken');
               this.$store.commit('setLoginIn',false);
               this.$store.commit('setIsActive',false);
               this.$router.go(0);

@@ -7,6 +7,20 @@ axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded
 //基础url
 axios.defaults.baseURL = "http://localhost:9171";
 
+//请求拦截器 - 自动携带Token
+axios.interceptors.request.use(
+    config => {
+        const token = localStorage.getItem('adminToken');
+        if (token) {
+            config.headers.Authorization = token;
+        }
+        return config;
+    },
+    error => {
+        return Promise.reject(error);
+    }
+);
+
 //响应拦截器
 axios.interceptors.response.use(
     response => {

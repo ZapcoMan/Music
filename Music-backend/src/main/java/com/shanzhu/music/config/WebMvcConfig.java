@@ -26,9 +26,14 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("*")
-                .allowedMethods("*")
-                .allowCredentials(true);
+                .allowedOrigins(
+                        "http://localhost:8080",   // MusicUser-frontend
+                        "http://localhost:8081"    // MusicAdmin-frontend
+                )
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);  // 预检请求缓存1小时
     }
 
     /**

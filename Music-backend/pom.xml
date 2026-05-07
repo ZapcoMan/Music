@@ -104,6 +104,12 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
+        <!--actuator 监控-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!--jjwt JWT工具库-->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

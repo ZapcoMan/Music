@@ -106,3 +106,28 @@ jwt:
   secret: MusicWebsiteSecretKey2026ForJWTTokenGenerationAndValidation
   # Token过期时间(毫秒),默认24小时
   expiration: 86400000
+
+# Actuator监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,loggers,threaddump,heapdump
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: always
+    info:
+      access: unrestricted
+    metrics:
+      access: unrestricted
+    env:
+      show-values: when-authorized
+  info:
+    env:
+      enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true

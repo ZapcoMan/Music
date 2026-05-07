@@ -65,7 +65,11 @@ export default {
             params.append("password", this.ruleForm.password);
             getLoginStatus(params)
                 .then((res) => {
-                    if (res.code == 1) {
+                    if (res.code == 1 || res.code == 200) {
+                        // 保存Token和用户名
+                        if (res.data && res.data.token) {
+                            localStorage.setItem('adminToken', res.data.token);
+                        }
                         localStorage.setItem(
                             "userName",
                             this.ruleForm.username
@@ -73,7 +77,7 @@ export default {
                         this.$router.push("/Info");
                         this.notify("登录成功", "success");
                     } else {
-                        this.notify("登录失败", "error");
+                        this.notify(res.msg || "登录失败", "error");
                     }
                 })
                 .catch((e) => {
@@ -93,7 +97,7 @@ export default {
                     } else {
                         this.$message({
                             showClose: true,
-                            message: e.data,
+                            message: e.data.msg || e.data.message || "登录失败",
                             type: "error",
                             duration: 5000,
                         });

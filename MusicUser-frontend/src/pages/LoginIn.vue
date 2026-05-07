@@ -62,8 +62,14 @@ export default {
             params.append('password',this.loginForm.password);
             loginIn(params)
                 .then(res => {
-                    if(res.code == 1){
+                    if(res.code == 1 || res.code == 200){
                         _this.notify('登录成功','success');
+                        
+                        // 保存Token
+                        if (res.data && res.data.token) {
+                            localStorage.setItem('userToken', res.data.token);
+                        }
+                        
                         _this.$store.commit('setLoginIn',true);
                         _this.$store.commit('setUserId',res.data.userMsg.id);
                         _this.$store.commit('setUsername',res.data.userMsg.username);
@@ -73,7 +79,7 @@ export default {
                             _this.$router.push({path: '/'});
                         },2000);
                     }else{
-                        _this.notify('用户名或密码错误','error');
+                        _this.notify(res.msg || '用户名或密码错误','error');
                     }
                 })
                 .catch(err => {

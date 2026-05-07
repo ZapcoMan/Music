@@ -78,6 +78,8 @@ export default {
         },
         handleCommand(command){
             if(command == "logout"){
+                // 清除Token和用户名
+                localStorage.removeItem('adminToken');
                 localStorage.removeItem('userName');
                 this.$router.push("/");
             }

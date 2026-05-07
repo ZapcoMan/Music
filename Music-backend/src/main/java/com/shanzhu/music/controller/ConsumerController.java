@@ -16,6 +16,7 @@ import com.shanzhu.music.utils.JwtUtils;
 import com.shanzhu.music.utils.PathUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,6 +32,7 @@ import java.util.Map;
  * @author: ShanZhu
  * @date: 2023-11-25
  */
+@Slf4j
 @RestController
 @RequestMapping("/consumer")
 @RequiredArgsConstructor
