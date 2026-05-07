@@ -95,7 +95,7 @@
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
-            <version>5.8.34</version>
+            <version>5.8.41</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/com.hankcs/hanlp -->
@@ -114,7 +114,6 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <executable>true</executable>
-                    <fork>true</fork>
                 </configuration>
             </plugin>
         </plugins>
