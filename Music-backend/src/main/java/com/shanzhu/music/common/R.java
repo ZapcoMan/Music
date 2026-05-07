@@ -37,6 +37,15 @@ public class R<T> {
         return r;
     }
 
+    // 通用返回成功并携带消息的方法
+    public static R ok(String message) {
+        R r = new R();
+        r.setSuccess(ResultCodeEnum.SUCCESS.getSuccess());
+        r.setCode(ResultCodeEnum.SUCCESS.getCode());
+        r.setMessage(message);
+        return r;
+    }
+
     // 通用返回成功并携带数据的方法
     public static <T> R<T> ok(T data) {
         R<T> r = new R<>();
