@@ -1,5 +1,7 @@
 package com.shanzhu.music.service.impl;
 
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.mapper.SongMapper;
 import com.shanzhu.music.service.SongService;
@@ -103,6 +105,23 @@ public class SongServiceImpl implements SongService {
     @Override
     public List<Song> songOfSingerId(Integer singerId) {
         return songMapper.songOfSingerId(singerId);
+    }
+    
+    /**
+     * 分页查询所有歌曲
+     *
+     * @param pageNum 页码
+     * @param pageSize 每页大小
+     * @return 分页结果
+     */
+    @Override
+    public PageInfo<Song> allSongByPage(int pageNum, int pageSize) {
+        // 开启分页
+        PageHelper.startPage(pageNum, pageSize);
+        // 执行查询
+        List<Song> list = songMapper.allSong();
+        // 封装分页结果
+        return new PageInfo<>(list);
     }
 
 }

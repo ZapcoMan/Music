@@ -4,6 +4,7 @@ import cn.hutool.core.date.DatePattern;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
+import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.entity.vo.ConsumerLoginVo;
@@ -158,6 +159,22 @@ public class ConsumerController {
     @GetMapping(value = "/allConsumer")
     public List<Consumer> allConsumer() {
         return consumerService.allConsumer();
+    }
+    
+    /**
+     * 分页查询所有前台用户
+     *
+     * @param pageNum 页码，默认1
+     * @param pageSize 每页大小，默认10
+     * @return 分页结果
+     */
+    @GetMapping(value = "/allConsumerByPage")
+    public R<PageInfo<Consumer>> allConsumerByPage(
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        PageInfo<Consumer> pageInfo = consumerService.allConsumerByPage(pageNum, pageSize);
+        return R.ok(pageInfo);
     }
 
     /**

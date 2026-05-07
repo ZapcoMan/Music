@@ -4,6 +4,7 @@ import cn.hutool.core.date.DatePattern;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
 import com.alibaba.fastjson2.JSONObject;
+import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Singer;
 import com.shanzhu.music.entity.vo.UploadPicVo;
@@ -130,6 +131,22 @@ public class SingerController {
     @GetMapping(value = "/allSinger")
     public List<Singer> allSinger() {
         return singerService.allSinger();
+    }
+    
+    /**
+     * 分页查询所有歌手
+     *
+     * @param pageNum 页码，默认1
+     * @param pageSize 每页大小，默认10
+     * @return 分页结果
+     */
+    @GetMapping(value = "/allSingerByPage")
+    public R<PageInfo<Singer>> allSingerByPage(
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        PageInfo<Singer> pageInfo = singerService.allSingerByPage(pageNum, pageSize);
+        return R.ok(pageInfo);
     }
 
     /**

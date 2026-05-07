@@ -1,5 +1,7 @@
 package com.shanzhu.music.service.impl;
 
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.mapper.ConsumerMapper;
 import com.shanzhu.music.service.ConsumerService;
@@ -92,6 +94,23 @@ public class ConsumerServiceImpl implements ConsumerService {
     @Override
     public Consumer getByUsername(String username) {
         return consumerMapper.getByUsername(username);
+    }
+    
+    /**
+     * 分页查询所有前台用户
+     *
+     * @param pageNum 页码
+     * @param pageSize 每页大小
+     * @return 分页结果
+     */
+    @Override
+    public PageInfo<Consumer> allConsumerByPage(int pageNum, int pageSize) {
+        // 开启分页
+        PageHelper.startPage(pageNum, pageSize);
+        // 执行查询
+        List<Consumer> list = consumerMapper.allConsumer();
+        // 封装分页结果
+        return new PageInfo<>(list);
     }
 
 }

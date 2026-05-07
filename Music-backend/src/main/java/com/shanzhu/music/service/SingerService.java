@@ -1,5 +1,6 @@
 package com.shanzhu.music.service;
 
+import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.entity.po.Singer;
 
 import java.util.List;
@@ -63,5 +64,14 @@ public interface SingerService {
      * @return 歌手列表
      */
     List<Singer> singerOfSex(Integer sex);
+    
+    /**
+     * 分页查询所有歌手
+     *
+     * @param pageNum 页码
+     * @param pageSize 每页大小
+     * @return 分页结果
+     */
+    PageInfo<Singer> allSingerByPage(int pageNum, int pageSize);
 
 }

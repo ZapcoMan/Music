@@ -1,5 +1,6 @@
 package com.shanzhu.music.service;
 
+import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.entity.po.SongList;
 
@@ -75,4 +76,13 @@ public interface SongListService {
     List<SongList> likeStyle(String style);
 
      List<Song> queryRecommendedSongById(String id);
+    
+    /**
+     * 分页查询所有歌单
+     *
+     * @param pageNum 页码
+     * @param pageSize 每页大小
+     * @return 分页结果
+     */
+    PageInfo<SongList> allSongListByPage(int pageNum, int pageSize);
 }

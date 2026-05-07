@@ -1,5 +1,6 @@
 package com.shanzhu.music.controller;
 
+import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.entity.vo.UploadPicVo;
@@ -260,6 +261,22 @@ public class SongController {
     @GetMapping(value = "/allSong")
     public Object allSong() {
         return songService.allSong();
+    }
+    
+    /**
+     * 分页查询所有歌曲
+     *
+     * @param pageNum 页码，默认1
+     * @param pageSize 每页大小，默认10
+     * @return 分页结果
+     */
+    @GetMapping(value = "/allSongByPage")
+    public R<PageInfo<Song>> allSongByPage(
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        PageInfo<Song> pageInfo = songService.allSongByPage(pageNum, pageSize);
+        return R.ok(pageInfo);
     }
 
 }

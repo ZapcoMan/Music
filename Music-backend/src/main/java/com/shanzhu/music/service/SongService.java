@@ -1,5 +1,6 @@
 package com.shanzhu.music.service;
 
+import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.entity.po.Song;
 
 import java.util.List;
@@ -71,4 +72,13 @@ public interface SongService {
      * @return 歌曲列表
      */
     List<Song> songOfSingerId(Integer singerId);
+    
+    /**
+     * 分页查询所有歌曲
+     *
+     * @param pageNum 页码
+     * @param pageSize 每页大小
+     * @return 分页结果
+     */
+    PageInfo<Song> allSongByPage(int pageNum, int pageSize);
 }

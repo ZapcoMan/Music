@@ -1,5 +1,6 @@
 package com.shanzhu.music.service;
 
+import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.entity.po.Consumer;
 import com.sun.org.apache.xpath.internal.operations.Bool;
 
@@ -65,4 +66,13 @@ public interface ConsumerService {
      * @return 前端用户
      */
     Consumer getByUsername(String username);
+    
+    /**
+     * 分页查询所有前台用户
+     *
+     * @param pageNum 页码
+     * @param pageSize 每页大小
+     * @return 分页结果
+     */
+    PageInfo<Consumer> allConsumerByPage(int pageNum, int pageSize);
 }

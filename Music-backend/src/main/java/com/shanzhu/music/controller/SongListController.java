@@ -1,5 +1,6 @@
 package com.shanzhu.music.controller;
 
+import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.entity.po.SongList;
@@ -206,6 +207,22 @@ public class SongListController {
         List<Song> songLists = songListService.queryRecommendedSongById(id);
 //        log.info("songLists : {}",songLists.toString());
         return R.ok("OK",songLists);
+    }
+    
+    /**
+     * 分页查询所有歌单
+     *
+     * @param pageNum 页码，默认1
+     * @param pageSize 每页大小，默认10
+     * @return 分页结果
+     */
+    @GetMapping(value = "/allSongListByPage")
+    public R<PageInfo<SongList>> allSongListByPage(
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        PageInfo<SongList> pageInfo = songListService.allSongListByPage(pageNum, pageSize);
+        return R.ok(pageInfo);
     }
 
 }
