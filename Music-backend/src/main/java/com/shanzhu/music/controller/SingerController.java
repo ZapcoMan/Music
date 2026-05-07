@@ -118,7 +118,7 @@ public class SingerController {
      * @param id 歌手id
      * @return 歌手
      */
-    @GetMapping(value = "/selectByP rimaryKey")
+    @GetMapping(value = "/selectByPrimaryKey")
     public Singer selectByPrimaryKey(Integer id) {
         return singerService.selectByPrimaryKey(id);
     }
