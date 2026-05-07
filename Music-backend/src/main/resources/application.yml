@@ -39,6 +39,22 @@ spring:
       max-file-size: 1024MB
       max-request-size: 1024MB
 
+  # Flyway配置
+  flyway:
+    enabled: true
+    # 迁移脚本位置
+    locations: classpath:db/migration
+    # 编码格式
+    encoding: UTF-8
+    # 是否开启校验
+    validate-on-migrate: true
+    # 如果数据库不是空的是否允许初始化
+    baseline-on-migrate: true
+    # 基础版本号
+    baseline-version: 0
+    # 表名前缀
+    table: flyway_schema_history
+
 #mybatis 配置
 mybatis:
   type-aliases-package: com.shanzhu.music.entity
