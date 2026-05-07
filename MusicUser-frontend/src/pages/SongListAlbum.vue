@@ -122,11 +122,11 @@ export default {
                 params.append('score',this.rank *2);
                 setRank(params)
                     .then(res => {
-                        if(res.code == 1){
-                            this.notify('评分成功','success');
+                        if(res.code == 20000 || res.success === true){
+                            this.notify(res.message || '评分成功','success');
                             this.getRank(this.songListId);
                         }else{
-                            this.notify('评分失败','error');
+                            this.notify(res.message || '评分失败','error');
                         }
                     })
                     .catch(err =>{

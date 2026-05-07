@@ -62,8 +62,8 @@ export default {
             params.append('password',this.loginForm.password);
             loginIn(params)
                 .then(res => {
-                    if(res.code == 1 || res.code == 200){
-                        _this.notify('登录成功','success');
+                    if(res.code == 20000 || res.success === true){
+                        _this.notify(res.message || '登录成功','success');
                         
                         // 保存Token
                         if (res.data && res.data.token) {
@@ -79,7 +79,7 @@ export default {
                             _this.$router.push({path: '/'});
                         },2000);
                     }else{
-                        _this.notify(res.msg || '用户名或密码错误','error');
+                        _this.notify(res.message || '用户名或密码错误','error');
                     }
                 })
                 .catch(err => {
