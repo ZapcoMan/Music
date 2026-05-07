@@ -76,23 +76,7 @@ export default {
       recommendedsongsList: [
         {name: "推荐歌曲", list: [], icon: "iconfont icon-r-list"},
       ],
-      tableData: [{
-        date: '2016-05-02',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1518 弄'
-      }, {
-        date: '2016-05-04',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1517 弄'
-      }, {
-        date: '2016-05-01',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1519 弄'
-      }, {
-        date: '2016-05-03',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1516 弄'
-      }]
+      tableData: []  // 初始化为空数组，等待后端数据
     };
   },
   created() {
@@ -106,7 +90,12 @@ export default {
       //获取前十条歌单
       getAllSongList()
         .then((res) => {
-          this.songsList[0].list = res.slice(0, 10);
+          // 处理后端可能返回 List<SongList> 或 R<List<SongList>>
+          if (Array.isArray(res)) {
+            this.songsList[0].list = res.slice(0, 10);
+          } else if (res.code === 20000 || res.success === true) {
+            this.songsList[0].list = res.data.slice(0, 10);
+          }
         })
         .catch((e) => {
           if (e.data == undefined) {
@@ -136,7 +125,12 @@ export default {
       //获取前十名歌手
       getAllSinger()
         .then((res) => {
-          this.songsList[1].list = res.slice(0, 10);
+          // 处理后端可能返回 List<Singer> 或 R<List<Singer>>
+          if (Array.isArray(res)) {
+            this.songsList[1].list = res.slice(0, 10);
+          } else if (res.code === 20000 || res.success === true) {
+            this.songsList[1].list = res.data.slice(0, 10);
+          }
         })
         .catch((e) => {
           if (e.data == undefined) {
@@ -165,11 +159,20 @@ export default {
     getRecommendedsongsList() {
      const userId = JSON.parse(window.sessionStorage.getItem('userId'))
       console.log('userId : '+ userId)
-      //获取前十条歌单
+      //获取推荐歌曲
       getRecommendedsongsList(userId)
         .then((res) => {
-          // this.recommendedsongsList[0].list = res.data.slice(0, 10);
-          this.tableData = res.data;
+          // 处理后端返回 R<List<Song>>
+          if (res.code === 20000 || res.success === true) {
+            this.tableData = res.data;
+          } else {
+            this.$message({
+              showClose: true,
+              message: res.message || '获取推荐歌曲失败',
+              type: "error",
+              duration: 5000,
+            });
+          }
         })
         .catch((e) => {
           if (e.data == undefined) {

@@ -65,7 +65,7 @@ export default {
             params.append("password", this.ruleForm.password);
             getLoginStatus(params)
                 .then((res) => {
-                    if (res.code == 1 || res.code == 200) {
+                    if (res.code == 20000 || res.success === true) {
                         // 保存Token和用户名
                         if (res.data && res.data.token) {
                             localStorage.setItem('adminToken', res.data.token);
@@ -75,9 +75,9 @@ export default {
                             this.ruleForm.username
                         );
                         this.$router.push("/Info");
-                        this.notify("登录成功", "success");
+                        this.notify(res.message || "登录成功", "success");
                     } else {
-                        this.notify(res.msg || "登录失败", "error");
+                        this.notify(res.message || "登录失败", "error");
                     }
                 })
                 .catch((e) => {

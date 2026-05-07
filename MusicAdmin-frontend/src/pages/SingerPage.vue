@@ -320,9 +320,11 @@ export default {
         //查询所有歌手（服务端分页）
         getData() {
             getSingerByPage(this.currentPage, this.pageSize).then((res) => {
-                if (res.code === 1) {
+                if (res.code === 20000 || res.success === true) {
                     this.tableData = res.data.list;
                     this.total = res.data.total;
+                } else {
+                    this.notify(res.message || '获取歌手列表失败', 'error');
                 }
             });
         },
@@ -341,11 +343,11 @@ export default {
 
             setSinger(params)
                 .then((res) => {
-                    if (res.code == 1) {
+                    if (res.code == 20000 || res.success === true) {
                         this.getData();
-                        this.notify("添加成功", "success");
+                        this.notify(res.message || "添加成功", "success");
                     } else {
-                        this.notify("添加失败", "error");
+                        this.notify(res.message || "添加失败", "error");
                     }
                 })
                 .catch((err) => {
@@ -380,11 +382,11 @@ export default {
 
             updateSinger(params)
                 .then((res) => {
-                    if (res.code == 1) {
+                    if (res.code == 20000 || res.success === true) {
                         this.getData();
-                        this.notify("修改成功", "success");
+                        this.notify(res.message || "修改成功", "success");
                     } else {
-                        this.notify("修改失败", "error");
+                        this.notify(res.message || "修改失败", "error");
                     }
                 })
                 .catch((err) => {
@@ -400,7 +402,7 @@ export default {
         deleteRow() {
             delSinger(this.idx)
                 .then((res) => {
-                    if (res) {
+                    if (res === true) {
                         this.getData();
                         this.notify("删除成功", "success");
                     } else {

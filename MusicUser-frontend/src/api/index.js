@@ -73,5 +73,5 @@ export const getAllComment = (type,id) => {
 export const setCollect =(params) => post(`/collect/add`,params);
 //指定用户的收藏列表
 export const getCollectOfUserId = (userId) => get(`/collect/collectOfUserId?userId=${userId}`);
-export const  delCollectOfUserId = (userId,songId) => get(`/collect/delete?userId=${userId}&&songId=${songId}`)
+export const  delCollectOfUserId = (userId,songId) => get(`/collect/delete?userId=${userId}&songId=${songId}`)
 export const getfeaturedComment =(songId) => get(`/comment/frequent-words?songId=${songId}`)
