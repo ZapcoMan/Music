@@ -1,0 +1,156 @@
+# ==================== 生产环境配置 ====================
+
+# 服务端口
+server:
+  port: 9171
+
+# Spring配置
+spring:
+  mvc:
+    static-path-pattern: /**
+  
+  # 热部署 - 生产环境关闭
+  devtools:
+    restart:
+      enabled: false
+
+  # 数据库配置 - 生产MySQL
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/db_music?zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      initial-size: 10              # 初始连接数增加
+      min-idle: 10                  # 最小空闲连接数增加
+      max-active: 50                # 最大活跃连接数增加
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 20
+      filters: stat,wall
+      connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+      web-stat-filter:
+        enabled: false              # 生产环境关闭Web监控
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.bmp,*.png,*.css,*.ico,/druid/*"
+      stat-view-servlet:
+        enabled: false              # 生产环境关闭Druid监控页面
+        url-pattern: /druid/*
+        login-username: admin
+        login-password: admin
+  
+  # Json配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  
+  # Redis配置 - 生产Redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:admin}
+      database: 0
+      timeout: 5000ms               # 超时时间增加
+      lettuce:
+        pool:
+          max-active: 20            # 连接池大小增加
+          max-wait: -1ms
+          max-idle: 10
+          min-idle: 5
+  
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 1024MB
+      max-request-size: 1024MB
+
+  # Flyway配置 - 生产环境开启校验
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    encoding: UTF-8
+    validate-on-migrate: true       # 开启校验
+    baseline-on-migrate: true
+    baseline-version: 0
+    table: flyway_schema_history
+    repair: false                   # 生产环境关闭自动修复
+
+# MyBatis配置
+mybatis:
+  type-aliases-package: com.shanzhu.music.entity
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    # 生产环境关闭SQL日志
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+
+# PageHelper分页配置
+pagehelper:
+  helper-dialect: mysql
+  reasonable: true
+  support-methods-arguments: true
+  params: count=countSql
+
+# JWT配置 - 生产环境使用环境变量
+jwt:
+  secret: ${JWT_SECRET:MusicWebsiteSecretKey2026ForJWTTokenGenerationAndValidation}
+  expiration: 86400000  # 24小时
+
+# Actuator监控配置 - 生产环境限制端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus  # 只开放必要端点
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized   # 需要认证才显示详情
+      show-components: always
+    info:
+      access: unrestricted
+    metrics:
+      access: unrestricted
+    env:
+      show-values: when-authorized    # 需要认证才显示值
+  info:
+    env:
+      enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# SpringDoc OpenAPI配置 - 生产环境关闭
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: false                    # 生产环境关闭
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: false                    # 生产环境关闭
+
+# 日志配置 - 生产环境简化日志
+logging:
+  level:
+    root: WARN
+    com.shanzhu.music: INFO           # 业务代码INFO级别
+    com.shanzhu.music.mapper: WARN    # 关闭SQL日志
+    com.shanzhu.music.interceptor: WARN  # 拦截器只记录警告
+    org.springframework: WARN
+    org.springframework.security: WARN
+    org.hibernate: ERROR
+    com.alibaba.druid: WARN
+    org.springframework.data.redis: WARN
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 90                 # 保留更长时间
+      total-size-cap: 20GB            # 总容量增加

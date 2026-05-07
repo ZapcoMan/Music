@@ -1,0 +1,163 @@
+# ==================== 开发环境配置 ====================
+
+# 服务端口
+server:
+  port: 9171
+
+# Spring配置
+spring:
+  mvc:
+    static-path-pattern: /**
+  
+  # 热部署配置
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: src/main/java
+
+  # 数据库配置 - 本地MySQL
+  datasource:
+    url: jdbc:mysql://localhost:3306/db_music?zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      pool-prepared-statements: true
+      max-pool-prepared-statement-per-connection-size: 20
+      filters: stat,wall
+      connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=3000
+      web-stat-filter:
+        enabled: true
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.bmp,*.png,*.css,*.ico,/druid/*"
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+        login-username: admin
+        login-password: admin
+  
+  # Json配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  
+  # Redis配置 - 本地Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: admin
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
+  
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 1024MB
+      max-request-size: 1024MB
+
+  # Flyway配置 - 开发环境开启自动迁移
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    encoding: UTF-8
+    validate-on-migrate: false
+    baseline-on-migrate: true
+    baseline-version: 0
+    table: flyway_schema_history
+    repair: true
+
+# MyBatis配置
+mybatis:
+  type-aliases-package: com.shanzhu.music.entity
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    # 开发环境开启SQL日志
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+# PageHelper分页配置
+pagehelper:
+  helper-dialect: mysql
+  reasonable: true
+  support-methods-arguments: true
+  params: count=countSql
+
+# JWT配置
+jwt:
+  secret: MusicWebsiteSecretKey2026ForJWTTokenGenerationAndValidation
+  expiration: 86400000  # 24小时
+
+# Actuator监控配置 - 开发环境开放所有端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"  # 开发环境开放所有端点
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    info:
+      access: unrestricted
+    metrics:
+      access: unrestricted
+    env:
+      show-values: always
+  info:
+    env:
+      enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# SpringDoc OpenAPI配置
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: alpha
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.shanzhu.music.controller
+
+# 日志配置 - 开发环境详细日志
+logging:
+  level:
+    root: INFO
+    com.shanzhu.music: DEBUG          # 业务代码DEBUG级别
+    com.shanzhu.music.mapper: DEBUG   # MyBatis SQL日志
+    com.shanzhu.music.interceptor: DEBUG  # 拦截器日志
+    org.springframework: INFO
+    org.springframework.security: INFO
+    org.hibernate: WARN
+    com.alibaba.druid: INFO
+    org.springframework.data.redis: INFO
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 15
+      total-size-cap: 5GB

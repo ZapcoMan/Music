@@ -2,6 +2,7 @@ package com.shanzhu.music.config;
 
 import com.shanzhu.music.interceptor.JwtAuthenticationInterceptor;
 import com.shanzhu.music.interceptor.RateLimitInterceptor;
+import com.shanzhu.music.interceptor.RequestResponseLoggingInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -17,6 +18,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     private final JwtAuthenticationInterceptor jwtAuthenticationInterceptor;
     private final RateLimitInterceptor rateLimitInterceptor;
+    private final RequestResponseLoggingInterceptor requestResponseLoggingInterceptor;
 
     /**
      * 增加跨域支持
@@ -43,6 +45,17 @@ public class WebMvcConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // 请求/响应日志拦截器 - 最先执行,记录所有请求
+        registry.addInterceptor(requestResponseLoggingInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns(
+                        "/actuator/**",      // 排除监控端点
+                        "/swagger-ui/**",    // 排除Swagger UI
+                        "/v3/api-docs/**",   // 排除API文档
+                        "/error"             // 排除错误页面
+                )
+                .order(0);
+
         // JWT认证拦截器 - 对所有接口生效,但只在有Token时验证
         registry.addInterceptor(jwtAuthenticationInterceptor)
                 .addPathPatterns("/**")
