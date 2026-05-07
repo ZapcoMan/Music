@@ -6,12 +6,14 @@ import com.shanzhu.music.service.RankService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 评价 控制层
  */
 @RestController
+@RequestMapping("/rank")
 @RequiredArgsConstructor
 public class RankController {
 
@@ -25,7 +27,7 @@ public class RankController {
      * @param score      评价
      * @return 结果
      */
-    @PostMapping(value = "/rank/add")
+    @PostMapping(value = "/add")
     public R add(Integer songListId, Integer consumerId, Integer score) {
         Rank rank = new Rank();
         rank.setSongListId(songListId);
@@ -45,7 +47,7 @@ public class RankController {
      * @param songListId 歌单id
      * @return 结果
      */
-    @GetMapping(value = "/rank")
+    @GetMapping
     public Integer rankOfSongListId(String songListId) {
         return rankService.rankOfSongListId(Integer.parseInt(songListId));
     }

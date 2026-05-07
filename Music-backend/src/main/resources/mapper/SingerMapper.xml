@@ -17,7 +17,7 @@
         id,name,sex,pic,birth,location,introduction
     </sql>
 
-    <insert id="insert" parameterType="com.shanzhu.music.entity.po.Singer">
+    <insert id="insert" parameterType="com.shanzhu.music.entity.po.Singer" useGeneratedKeys="true" keyProperty="id">
         insert into singer
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">

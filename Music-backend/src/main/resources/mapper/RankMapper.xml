@@ -10,7 +10,7 @@
         <result column="score" jdbcType="INTEGER" property="score"/>
     </resultMap>
 
-    <insert id="insert" parameterType="com.shanzhu.music.entity.po.Rank">
+    <insert id="insert" parameterType="com.shanzhu.music.entity.po.Rank" useGeneratedKeys="true" keyProperty="id">
         insert into `ranks`
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">

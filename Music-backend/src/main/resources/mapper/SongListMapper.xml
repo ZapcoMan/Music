@@ -21,7 +21,7 @@
         ,title,pic,style,introduction
     </sql>
 
-    <insert id="insert" parameterType="com.shanzhu.music.entity.po.SongList">
+    <insert id="insert" parameterType="com.shanzhu.music.entity.po.SongList" useGeneratedKeys="true" keyProperty="id">
         insert into song_list
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">

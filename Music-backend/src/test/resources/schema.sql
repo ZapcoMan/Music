@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS `song` (
     `name` VARCHAR(255) NOT NULL,
     `introduction` TEXT,
     `pic` VARCHAR(255),
+    `lyric` TEXT,
     `url` VARCHAR(255),
     `create_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `update_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -84,6 +85,14 @@ CREATE TABLE IF NOT EXISTS `comment` (
     `create_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `type` TINYINT NOT NULL,
     `up` INT DEFAULT 0
+);
+
+-- 评价表
+CREATE TABLE IF NOT EXISTS `ranks` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `song_list_id` INT NOT NULL,
+    `consumer_id` INT NOT NULL,
+    `score` INT NOT NULL
 );
 
 -- 插入测试数据

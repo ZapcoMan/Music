@@ -16,7 +16,7 @@
         id,user_id,type,song_id,song_list_id,create_time
     </sql>
 
-    <insert id="insert" parameterType="com.shanzhu.music.entity.po.Collect">
+    <insert id="insert" parameterType="com.shanzhu.music.entity.po.Collect" useGeneratedKeys="true" keyProperty="id">
         insert into collect
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">

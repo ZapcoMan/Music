@@ -13,7 +13,7 @@
         id,song_id,song_list_id
     </sql>
 
-    <insert id="insert" parameterType="com.shanzhu.music.entity.po.ListSong">
+    <insert id="insert" parameterType="com.shanzhu.music.entity.po.ListSong" useGeneratedKeys="true" keyProperty="id">
         insert into list_song
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">

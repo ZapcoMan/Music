@@ -18,7 +18,7 @@
         id,user_id,type,song_id,song_list_id,content,create_time,up
     </sql>
 
-    <insert id="insert" parameterType="com.shanzhu.music.entity.po.Comment">
+    <insert id="insert" parameterType="com.shanzhu.music.entity.po.Comment" useGeneratedKeys="true" keyProperty="id">
         insert into comment
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">

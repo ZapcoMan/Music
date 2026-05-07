@@ -22,7 +22,7 @@
         id,username,password,sex,phone_num,email,birth,introduction,location,avator,create_time,update_time
     </sql>
 
-    <insert id="insert" parameterType="com.shanzhu.music.entity.po.Consumer">
+    <insert id="insert" parameterType="com.shanzhu.music.entity.po.Consumer" useGeneratedKeys="true" keyProperty="id">
         insert into consumer
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">
