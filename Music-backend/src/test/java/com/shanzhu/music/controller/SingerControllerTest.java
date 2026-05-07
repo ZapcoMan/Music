@@ -103,14 +103,18 @@ class SingerControllerTest extends BaseTest {
     @Order(6)
     @DisplayName("测试添加歌手")
     void testAddSinger() throws Exception {
+        String jsonRequest = "{" +
+                "\"name\":\"测试歌手Controller\"," +
+                "\"sex\":1," +
+                "\"pic\":\"/img/singerPic/test.jpg\"," +
+                "\"birth\":\"1990-01-01\"," +
+                "\"location\":\"北京\"," +
+                "\"introduction\":\"测试简介\"" +
+                "}";
+        
         mockMvc.perform(MockMvcRequestBuilders.post("/singer/add")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("name", "测试歌手Controller")
-                .param("sex", "1")
-                .param("pic", "/img/singerPic/test.jpg")
-                .param("birth", "1990-01-01")
-                .param("location", "北京")
-                .param("introduction", "测试简介"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonRequest))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").value(20000));
         
@@ -124,14 +128,18 @@ class SingerControllerTest extends BaseTest {
     @Order(7)
     @DisplayName("测试修改歌手")
     void testUpdateSinger() throws Exception {
+        String jsonRequest = "{" +
+                "\"id\":1," +
+                "\"name\":\"周杰伦\"," +
+                "\"sex\":1," +
+                "\"birth\":\"1979-01-18\"," +
+                "\"location\":\"台湾\"," +
+                "\"introduction\":\"华语流行音乐男歌手\"" +
+                "}";
+        
         mockMvc.perform(MockMvcRequestBuilders.post("/singer/update")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("id", "1")
-                .param("name", "周杰伦")
-                .param("sex", "1")
-                .param("birth", "1979-01-18")
-                .param("location", "台湾")
-                .param("introduction", "华语流行音乐男歌手"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonRequest))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").value(20000));
         
