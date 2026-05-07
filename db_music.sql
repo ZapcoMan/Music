@@ -198,11 +198,6 @@ CREATE TABLE `flyway_schema_history`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
--- Records of flyway_schema_history
--- ----------------------------
-INSERT INTO `flyway_schema_history` VALUES (1, '1', 'Create Tables', 'SQL', 'V1__Create_Tables.sql', 1803123112, 'root', '2026-05-07 17:59:07', 1785, 1);
-
--- ----------------------------
 -- Table structure for list_song
 -- ----------------------------
 DROP TABLE IF EXISTS `list_song`;
