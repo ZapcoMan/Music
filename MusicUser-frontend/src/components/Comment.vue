@@ -113,13 +113,12 @@
           params.append("content", this.textarea);
           setComment(params)
             .then((res) => {
-              // eslint-disable-next-line eqeqeq
-              if (res.code == 1) {
-                this.notify("评论成功", "success");
+              if (res.code == 20000 || res.success === true) {
+                this.notify(res.message || "评论成功", "success");
                 this.textarea = "";
                 this.getComment();
               } else {
-                this.notify("评论失败", "error");
+                this.notify(res.message || "评论失败", "error");
               }
             })
             .catch((_err) => {
@@ -172,13 +171,12 @@
           params.append("up", up + 1);
           setLike(params)
             .then((res) => {
-              // eslint-disable-next-line eqeqeq
-              if (res.code == 1) {
+              if (res.code == 20000 || res.success === true) {
                 this.$refs.up[index].children[0].style.color =
                   "#2796cd";
                 this.getComment();
               } else {
-                this.notify("点赞失败", "error");
+                this.notify(res.message || "点赞失败", "error");
               }
             })
             .catch((_err) => {
