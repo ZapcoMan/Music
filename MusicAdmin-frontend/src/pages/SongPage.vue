@@ -296,8 +296,16 @@ export default {
             this.tempData = [];
             this.tableData = [];
             songOfSingerId(this.singerId).then((res) => {
-                this.tempData = res;
-                this.tableData = res;
+                // 处理后端可能返回 List<Song> 或 R<List<Song>>
+                if (Array.isArray(res)) {
+                    this.tempData = res;
+                    this.tableData = res;
+                } else if (res.code === 20000 || res.success === true) {
+                    this.tempData = res.data;
+                    this.tableData = res.data;
+                } else {
+                    this.notify(res.message || '获取歌曲列表失败', 'error');
+                }
                 this.currentPage = 1;
             });
         },
@@ -316,12 +324,11 @@ export default {
                 //req.status == 200 和后台正常交互完成
                 if (req.readyState == 4 && req.status == 200) {
                     let res = JSON.parse(req.response);
-                    if (res.code == 0) {
+                    if (res.code == 20000 || res.success === true) {
                         _this.getData();
-                        _this.registerForm = {};
-                        _this.notify(res.msg, "success");
+                        _this.notify(res.message || "保存成功", "success");
                     } else {
-                        _this.notify("保存失败", "error");
+                        _this.notify(res.message || "保存失败", "error");
                     }
                 }
             };
@@ -349,11 +356,11 @@ export default {
 
             updateSong(params)
                 .then((res) => {
-                    if (res.code == 1) {
+                    if (res.code === 20000 || res.success === true) {
                         this.getData();
-                        this.notify("修改成功", "success");
+                        this.notify(res.message || "修改成功", "success");
                     } else {
-                        this.notify("修改失败", "error");
+                        this.notify(res.message || "修改失败", "error");
                     }
                 })
                 .catch((err) => {
@@ -369,7 +376,7 @@ export default {
         deleteRow() {
             delSong(this.idx)
                 .then((res) => {
-                    if (res) {
+                    if (res === true) {
                         this.getData();
                         this.notify("删除成功", "success");
                     } else {
@@ -407,15 +414,15 @@ export default {
         //上传歌曲成功之后要做的工作
         handleSongSuccess(res) {
             let _this = this;
-            if (res.code == 1) {
+            if (res.code == 20000 || res.success === true) {
                 _this.getData();
                 _this.$notify({
-                    title: "上传成功",
+                    title: res.message || "上传成功",
                     type: "success",
                 });
             } else {
                 _this.$notify({
-                    title: "上传失败",
+                    title: res.message || "上传失败",
                     type: "error",
                 });
             }
