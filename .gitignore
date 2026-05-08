@@ -68,3 +68,5 @@ replay_pid*
 # macOS
 ######################################
 .DS_Store
+/Music-backend/Music-backend.ipr
+/Music-backend/Music-backend.iws

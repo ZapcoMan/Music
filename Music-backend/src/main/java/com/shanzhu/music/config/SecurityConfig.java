@@ -71,10 +71,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // 允许的源(前端地址)
-        configuration.setAllowedOrigins(List.of(
-            "http://localhost:8080",   // MusicUser-frontend
-            "http://localhost:8081"    // MusicAdmin-frontend
-        ));
+        // 注意：当 allowCredentials 为 true 时，不能使用 "*"，需要使用 allowedOriginPatterns
+        configuration.setAllowedOriginPatterns(List.of("*"));
         
         // 允许的 HTTP 方法
         configuration.setAllowedMethods(Arrays.asList(
