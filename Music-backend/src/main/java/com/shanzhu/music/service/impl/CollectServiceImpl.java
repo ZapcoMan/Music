@@ -24,6 +24,7 @@ public class CollectServiceImpl implements CollectService {
     
     // Redis缓存键前缀
     private static final String COLLECT_CACHE_KEY = "music:collect:";
+    private static final String RECOMMENDATION_CACHE_KEY = "music:recommendation:user:";
     private static final long CACHE_EXPIRE_HOURS = 12; // 缓存过期时间12小时
 
     /**
@@ -36,9 +37,12 @@ public class CollectServiceImpl implements CollectService {
     public Boolean insert(Collect collect) {
         Boolean result = collectMapper.insert(collect) > 0;
         if (result) {
+            Integer userId = collect.getUserId();
             // 使用延时双删策略清除用户收藏列表缓存
-            redisUtils.deleteWithDelay(COLLECT_CACHE_KEY + "user:" + collect.getUserId());
-            log.info("新增收藏，延时双删缓存，userId={}", collect.getUserId());
+            redisUtils.deleteWithDelay(COLLECT_CACHE_KEY + "user:" + userId);
+            // 清除该用户的推荐缓存，触发重新计算
+            redisUtils.deleteWithDelay(RECOMMENDATION_CACHE_KEY + userId);
+            log.info("新增收藏，清除收藏和推荐缓存，userId={}", userId);
         }
         return result;
     }
@@ -65,7 +69,9 @@ public class CollectServiceImpl implements CollectService {
         if (result && userId != null) {
             // 使用延时双删策略清除缓存
             redisUtils.deleteWithDelay(COLLECT_CACHE_KEY + "user:" + userId);
-            log.info("删除收藏，延时双删缓存，userId={}", userId);
+            // 清除该用户的推荐缓存，触发重新计算
+            redisUtils.deleteWithDelay(RECOMMENDATION_CACHE_KEY + userId);
+            log.info("删除收藏，清除收藏和推荐缓存，userId={}", userId);
         }
         return result;
     }
@@ -83,7 +89,9 @@ public class CollectServiceImpl implements CollectService {
         if (result) {
             // 使用延时双删策略清除缓存
             redisUtils.deleteWithDelay(COLLECT_CACHE_KEY + "user:" + userId);
-            log.info("删除收藏，延时双删缓存，userId={}", userId);
+            // 清除该用户的推荐缓存，触发重新计算
+            redisUtils.deleteWithDelay(RECOMMENDATION_CACHE_KEY + userId);
+            log.info("删除收藏，清除收藏和推荐缓存，userId={}", userId);
         }
         return result;
     }

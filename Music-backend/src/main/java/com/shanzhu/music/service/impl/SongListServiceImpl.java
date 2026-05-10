@@ -13,8 +13,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+//import ArrayList;
+//import List;
+//import concurrent.TimeUnit;
 
 /**
  * 歌单 服务层实现类
@@ -31,7 +37,9 @@ public class SongListServiceImpl implements SongListService {
     // Redis缓存键前缀
     private static final String SONG_LIST_CACHE_KEY = "music:songlist:";
     private static final String ALL_SONG_LIST_KEY = SONG_LIST_CACHE_KEY + "all";
+    private static final String RECOMMENDATION_CACHE_KEY = "music:recommendation:user:";
     private static final long CACHE_EXPIRE_HOURS = 24; // 缓存过期时间24小时
+    private static final long RECOMMENDATION_CACHE_HOURS = 6; // 推荐结果缓存6小时
 
     /**
      * 增加歌单（延时双删缓存）
@@ -175,17 +183,83 @@ public class SongListServiceImpl implements SongListService {
 
     @Override
     public List<Song> queryRecommendedSongById(String id) {
-        int ids = Integer.parseInt(id);
-        log.info("ids : {}",ids);
-        List<Integer> similarUserIds = songListMapper.findSimilarUsers(ids);
-        log.info("similarUserIds = {}", similarUserIds.toString());
-        List<Song> songsByUserIdNotInOtherUser = new ArrayList<>();
-
-        for (Integer similarUserId : similarUserIds) {
-             songsByUserIdNotInOtherUser = songMapper.getSongsByUserIdNotInOtherUser(ids, similarUserId);
+        int userId = Integer.parseInt(id);
+        String cacheKey = RECOMMENDATION_CACHE_KEY + userId;
+        
+        // 1. 尝试从缓存中获取推荐结果
+        Object cachedData = redisUtils.getCacheObject(cacheKey);
+        if (cachedData != null) {
+            log.info("从Redis缓存获取用户 {} 的推荐结果", userId);
+            return (List<Song>) cachedData;
         }
-
-        return songsByUserIdNotInOtherUser;
+        
+        log.info("缓存未命中，开始为用户 {} 生成推荐", userId);
+        
+        // 2. 获取相似用户及其相似度分数
+        List<Map<String, Object>> similarUsersWithScore = songListMapper.findSimilarUsersWithScore(userId);
+        
+        if (similarUsersWithScore == null || similarUsersWithScore.isEmpty()) {
+            log.info("未找到相似用户，返回空推荐列表");
+            return new ArrayList<>();
+        }
+        
+        log.info("找到 {} 个相似用户", similarUsersWithScore.size());
+        
+        // 3. 使用Map存储歌曲及其加权得分
+        Map<Integer, Double> songWeightMap = new HashMap<>();
+        Map<Integer, Song> songMap = new HashMap<>();
+        
+        // 4. 遍历每个相似用户，根据相似度加权累加
+        for (Map<String, Object> userWithScore : similarUsersWithScore) {
+            Integer similarUserId = ((Number) userWithScore.get("userId")).intValue();
+            Double similarity = ((Number) userWithScore.get("similarity")).doubleValue();
+            
+            log.debug("处理相似用户: {}, 相似度: {}", similarUserId, similarity);
+            
+            // 获取该相似用户收藏但当前用户未收藏的歌曲
+            List<Song> songs = songMapper.getSongsByUserIdNotInOtherUser(userId, similarUserId);
+            
+            if (songs != null && !songs.isEmpty()) {
+                for (Song song : songs) {
+                    // 累加加权得分：相似度 * 基础分(1分)
+                    double currentWeight = songWeightMap.getOrDefault(song.getId(), 0.0);
+                    songWeightMap.put(song.getId(), currentWeight + similarity);
+                    
+                    // 保存歌曲对象（只保存一次）
+                    if (!songMap.containsKey(song.getId())) {
+                        songMap.put(song.getId(), song);
+                    }
+                }
+            }
+        }
+        
+        // 5. 按加权得分降序排序
+        List<Map.Entry<Integer, Double>> sortedSongs = new ArrayList<>(songWeightMap.entrySet());
+        sortedSongs.sort((e1, e2) -> Double.compare(e2.getValue(), e1.getValue()));
+        
+        // 6. 构建最终结果列表（最多返回10首）
+        List<Song> result = new ArrayList<>();
+        int limit = Math.min(sortedSongs.size(), 10);
+        
+        for (int i = 0; i < limit; i++) {
+            Integer songId = sortedSongs.get(i).getKey();
+            Double weight = sortedSongs.get(i).getValue();
+            Song song = songMap.get(songId);
+            
+            if (song != null) {
+                log.debug("推荐歌曲: {}, 权重: {}", song.getName(), weight);
+                result.add(song);
+            }
+        }
+        
+        // 7. 将推荐结果存入缓存，设置6小时过期
+        if (!result.isEmpty()) {
+            redisUtils.setCacheObject(cacheKey, result, RECOMMENDATION_CACHE_HOURS, TimeUnit.HOURS);
+            log.info("用户 {} 的推荐结果已缓存，有效期 {} 小时", userId, RECOMMENDATION_CACHE_HOURS);
+        }
+        
+        log.info("生成 {} 首推荐歌曲", result.size());
+        return result;
     }
     
     /**

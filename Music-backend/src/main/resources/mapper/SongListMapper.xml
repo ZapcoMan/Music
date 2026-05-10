@@ -134,6 +134,21 @@
         WHERE r1.consumer_id = #{id}
         AND r1.consumer_id &lt; r2.consumer_id GROUP BY r1.consumer_id, r2.consumer_id
         HAVING SUM(r1.score * r2.score) / (SQRT(SUM(r1.score * r1.score)) * SQRT(SUM(r2.score * r2.score))) > 0.9
+        ORDER BY SUM(r1.score * r2.score) / (SQRT(SUM(r1.score * r1.score)) * SQRT(SUM(r2.score * r2.score))) DESC
+    </select>
+
+    <!-- 查询相似用户及其相似度分数 -->
+    <select id="findSimilarUsersWithScore" resultType="java.util.HashMap" parameterType="java.lang.Integer">
+        SELECT 
+            r2.consumer_id AS userId,
+            SUM(r1.score * r2.score) / (SQRT(SUM(r1.score * r1.score)) * SQRT(SUM(r2.score * r2.score))) AS similarity
+        FROM ranks r1
+        JOIN ranks r2 ON r1.song_list_id = r2.song_list_id
+        WHERE r1.consumer_id = #{id}
+        AND r1.consumer_id &lt; r2.consumer_id
+        GROUP BY r1.consumer_id, r2.consumer_id
+        HAVING similarity > 0.5
+        ORDER BY similarity DESC
     </select>
 
 

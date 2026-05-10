@@ -76,5 +76,19 @@ public interface SongListMapper {
 
     List<SongList> queryRecommendedSongListById(String id);
 
-    List<Integer> findSimilarUsers(Integer id);;
+    /**
+     * 查找相似用户及其相似度
+     *
+     * @param id 当前用户ID
+     * @return 相似用户ID列表（按相似度降序）
+     */
+    List<Integer> findSimilarUsers(Integer id);
+
+    /**
+     * 查找相似用户及其相似度分数
+     *
+     * @param id 当前用户ID
+     * @return Map包含userId和similarity字段
+     */
+    List<java.util.Map<String, Object>> findSimilarUsersWithScore(Integer id);
 }
