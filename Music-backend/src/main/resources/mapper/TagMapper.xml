@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+        "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shanzhu.music.mapper.TagMapper">
+    
+    <resultMap id="TagResultMap" type="com.shanzhu.music.entity.po.Tag">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="type" jdbcType="TINYINT" property="type"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <!-- 根据标签名称查询标签 -->
+    <select id="selectByName" resultMap="TagResultMap">
+        SELECT * FROM tag WHERE name = #{tagName} LIMIT 1
+    </select>
+
+    <!-- 批量插入标签（忽略重复） -->
+    <insert id="batchInsertIgnore">
+        INSERT INTO tag (name, type)
+        VALUES
+        <foreach collection="tags" item="tag" separator=",">
+            (#{tag.name}, #{tag.type})
+        </foreach>
+        ON DUPLICATE KEY UPDATE name = name
+    </insert>
+
+    <!-- 为歌曲批量关联标签 -->
+    <insert id="batchInsertSongTags">
+        INSERT INTO song_tag (song_id, tag_id)
+        VALUES
+        <foreach collection="tagIds" item="tagId" separator=",">
+            (#{songId}, #{tagId})
+        </foreach>
+        ON DUPLICATE KEY UPDATE song_id = song_id
+    </insert>
+
+    <!-- 查询歌曲的标签列表 -->
+    <select id="selectTagsBySongId" resultMap="TagResultMap">
+        SELECT t.*
+        FROM tag t
+        JOIN song_tag st ON t.id = st.tag_id
+        WHERE st.song_id = #{songId}
+        ORDER BY st.create_time DESC
+    </select>
+
+    <!-- 根据标签ID查询相关歌曲（精确匹配，高性能） -->
+    <select id="selectSongsByTagId" resultType="com.shanzhu.music.entity.po.Song">
+        SELECT s.*
+        FROM song s
+        JOIN song_tag st ON s.id = st.song_id
+        WHERE st.tag_id = #{tagId}
+        ORDER BY st.create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 根据多个标签ID查询相关歌曲（用于多标签召回） -->
+    <select id="selectSongsByTagIds" resultType="com.shanzhu.music.entity.po.Song">
+        SELECT s.*, COUNT(DISTINCT st.tag_id) as match_count
+        FROM song s
+        JOIN song_tag st ON s.id = st.song_id
+        WHERE st.tag_id IN
+        <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+            #{tagId}
+        </foreach>
+        GROUP BY s.id
+        ORDER BY match_count DESC, st.create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 统计标签下的歌曲数量 -->
+    <select id="countSongsByTagId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM song_tag WHERE tag_id = #{tagId}
+    </select>
+
+    <!-- 查询热门标签（按歌曲数量排序） -->
+    <select id="selectHotTags" resultMap="TagResultMap">
+        SELECT t.*, COUNT(st.song_id) as song_count
+        FROM tag t
+        LEFT JOIN song_tag st ON t.id = st.tag_id
+        GROUP BY t.id
+        ORDER BY song_count DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 删除歌曲的所有标签关联 -->
+    <delete id="deleteSongTags">
+        DELETE FROM song_tag WHERE song_id = #{songId}
+    </delete>
+
+</mapper>

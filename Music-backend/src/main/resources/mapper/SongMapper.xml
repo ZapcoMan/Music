@@ -207,6 +207,17 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 批量查询歌曲（解决 N+1 问题） -->
+    <select id="selectBatchByIds" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM song
+        WHERE id IN
+        <foreach collection="songIds" item="songId" open="(" separator="," close=")">
+            #{songId}
+        </foreach>
+    </select>
+
 </mapper>
 
 

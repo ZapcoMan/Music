@@ -99,4 +99,12 @@ public interface SongMapper {
      * 根据风格查询歌曲
      */
     List<Song> getSongsByStyle(@Param("style") String style, @Param("limit") int limit);
+
+    /**
+     * 批量查询歌曲（解决 N+1 问题）
+     *
+     * @param songIds 歌曲ID列表
+     * @return 歌曲列表
+     */
+    List<Song> selectBatchByIds(@Param("songIds") List<Integer> songIds);
 }

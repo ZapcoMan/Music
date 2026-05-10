@@ -219,7 +219,8 @@ public class FeatureEngineeringService {
     }
     
     /**
-     * 计算交叉特征
+     * 计算交叉特征（批量查询优化版）
+     * 解决 N+1 查询问题：一次性批量查询所有收藏歌曲的信息
      */
     private CrossFeatures calculateCrossFeatures(Integer userId, Song song) {
         CrossFeatures features = new CrossFeatures();
@@ -230,23 +231,27 @@ public class FeatureEngineeringService {
             return features;
         }
         
-        // 查询用户收藏的歌曲
-        List<Collect> userCollects = collectMapper.collectOfUserId(userId);
+        // 查询用户收藏的歌曲ID列表
+        List<Integer> collectedSongIds = collectMapper.selectSongIdsByUserId(userId);
         
-        if (userCollects == null || userCollects.isEmpty()) {
+        if (collectedSongIds == null || collectedSongIds.isEmpty()) {
+            features.userLikedSinger = false;
+            features.singerCollectCount = 0;
+            return features;
+        }
+        
+        // ✅ 批量查询：一次 IN (...) 查询所有收藏歌曲的歌手ID
+        List<Song> collectedSongs = songMapper.selectBatchByIds(collectedSongIds);
+        
+        if (collectedSongs == null || collectedSongs.isEmpty()) {
             features.userLikedSinger = false;
             features.singerCollectCount = 0;
             return features;
         }
         
         // 统计用户收藏的同歌手歌曲数量
-        List<Integer> collectedSongIds = userCollects.stream()
-            .map(Collect::getSongId)
-            .collect(Collectors.toList());
-        
         int singerCollectCount = 0;
-        for (Integer collectedSongId : collectedSongIds) {
-            Song collectedSong = songMapper.selectByPrimaryKey(collectedSongId);
+        for (Song collectedSong : collectedSongs) {
             if (collectedSong != null && 
                 song.getSingerId().equals(collectedSong.getSingerId())) {
                 singerCollectCount++;
