@@ -2,6 +2,7 @@ package com.shanzhu.music.service.recall;
 
 import com.shanzhu.music.entity.dto.RecallResult;
 import com.shanzhu.music.entity.po.Song;
+import com.shanzhu.music.mapper.CollectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 public class RecallFusionService {
     
     private final List<RecallStrategy> recallStrategies;
+    private final CollectMapper collectMapper;
     
     /**
      * 执行多路召回并融合
@@ -102,7 +104,8 @@ public class RecallFusionService {
             // 根据在召回列表中的位置计算位置权重
             for (Song song : result.getSongs()) {
                 // 位置衰减因子：排名越靠前，权重越高
-                double positionWeight = 1.0 / Math.log2(rank + 1);
+                // 使用换底公式: log2(x) = ln(x) / ln(2)
+                double positionWeight = 1.0 / (Math.log(rank + 1) / Math.log(2));
                 
                 // 综合得分 = 策略权重 × 位置权重
                 double score = strategyWeight * positionWeight;

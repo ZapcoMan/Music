@@ -197,10 +197,10 @@ public class SongListServiceImpl implements SongListService {
             return (List<Song>) cachedData;
         }
         
-        log.info("缓存未命中，开始为用户 {} 生成多路召回推荐", userId);
+        log.info("缓存未命中，开始为用户 {} 生成完整推荐（召回+排序）", userId);
         
-        // 2. 使用多路召回融合服务生成推荐（最多返回10首）
-        List<Song> result = recallFusionService.fuseRecall(userId, 10);
+        // 2. 使用完整排序服务生成推荐（召回 → 特征 → 排序）
+        List<Song> result = rankingService.recommend(userId, 10);
         
         // 3. 将推荐结果存入缓存，设置6小时过期
         if (!result.isEmpty()) {
