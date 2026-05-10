@@ -166,6 +166,37 @@
     WHERE c.user_id = #{userId};
 </select>
 
+    <!-- 获取用户已播放的歌曲ID列表 -->
+    <select id="getPlayedSongIdsByUserId" resultType="java.lang.Integer" parameterType="java.lang.Integer">
+        SELECT DISTINCT song_id FROM collect WHERE user_id = #{userId}
+    </select>
+
+    <!-- 根据标签相似度查询歌曲 -->
+    <select id="getSongsBySimilarTags" resultMap="BaseResultMap">
+        SELECT * FROM song 
+        WHERE introduction LIKE CONCAT('%', #{tags}, '%')
+        ORDER BY RAND()
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询热门歌曲 -->
+    <select id="getHotSongs" resultMap="BaseResultMap">
+        SELECT s.* FROM song s
+        LEFT JOIN (
+            SELECT song_id, COUNT(*) as play_count FROM collect GROUP BY song_id
+        ) c ON s.id = c.song_id
+        ORDER BY COALESCE(c.play_count, 0) DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 根据风格查询歌曲 -->
+    <select id="getSongsByStyle" resultMap="BaseResultMap">
+        SELECT * FROM song 
+        WHERE introduction LIKE CONCAT('%', #{style}, '%')
+        ORDER BY RAND()
+        LIMIT #{limit}
+    </select>
+
 </mapper>
 
 

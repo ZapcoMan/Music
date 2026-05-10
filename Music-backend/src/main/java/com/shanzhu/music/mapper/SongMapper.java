@@ -79,4 +79,24 @@ public interface SongMapper {
 
     List<Song> getSongsByUserIdNotInOtherUser(@Param("userId") int userId, @Param("otherUserId") int otherUserId);
     List<Song> getCollectByUserID(@Param("userId") int userId);
+
+    /**
+     * 获取用户已播放的歌曲ID列表（去重用）
+     */
+    List<Integer> getPlayedSongIdsByUserId(@Param("userId") int userId);
+
+    /**
+     * 根据标签相似度查询歌曲
+     */
+    List<Song> getSongsBySimilarTags(@Param("tags") String tags, @Param("limit") int limit);
+
+    /**
+     * 查询热门歌曲（按播放量排序）
+     */
+    List<Song> getHotSongs(@Param("limit") int limit);
+
+    /**
+     * 根据风格查询歌曲
+     */
+    List<Song> getSongsByStyle(@Param("style") String style, @Param("limit") int limit);
 }

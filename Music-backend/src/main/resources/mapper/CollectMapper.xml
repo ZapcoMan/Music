@@ -89,6 +89,18 @@
           and song_id = #{songId}
     </select>
 
+    <!-- 查询用户收藏的歌曲ID列表 -->
+    <select id="selectSongIdsByUserId" resultType="java.lang.Integer" parameterType="java.lang.Integer">
+        SELECT song_id FROM collect WHERE user_id = #{userId}
+    </select>
+
+    <!-- 查询用户收藏的歌曲（返回Song对象） -->
+    <select id="selectByUserId" resultType="com.shanzhu.music.entity.po.Song" parameterType="java.lang.Integer">
+        SELECT s.* FROM collect c
+        JOIN song s ON c.song_id = s.id
+        WHERE c.user_id = #{userId}
+    </select>
+
 </mapper>
 
 

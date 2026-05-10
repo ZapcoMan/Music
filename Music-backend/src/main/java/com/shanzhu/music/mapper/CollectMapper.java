@@ -61,4 +61,20 @@ public interface CollectMapper {
      */
     Integer existSongId(@Param("userId") Integer userId, @Param("songId") Integer songId);
 
+    /**
+     * 查询用户收藏的歌曲ID列表（用于去重）
+     *
+     * @param userId 用户id
+     * @return 歌曲ID列表
+     */
+    List<Integer> selectSongIdsByUserId(@Param("userId") Integer userId);
+
+    /**
+     * 根据用户ID查询收藏的歌曲列表（返回完整的Song对象）
+     *
+     * @param userId 用户id
+     * @return 歌曲列表
+     */
+    List<com.shanzhu.music.entity.po.Song> selectByUserId(@Param("userId") Integer userId);
+
 }
