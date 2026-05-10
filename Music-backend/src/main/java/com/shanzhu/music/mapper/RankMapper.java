@@ -32,4 +32,20 @@ public interface RankMapper {
      * @return 查总评分人数
      */
     Integer selectRankNum(Integer songListId);
+
+    /**
+     * 查询用户的平均评分
+     *
+     * @param userId 用户id
+     * @return 平均评分
+     */
+    Double selectAvgRatingByUserId(@Param("userId") Integer userId);
+
+    /**
+     * 查询歌曲的平均评分（通过歌单关联）
+     *
+     * @param songId 歌曲id
+     * @return 平均评分
+     */
+    Double selectAvgRatingBySongId(@Param("songId") Integer songId);
 }

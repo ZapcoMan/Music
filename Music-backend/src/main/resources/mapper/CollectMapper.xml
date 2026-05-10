@@ -101,6 +101,19 @@
         WHERE c.user_id = #{userId}
     </select>
 
+    <!-- 统计歌曲被收藏的次数 -->
+    <select id="countCollectsBySongId" resultType="java.lang.Integer" parameterType="java.lang.Integer">
+        SELECT COUNT(*) FROM collect WHERE song_id = #{songId}
+    </select>
+
+    <!-- 统计歌手的所有歌曲被某用户收藏的总次数 -->
+    <select id="countCollectsBySingerId" resultType="java.lang.Integer" parameterType="java.lang.Integer">
+        SELECT COUNT(DISTINCT c.id)
+        FROM collect c
+        JOIN song s ON c.song_id = s.id
+        WHERE s.singer_id = #{singerId}
+    </select>
+
 </mapper>
 
 

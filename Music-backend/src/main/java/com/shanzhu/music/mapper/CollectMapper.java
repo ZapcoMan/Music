@@ -77,4 +77,20 @@ public interface CollectMapper {
      */
     List<com.shanzhu.music.entity.po.Song> selectByUserId(@Param("userId") Integer userId);
 
+    /**
+     * 统计歌曲被收藏的次数
+     *
+     * @param songId 歌曲id
+     * @return 收藏次数
+     */
+    Integer countCollectsBySongId(@Param("songId") Integer songId);
+
+    /**
+     * 统计歌手的所有歌曲被某用户收藏的总次数
+     *
+     * @param singerId 歌手id
+     * @return 收藏次数
+     */
+    Integer countCollectsBySingerId(@Param("singerId") Integer singerId);
+
 }

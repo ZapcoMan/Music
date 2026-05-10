@@ -53,6 +53,21 @@
         from ranks
         where song_list_id = #{songListId}
     </select>
+
+    <!-- 查询用户的平均评分 -->
+    <select id="selectAvgRatingByUserId" resultType="java.lang.Double" parameterType="java.lang.Integer">
+        SELECT COALESCE(AVG(score), 4.0)
+        FROM ranks
+        WHERE consumer_id = #{userId}
+    </select>
+
+    <!-- 查询歌曲的平均评分（通过歌单关联） -->
+    <select id="selectAvgRatingBySongId" resultType="java.lang.Double" parameterType="java.lang.Integer">
+        SELECT COALESCE(AVG(r.score), 4.0)
+        FROM ranks r
+        JOIN list_song ls ON r.song_list_id = ls.song_list_id
+        WHERE ls.song_id = #{songId}
+    </select>
 </mapper>
 
 

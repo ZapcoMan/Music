@@ -114,9 +114,9 @@ public class FeatureEngineeringService {
         List<Collect> collects = collectMapper.collectOfUserId(userId);
         stats.collectCount = collects != null ? collects.size() : 0;
         
-        // 用户平均评分（简化：从ranks表查询）
-        // 实际应该查询该用户的所有评分记录
-        stats.avgRating = 4.0; // 默认值
+        // 用户平均评分（从ranks表查询）
+        Double avgRating = rankMapper.selectAvgRatingByUserId(userId);
+        stats.avgRating = avgRating != null ? avgRating : 4.0;
         
         return stats;
     }
@@ -127,11 +127,13 @@ public class FeatureEngineeringService {
     private SongStats calculateSongStats(Integer songId) {
         SongStats stats = new SongStats();
         
-        // 歌曲被收藏次数（需要添加对应的Mapper方法）
-        stats.collectCount = 0; // TODO: 实现统计逻辑
+        // 歌曲被收藏次数
+        Integer collectCount = collectMapper.countCollectsBySongId(songId);
+        stats.collectCount = collectCount != null ? collectCount : 0;
         
-        // 歌曲平均评分（需要从ranks表关联查询）
-        stats.avgRating = 4.0; // 默认值
+        // 歌曲平均评分（从ranks表关联查询）
+        Double avgRating = rankMapper.selectAvgRatingBySongId(songId);
+        stats.avgRating = avgRating != null ? avgRating : 4.0;
         
         return stats;
     }

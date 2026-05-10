@@ -5,6 +5,8 @@ import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.mapper.CollectMapper;
 import com.shanzhu.music.mapper.ConsumerMapper;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -67,6 +69,42 @@ public class RecallFusionService {
     }
     
     /**
+     * 执行多路召回并融合（带召回信息）
+     * 用于特征工程提取
+     *
+     * @param userId 用户ID
+     * @param topN   最终返回的推荐数量
+     * @return 带召回信息的歌曲列表
+     */
+    public List<SongWithRecallInfo> fuseRecallWithInfo(Integer userId, int topN) {
+        log.info("开始多路召回融合（带信息），userId={}, topN={}", userId, topN);
+        
+        // 1. 检查是否是冷启动用户
+        List<Song> userCollects = collectMapper.selectByUserId(userId);
+        if (userCollects == null || userCollects.isEmpty()) {
+            log.info("冷启动用户，使用热门召回");
+            List<Song> coldStartSongs = handleColdStart(userId, topN);
+            return coldStartSongs.stream()
+                .map(song -> new SongWithRecallInfo(song, "popular", 1, 0.15))
+                .collect(Collectors.toList());
+        }
+        
+        // 2. 执行各路召回策略
+        List<RecallResult> recallResults = new ArrayList<>();
+        for (RecallStrategy strategy : recallStrategies) {
+            try {
+                RecallResult result = strategy.recall(userId);
+                recallResults.add(result);
+            } catch (Exception e) {
+                log.error("召回策略 {} 执行失败", strategy.getStrategyName(), e);
+            }
+        }
+        
+        // 3. 融合排序并保留召回信息
+        return fusionRankingWithInfo(recallResults, topN);
+    }
+    
+    /**
      * 冷启动处理 - 新用户推荐热门
      */
     private List<Song> handleColdStart(Integer userId, int topN) {
@@ -94,6 +132,10 @@ public class RecallFusionService {
         // 使用Map存储歌曲的最终得分
         Map<Integer, Double> songScoreMap = new HashMap<>();
         Map<Integer, Song> songMap = new HashMap<>();
+        // 记录每首歌曲的最佳召回策略和排名（用于特征工程）
+        Map<Integer, String> songBestStrategyMap = new HashMap<>();
+        Map<Integer, Integer> songBestRankMap = new HashMap<>();
+        Map<Integer, Double> songBestWeightMap = new HashMap<>();
         
         // 遍历每路召回结果
         for (RecallResult result : recallResults) {
@@ -120,6 +162,13 @@ public class RecallFusionService {
                 // 保存歌曲对象
                 songMap.putIfAbsent(song.getId(), song);
                 
+                // 记录最佳召回策略（得分最高的那一路）
+                if (!songBestStrategyMap.containsKey(song.getId()) || score > songScoreMap.get(song.getId()) / 2) {
+                    songBestStrategyMap.put(song.getId(), result.getStrategyName());
+                    songBestRankMap.put(song.getId(), rank);
+                    songBestWeightMap.put(song.getId(), strategyWeight);
+                }
+                
                 rank++;
             }
         }
@@ -144,5 +193,17 @@ public class RecallFusionService {
             songScoreMap.size(), result.size());
         
         return result;
+    }
+    
+    /**
+     * 带召回信息的歌曲（用于特征工程）
+     */
+    @Data
+    @AllArgsConstructor
+    public static class SongWithRecallInfo {
+        private Song song;
+        private String recallStrategy;  // 召回策略名称
+        private Integer recallRank;      // 召回排名
+        private Double recallWeight;     // 召回权重
     }
 }
