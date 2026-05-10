@@ -196,6 +196,65 @@ public class RecallFusionService {
     }
     
     /**
+     * 融合排序算法（保留召回信息）
+     */
+    private List<SongWithRecallInfo> fusionRankingWithInfo(List<RecallResult> recallResults, int topN) {
+        Map<Integer, Double> songScoreMap = new HashMap<>();
+        Map<Integer, Song> songMap = new HashMap<>();
+        Map<Integer, String> songBestStrategyMap = new HashMap<>();
+        Map<Integer, Integer> songBestRankMap = new HashMap<>();
+        Map<Integer, Double> songBestWeightMap = new HashMap<>();
+        
+        for (RecallResult result : recallResults) {
+            if (result.getSongs() == null || result.getSongs().isEmpty()) {
+                continue;
+            }
+            
+            double strategyWeight = result.getWeight() != null ? result.getWeight() : 1.0;
+            int rank = 1;
+            
+            for (Song song : result.getSongs()) {
+                double positionWeight = 1.0 / (Math.log(rank + 1) / Math.log(2));
+                double score = strategyWeight * positionWeight;
+                
+                double currentScore = songScoreMap.getOrDefault(song.getId(), 0.0);
+                songScoreMap.put(song.getId(), currentScore + score);
+                songMap.putIfAbsent(song.getId(), song);
+                
+                // 记录最佳召回策略
+                if (!songBestStrategyMap.containsKey(song.getId())) {
+                    songBestStrategyMap.put(song.getId(), result.getStrategyName());
+                    songBestRankMap.put(song.getId(), rank);
+                    songBestWeightMap.put(song.getId(), strategyWeight);
+                }
+                
+                rank++;
+            }
+        }
+        
+        // 按综合得分降序排序
+        List<Map.Entry<Integer, Double>> sortedSongs = new ArrayList<>(songScoreMap.entrySet());
+        sortedSongs.sort((e1, e2) -> Double.compare(e2.getValue(), e1.getValue()));
+        
+        // 构建带召回信息的歌曲列表
+        List<SongWithRecallInfo> result = new ArrayList<>();
+        int limit = Math.min(sortedSongs.size(), topN);
+        
+        for (int i = 0; i < limit; i++) {
+            Integer songId = sortedSongs.get(i).getKey();
+            Song song = songMap.get(songId);
+            if (song != null) {
+                String strategy = songBestStrategyMap.getOrDefault(songId, "unknown");
+                Integer rank = songBestRankMap.getOrDefault(songId, 999);
+                Double weight = songBestWeightMap.getOrDefault(songId, 0.1);
+                result.add(new SongWithRecallInfo(song, strategy, rank, weight));
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
      * 带召回信息的歌曲（用于特征工程）
      */
     @Data

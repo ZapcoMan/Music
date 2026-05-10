@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 完整排序服务
@@ -36,10 +37,11 @@ public class RankingService {
         
         // 第1步：多路召回（召回层）
         log.info("【第1步】执行多路召回");
-        List<Song> recallSongs = recallFusionService.fuseRecall(userId, topN * 3); // 召回更多候选
-        log.info("召回完成，候选歌曲数量: {}", recallSongs.size());
+        List<RecallFusionService.SongWithRecallInfo> recallSongsWithInfo = 
+            recallFusionService.fuseRecallWithInfo(userId, topN * 3); // 召回更多候选
+        log.info("召回完成，候选歌曲数量: {}", recallSongsWithInfo.size());
         
-        if (recallSongs.isEmpty()) {
+        if (recallSongsWithInfo.isEmpty()) {
             log.warn("召回结果为空，返回空列表");
             return List.of();
         }
@@ -47,7 +49,7 @@ public class RankingService {
         // 第2步：特征工程
         log.info("【第2步】提取特征");
         List<FeatureEngineeringService.SongWithFeature> songsWithFeatures = 
-            featureEngineeringService.extractFeatures(userId, recallSongs);
+            featureEngineeringService.extractFeaturesWithRecallInfo(userId, recallSongsWithInfo);
         log.info("特征提取完成，有效特征数量: {}", songsWithFeatures.size());
         
         if (songsWithFeatures.isEmpty()) {

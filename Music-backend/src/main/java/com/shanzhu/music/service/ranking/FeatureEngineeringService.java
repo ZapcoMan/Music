@@ -7,6 +7,7 @@ import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.mapper.CollectMapper;
 import com.shanzhu.music.mapper.RankMapper;
 import com.shanzhu.music.mapper.SongMapper;
+import com.shanzhu.music.service.recall.RecallFusionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -62,6 +63,37 @@ public class FeatureEngineeringService {
     }
     
     /**
+     * 为召回的歌曲列表提取特征（带召回信息）
+     *
+     * @param userId              用户ID
+     * @param recallSongsWithInfo 带召回信息的歌曲列表
+     * @return 带特征的歌曲列表
+     */
+    public List<SongWithFeature> extractFeaturesWithRecallInfo(
+            Integer userId, List<RecallFusionService.SongWithRecallInfo> recallSongsWithInfo) {
+        log.debug("开始为 {} 首召回歌曲提取特征（带信息）", recallSongsWithInfo.size());
+        
+        // 1. 预计算用户统计特征
+        UserStats userStats = calculateUserStats(userId);
+        
+        // 2. 为每首歌曲提取特征
+        List<SongWithFeature> songsWithFeatures = new ArrayList<>();
+        
+        for (RecallFusionService.SongWithRecallInfo swri : recallSongsWithInfo) {
+            try {
+                SongFeature feature = extractSingleSongFeatureWithRecallInfo(
+                    userId, swri.getSong(), userStats, swri);
+                songsWithFeatures.add(new SongWithFeature(swri.getSong(), feature));
+            } catch (Exception e) {
+                log.error("提取歌曲特征失败，songId={}", swri.getSong().getId(), e);
+            }
+        }
+        
+        log.debug("特征提取完成，成功提取 {} 首歌曲特征", songsWithFeatures.size());
+        return songsWithFeatures;
+    }
+    
+    /**
      * 提取单首歌曲的特征
      */
     private SongFeature extractSingleSongFeature(Integer userId, Song song, 
@@ -97,9 +129,57 @@ public class FeatureEngineeringService {
         feature.setUserLikedSinger(crossFeatures.userLikedSinger);
         feature.setUserSingerCollectCount(crossFeatures.singerCollectCount);
         
-        // 召回相关特征（默认值，实际应从召回结果中获取）
+        // 召回相关特征（默认值）
         feature.setRecallStrategyWeight(0.3);
         feature.setRecallRank(recallRank);
+        
+        return feature;
+    }
+    
+    /**
+     * 提取单首歌曲的特征（带召回信息）
+     */
+    private SongFeature extractSingleSongFeatureWithRecallInfo(
+            Integer userId, Song song, UserStats userStats,
+            RecallFusionService.SongWithRecallInfo recallInfo) {
+        SongFeature feature = new SongFeature();
+        
+        // 用户特征
+        feature.setUserId(userId);
+        feature.setUserCollectCount(userStats.collectCount);
+        feature.setUserAvgRating(userStats.avgRating);
+        
+        // 歌曲特征
+        feature.setSongId(song.getId());
+        feature.setSingerId(song.getSingerId());
+        
+        // 歌曲统计特征
+        SongStats songStats = calculateSongStats(song.getId());
+        feature.setSongCollectCount(songStats.collectCount);
+        feature.setSongAvgRating(songStats.avgRating);
+        
+        // 歌曲年龄
+        if (song.getCreateTime() != null) {
+            LocalDate createDate = song.getCreateTime().toInstant()
+                .atZone(ZoneId.systemDefault()).toLocalDate();
+            long days = ChronoUnit.DAYS.between(createDate, LocalDate.now());
+            feature.setSongAgeDays((int) days);
+        } else {
+            feature.setSongAgeDays(0);
+        }
+        
+        // 交叉特征
+        CrossFeatures crossFeatures = calculateCrossFeatures(userId, song);
+        feature.setUserLikedSinger(crossFeatures.userLikedSinger);
+        feature.setUserSingerCollectCount(crossFeatures.singerCollectCount);
+        
+        // 召回相关特征（使用真实值）
+        feature.setRecallStrategyWeight(recallInfo.getRecallWeight());
+        feature.setRecallRank(recallInfo.getRecallRank());
+        
+        log.debug("歌曲 {} 的召回策略: {}, 排名: {}, 权重: {}",
+            song.getId(), recallInfo.getRecallStrategy(), 
+            recallInfo.getRecallRank(), recallInfo.getRecallWeight());
         
         return feature;
     }
