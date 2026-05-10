@@ -51,8 +51,9 @@ public class PersonalizedRecall implements RecallStrategy {
                 .map(Song::getId)
                 .collect(Collectors.toSet());
             
-            // 3. 基于种子歌曲的特征进行扩展推荐
+            // 3. 基于种子歌曲的特征进行扩展推荐，并计算相关度得分
             Map<Integer, Song> candidateSongs = new HashMap<>();
+            Map<Integer, Integer> songRelevanceScore = new HashMap<>();
             
             for (Song seedSong : seedSongs) {
                 // 同歌手的其他歌曲
@@ -62,18 +63,29 @@ public class PersonalizedRecall implements RecallStrategy {
                         for (Song song : sameSingerSongs) {
                             if (!collectedSongIds.contains(song.getId())) {
                                 candidateSongs.putIfAbsent(song.getId(), song);
+                                
+                                // 累加相关度得分（该歌手作为种子歌曲的次数）
+                                int currentScore = songRelevanceScore.getOrDefault(song.getId(), 0);
+                                songRelevanceScore.put(song.getId(), currentScore + 1);
                             }
                         }
                     }
                 }
             }
             
-            // 4. 按相关性排序并选取前MAX_RECALL_COUNT首
-            List<Song> songList = new ArrayList<>(candidateSongs.values());
-            Collections.shuffle(songList); // 简化版：随机打乱
+            // 4. 按相关度得分降序排序（得分越高说明与用户最近喜好越相关）
+            List<Map.Entry<Integer, Integer>> sortedSongs = new ArrayList<>(songRelevanceScore.entrySet());
+            sortedSongs.sort((e1, e2) -> e2.getValue().compareTo(e1.getValue()));
             
-            int limit = Math.min(songList.size(), MAX_RECALL_COUNT);
-            recalledSongs = songList.subList(0, limit);
+            // 5. 选取前MAX_RECALL_COUNT首
+            int limit = Math.min(sortedSongs.size(), MAX_RECALL_COUNT);
+            for (int i = 0; i < limit; i++) {
+                Integer songId = sortedSongs.get(i).getKey();
+                Song song = candidateSongs.get(songId);
+                if (song != null) {
+                    recalledSongs.add(song);
+                }
+            }
             
             log.debug("个性化召回 {} 首歌曲", recalledSongs.size());
             

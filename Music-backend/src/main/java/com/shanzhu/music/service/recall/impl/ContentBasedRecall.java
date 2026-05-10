@@ -57,12 +57,14 @@ public class ContentBasedRecall implements RecallStrategy {
             
             log.debug("用户偏好歌手数量: {}", preferredSingerIds.size());
             
-            // 3. 召回这些歌手的其他歌曲（排除用户已收藏的）
+            // 3. 召回这些歌手的其他歌曲（排除用户已收藏的），并统计歌手出现次数
             Set<Integer> collectedSongIds = userCollectedSongs.stream()
                 .map(Song::getId)
                 .collect(Collectors.toSet());
             
+            // 使用Map存储歌曲及其相关度得分（歌手被喜欢的次数）
             Map<Integer, Song> candidateSongs = new HashMap<>();
+            Map<Integer, Integer> songRelevanceScore = new HashMap<>();
             
             for (Integer singerId : preferredSingerIds) {
                 List<Song> singerSongs = songMapper.songOfSingerId(singerId);
@@ -72,17 +74,28 @@ public class ContentBasedRecall implements RecallStrategy {
                         // 排除用户已收藏的歌曲
                         if (!collectedSongIds.contains(song.getId())) {
                             candidateSongs.putIfAbsent(song.getId(), song);
+                            
+                            // 累加相关度得分（该歌手被用户收藏的次数）
+                            int currentScore = songRelevanceScore.getOrDefault(song.getId(), 0);
+                            songRelevanceScore.put(song.getId(), currentScore + 1);
                         }
                     }
                 }
             }
             
-            // 4. 随机打乱并选取前MAX_RECALL_COUNT首
-            List<Song> songList = new ArrayList<>(candidateSongs.values());
-            Collections.shuffle(songList);
+            // 4. 按相关度得分降序排序（得分越高说明用户越喜欢该歌手）
+            List<Map.Entry<Integer, Integer>> sortedSongs = new ArrayList<>(songRelevanceScore.entrySet());
+            sortedSongs.sort((e1, e2) -> e2.getValue().compareTo(e1.getValue()));
             
-            int limit = Math.min(songList.size(), MAX_RECALL_COUNT);
-            recalledSongs = songList.subList(0, limit);
+            // 5. 选取前MAX_RECALL_COUNT首
+            int limit = Math.min(sortedSongs.size(), MAX_RECALL_COUNT);
+            for (int i = 0; i < limit; i++) {
+                Integer songId = sortedSongs.get(i).getKey();
+                Song song = candidateSongs.get(songId);
+                if (song != null) {
+                    recalledSongs.add(song);
+                }
+            }
             
             log.debug("内容标签召回 {} 首歌曲", recalledSongs.size());
             
