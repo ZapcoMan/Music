@@ -1,8 +1,10 @@
 package com.shanzhu.music.service.recall;
 
 import com.shanzhu.music.entity.dto.RecallResult;
+import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.mapper.CollectMapper;
+import com.shanzhu.music.mapper.ConsumerMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ public class RecallFusionService {
     
     private final List<RecallStrategy> recallStrategies;
     private final CollectMapper collectMapper;
+    private final ConsumerMapper consumerMapper;
     
     /**
      * 执行多路召回并融合

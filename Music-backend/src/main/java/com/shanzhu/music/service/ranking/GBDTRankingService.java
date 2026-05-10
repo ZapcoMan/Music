@@ -20,6 +20,13 @@ import java.util.*;
 @Service
 public class GBDTRankingService {
     
+    private final NewSongBoostService newSongBoostService;
+    
+
+    public GBDTRankingService(NewSongBoostService newSongBoostService) {
+        this.newSongBoostService = newSongBoostService;
+    }
+    
     // 特征权重（可通过离线训练得到）
     private static final Map<String, Double> FEATURE_WEIGHTS = new HashMap<>();
     
@@ -56,13 +63,17 @@ public class GBDTRankingService {
         
         for (FeatureEngineeringService.SongWithFeature swf : songsWithFeatures) {
             double score = calculateScore(swf.getFeature());
-            songScores.add(new SongScore(swf.getSong(), score));
+            
+            // 2. 应用新歌扶持机制
+            double boostedScore = newSongBoostService.applyBoost(score, swf.getSong());
+            
+            songScores.add(new SongScore(swf.getSong(), boostedScore));
         }
         
-        // 2. 按得分降序排序
+        // 3. 按得分降序排序
         songScores.sort((a, b) -> Double.compare(b.score, a.score));
         
-        // 3. 提取排序后的歌曲列表
+        // 4. 提取排序后的歌曲列表
         List<Song> rankedSongs = new ArrayList<>();
         for (SongScore ss : songScores) {
             rankedSongs.add(ss.song);

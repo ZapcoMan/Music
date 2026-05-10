@@ -40,12 +40,22 @@
           <el-table-column
             prop="name"
             label="歌曲名字"
-            width="400">
+            width="350">
           </el-table-column>
           <el-table-column
             prop="introduction"
             label="简介"
-            width="300">
+            width="250">
+          </el-table-column>
+          <el-table-column
+            label="标签"
+            width="120">
+            <template slot-scope="scope">
+              <el-tag v-if="isNewSong(scope.row.createTime)" 
+                      type="success" size="mini">
+                🎵 新歌
+              </el-tag>
+            </template>
           </el-table-column>
           <el-table-column
             label="操作"
@@ -250,6 +260,14 @@ export default {
         .catch(() => {
           this.notify('收藏失败', 'error');
         });
+    },
+    // 判断是否为新歌（30天内）
+    isNewSong(createTime) {
+      if (!createTime) return false;
+      const now = new Date().getTime();
+      const create = new Date(createTime).getTime();
+      const days = (now - create) / (1000 * 60 * 60 * 24);
+      return days <= 30;
     },
   },
 };
