@@ -75,3 +75,16 @@ export const setCollect =(params) => post(`/collect/add`,params);
 export const getCollectOfUserId = (userId) => get(`/collect/collectOfUserId?userId=${userId}`);
 export const  delCollectOfUserId = (userId,songId) => get(`/collect/delete?userId=${userId}&songId=${songId}`)
 export const getfeaturedComment =(songId) => get(`/comment/frequent-words?songId=${songId}`)
+
+//===========搜索历史==================
+//记录搜索历史
+export const recordSearchHistory = (params) => post(`/search-history/record`, params);
+//获取最近搜索历史
+export const getRecentSearchHistory = (userId, limit = 20) => get(`/search-history/recent?userId=${userId}&limit=${limit}`);
+//获取最近搜索关键词
+export const getRecentSearchKeywords = (userId, limit = 10) => get(`/search-history/keywords?userId=${userId}&limit=${limit}`);
+//清空搜索历史
+export const clearSearchHistory = (userId) => Axios({
+    method: 'delete',
+    url: `/search-history/clear?userId=${userId}`
+});

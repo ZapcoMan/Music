@@ -32,6 +32,11 @@ public class Song implements Serializable {
     private String introduction;
 
     /**
+     * 歌曲标签（逗号分隔，如：流行,抒情,伤感）
+     */
+    private String tags;
+
+    /**
      * 创建时间
      */
     private Date createTime;

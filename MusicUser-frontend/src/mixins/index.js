@@ -1,5 +1,5 @@
 import {mapGetters} from 'vuex';
-import {likeSongOfName,getCollectOfUserId } from '../api/index';
+import {likeSongOfName,getCollectOfUserId, recordSearchHistory } from '../api/index';
 
 export const mixin = {
     computed: {
@@ -37,6 +37,17 @@ export const mixin = {
                 }).catch(err => {
                     console.log(err)
                 })
+                
+                // 记录搜索历史
+                if (this.userId) {
+                    recordSearchHistory({
+                        userId: this.userId,
+                        keywords: this.$route.query.keywords,
+                        searchType: 0  // 0表示歌曲搜索
+                    }).catch(err => {
+                        console.error('记录搜索历史失败:', err);
+                    });
+                }
             }
         },
         //获取名字前半部分--歌手名

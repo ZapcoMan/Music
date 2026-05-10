@@ -8,6 +8,7 @@
         <result column="singer_id" jdbcType="VARCHAR" property="singerId"/>
         <result column="name" jdbcType="VARCHAR" property="name"/>
         <result column="introduction" jdbcType="VARCHAR" property="introduction"/>
+        <result column="tags" jdbcType="VARCHAR" property="tags"/>
         <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
         <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
         <result column="pic" jdbcType="VARCHAR" property="pic"/>
@@ -19,7 +20,7 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,singer_id,name,introduction,create_time,update_time,pic,url
+        id,singer_id,name,introduction,tags,create_time,update_time,pic,url
     </sql>
 
     <sql id="Blob_Column_List">
@@ -40,6 +41,9 @@
             </if>
             <if test="introduction != null">
                 introduction,
+            </if>
+            <if test="tags != null">
+                tags,
             </if>
             create_time,update_time,
             <if test="pic != null">
@@ -65,6 +69,9 @@
             <if test="introduction != null">
                 #{introduction},
             </if>
+            <if test="tags != null">
+                #{tags},
+            </if>
             now(),now(),
             <if test="pic != null">
                 #{pic},
@@ -89,6 +96,9 @@
             </if>
             <if test="introduction != null">
                 introduction = #{introduction},
+            </if>
+            <if test="tags != null">
+                tags = #{tags},
             </if>
             update_time = now(),
             <if test="pic != null">

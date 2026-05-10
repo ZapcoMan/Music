@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+        "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shanzhu.music.mapper.SearchHistoryMapper">
+    <resultMap id="BaseResultMap" type="com.shanzhu.music.entity.po.SearchHistory">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="user_id" jdbcType="INTEGER" property="userId"/>
+        <result column="keywords" jdbcType="VARCHAR" property="keywords"/>
+        <result column="search_type" jdbcType="TINYINT" property="searchType"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, keywords, search_type, create_time
+    </sql>
+
+    <!-- 插入搜索历史记录 -->
+    <insert id="insert" parameterType="com.shanzhu.music.entity.po.SearchHistory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO search_history (user_id, keywords, search_type, create_time)
+        VALUES (#{userId}, #{keywords}, #{searchType}, NOW())
+    </insert>
+
+    <!-- 根据用户ID查询最近的搜索历史 -->
+    <select id="getRecentHistory" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM search_history
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 删除用户的搜索历史 -->
+    <delete id="deleteByUserId" parameterType="java.lang.Integer">
+        DELETE FROM search_history
+        WHERE user_id = #{userId}
+    </delete>
+
+    <!-- 删除指定时间的搜索历史 -->
+    <delete id="deleteOldHistory">
+        DELETE FROM search_history
+        WHERE user_id = #{userId}
+        AND create_time &lt; DATE_SUB(NOW(), INTERVAL #{days} DAY)
+    </delete>
+
+    <!-- 获取用户最近搜索的关键词列表 -->
+    <select id="getRecentKeywords" resultType="java.lang.String">
+        SELECT DISTINCT keywords
+        FROM search_history
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 统计用户搜索某关键词的次数 -->
+    <select id="countKeywordFrequency" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM search_history
+        WHERE user_id = #{userId}
+        AND keywords = #{keyword}
+    </select>
+
+</mapper>

@@ -8,7 +8,7 @@
 </template>
 <script>
 import ContentList from '../ContentList';
-import {getSongListOfLikeTitle} from '../../api/index';
+import {getSongListOfLikeTitle, recordSearchHistory} from '../../api/index';
 import {mixin} from "../../mixins";
 
 export default {
@@ -16,6 +16,7 @@ export default {
     components:{
         ContentList
     },
+    mixins: [mixin],
     data(){
         return{
             albumDatas: []
@@ -37,6 +38,17 @@ export default {
                             this.notify('暂无该歌曲内容','warning')
                         }
                     })
+                
+                // 记录搜索历史
+                if (this.userId) {
+                    recordSearchHistory({
+                        userId: this.userId,
+                        keywords: this.$route.query.keywords,
+                        searchType: 2  // 2表示歌单搜索
+                    }).catch(err => {
+                        console.error('记录搜索历史失败:', err);
+                    });
+                }
             }
         }
     }

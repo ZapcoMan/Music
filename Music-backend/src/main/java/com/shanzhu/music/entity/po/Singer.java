@@ -42,6 +42,11 @@ public class Singer implements Serializable {
     private String location;
 
     /**
+     * 歌手标签（逗号分隔，如：男歌手,流行,实力派）
+     */
+    private String tags;
+
+    /**
      * 简介
      */
     private String introduction;
