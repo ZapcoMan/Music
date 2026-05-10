@@ -31,7 +31,7 @@
           <b style="font-size: 32px;">
             {{ item.name }}
           </b>
-
+          <el-tag type="success" size="small" style="margin-left: 10px;">智能推荐</el-tag>
         </div>
         <el-table
           :data="tableData"
@@ -40,12 +40,32 @@
           <el-table-column
             prop="name"
             label="歌曲名字"
-            width="780">
+            width="400">
           </el-table-column>
           <el-table-column
             prop="introduction"
-            label="introduction"
-            width="180">
+            label="简介"
+            width="300">
+          </el-table-column>
+          <el-table-column
+            label="操作"
+            width="200">
+            <template slot-scope="scope">
+              <el-button 
+                size="mini" 
+                type="primary"
+                icon="el-icon-video-play"
+                @click="playSong(scope.row)">
+                播放
+              </el-button>
+              <el-button 
+                size="mini" 
+                type="success"
+                icon="el-icon-star-on"
+                @click="collectSong(scope.row)">
+                收藏
+              </el-button>
+            </template>
           </el-table-column>
         </el-table>
       </div>
@@ -57,10 +77,12 @@
 <script>
 import Swiper from "../components/Swiper";
 import contentList from "../components/ContentList";
-import {getAllSinger, getAllSongList, getRecommendedsongsList} from "../api/index";
+import {getAllSinger, getAllSongList, getRecommendedsongsList, setCollect} from "../api/index";
+import {mixin} from '../mixins';
 
 export default {
   name: "home",
+  mixins: [mixin],
   components: {
     Swiper,
     contentList,
@@ -165,6 +187,7 @@ export default {
           // 处理后端返回 R<List<Song>>
           if (res.code === 20000 || res.success === true) {
             this.tableData = res.data;
+            this.notify(`为您智能推荐 ${res.data.length} 首歌曲`, 'success');
           } else {
             this.$message({
               showClose: true,
@@ -196,6 +219,36 @@ export default {
               duration: 5000,
             });
           }
+        });
+    },
+    // 播放歌曲
+    playSong(song) {
+      this.$store.commit('setShowAside', true);
+      this.toplay(song.id, song.url, song.pic, 0, song.name, song.lyric);
+      this.notify(`正在播放: ${song.name}`, 'success');
+    },
+    // 收藏歌曲
+    collectSong(song) {
+      if (!this.loginIn) {
+        this.notify('请先登录', 'warning');
+        return;
+      }
+      
+      const params = new URLSearchParams();
+      params.append('userId', this.userId);
+      params.append('type', 0); // 0=歌曲
+      params.append('songId', song.id);
+      
+      setCollect(params)
+        .then((res) => {
+          if (res.code === 20000 || res.success === true) {
+            this.notify('收藏成功', 'success');
+          } else {
+            this.notify(res.message || '收藏失败', 'error');
+          }
+        })
+        .catch(() => {
+          this.notify('收藏失败', 'error');
         });
     },
   },
