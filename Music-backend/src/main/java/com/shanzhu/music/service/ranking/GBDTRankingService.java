@@ -84,36 +84,73 @@ public class GBDTRankingService {
     }
     
     /**
-     * 计算歌曲得分（模拟GBDT预测）
+     * 计算歌曲得分（模拟GBDT预测 + FM特征交叉）
      * 
-     * 公式: score = Σ(weight_i * feature_i) + bias
+     * 公式: score = linear_part + fm_cross_part + bias
      */
     private double calculateScore(SongFeature feature) {
-        double score = 0.0;
+        // ========== 1. 线性部分 ==========
+        double linearScore = 0.0;
         
         // 用户特征
-        score += FEATURE_WEIGHTS.get("userCollectCount") * normalize(feature.getUserCollectCount(), 0, 100);
-        score += FEATURE_WEIGHTS.get("userAvgRating") * normalize(feature.getUserAvgRating(), 0, 5);
+        linearScore += FEATURE_WEIGHTS.get("userCollectCount") * normalize(feature.getUserCollectCount(), 0, 100);
+        linearScore += FEATURE_WEIGHTS.get("userAvgRating") * normalize(feature.getUserAvgRating(), 0, 5);
         
         // 歌曲特征
-        score += FEATURE_WEIGHTS.get("songCollectCount") * normalize(feature.getSongCollectCount(), 0, 1000);
-        score += FEATURE_WEIGHTS.get("songAvgRating") * normalize(feature.getSongAvgRating(), 0, 5);
-        score += FEATURE_WEIGHTS.get("songAgeDays") * normalize(feature.getSongAgeDays(), 0, 3650);
+        linearScore += FEATURE_WEIGHTS.get("songCollectCount") * normalize(feature.getSongCollectCount(), 0, 1000);
+        linearScore += FEATURE_WEIGHTS.get("songAvgRating") * normalize(feature.getSongAvgRating(), 0, 5);
+        linearScore += FEATURE_WEIGHTS.get("songAgeDays") * normalize(feature.getSongAgeDays(), 0, 3650);
         
         // 交叉特征
-        score += FEATURE_WEIGHTS.get("userLikedSinger") * (feature.getUserLikedSinger() ? 1.0 : 0.0);
-        score += FEATURE_WEIGHTS.get("userSingerCollectCount") * normalize(feature.getUserSingerCollectCount(), 0, 10);
+        linearScore += FEATURE_WEIGHTS.get("userLikedSinger") * (feature.getUserLikedSinger() ? 1.0 : 0.0);
+        linearScore += FEATURE_WEIGHTS.get("userSingerCollectCount") * normalize(feature.getUserSingerCollectCount(), 0, 10);
         
         // 召回特征
-        score += FEATURE_WEIGHTS.get("recallStrategyWeight") * normalize(feature.getRecallStrategyWeight(), 0, 1);
-        score += FEATURE_WEIGHTS.get("recallRank") * normalize(feature.getRecallRank(), 1, 100);
+        linearScore += FEATURE_WEIGHTS.get("recallStrategyWeight") * normalize(feature.getRecallStrategyWeight(), 0, 1);
+        linearScore += FEATURE_WEIGHTS.get("recallRank") * normalize(feature.getRecallRank(), 1, 100);
         
-        // 添加偏置项
+        // ========== 2. FM二阶特征交叉部分 ==========
+        double fmScore = calculateFMCross(feature);
+        
+        // ========== 3. 组合得分 ==========
         double bias = 0.5;
-        score += bias;
+        double finalScore = linearScore + 0.3 * fmScore + bias; // FM部分权重0.3
         
         // Sigmoid激活函数，将得分映射到(0, 1)区间
-        return sigmoid(score);
+        return sigmoid(finalScore);
+    }
+    
+    /**
+     * 计算FM二阶特征交叉
+     * 模拟 Factorization Machine 的特征交互
+     * 
+     * 核心思想：捕捉特征之间的非线性关系
+     * 例如：用户喜欢歌手 × 歌曲热度 = 更强的推荐信号
+     */
+    private double calculateFMCross(SongFeature feature) {
+        double crossScore = 0.0;
+        
+        // 交叉1: 用户收藏数 × 歌曲热度（活跃用户更可能喜欢热门歌曲）
+        double userActivity = normalize(feature.getUserCollectCount(), 0, 100);
+        double songPopularity = normalize(feature.getSongCollectCount(), 0, 1000);
+        crossScore += 0.15 * userActivity * songPopularity;
+        
+        // 交叉2: 用户是否喜欢歌手 × 同歌手收藏数（强化偏好）
+        if (feature.getUserLikedSinger()) {
+            double singerPreference = normalize(feature.getUserSingerCollectCount(), 0, 10);
+            crossScore += 0.2 * singerPreference;
+        }
+        
+        // 交叉3: 歌曲评分 × 召回策略权重（高质量歌曲在好策略中更重要）
+        double songQuality = normalize(feature.getSongAvgRating(), 0, 5);
+        double strategyWeight = normalize(feature.getRecallStrategyWeight(), 0, 1);
+        crossScore += 0.1 * songQuality * strategyWeight;
+        
+        // 交叉4: 新歌 × 用户活跃度（活跃用户更愿意尝试新歌）
+        double isNewSong = feature.getSongAgeDays() != null && feature.getSongAgeDays() <= 30 ? 1.0 : 0.0;
+        crossScore += 0.05 * isNewSong * userActivity;
+        
+        return crossScore;
     }
     
     /**
