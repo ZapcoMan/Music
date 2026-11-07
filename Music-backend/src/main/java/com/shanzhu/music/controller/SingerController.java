@@ -10,7 +10,7 @@ import com.shanzhu.music.entity.dto.SingerRequest;
 import com.shanzhu.music.entity.po.Singer;
 import com.shanzhu.music.entity.vo.UploadPicVo;
 import com.shanzhu.music.service.SingerService;
-import com.shanzhu.music.utils.PathUtils;
+import com.shanzhu.music.service.FileStorageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +29,7 @@ import java.util.List;
 public class SingerController {
 
     private final SingerService singerService;
+    private final FileStorageService fileStorageService;
 
     /**
      * 添加歌手
@@ -172,26 +173,12 @@ public class SingerController {
             @RequestParam("file") MultipartFile avatorFile,
             @RequestParam("id") Integer id
     ) throws IOException {
-        JSONObject jsonObject = new JSONObject();
-
-        if (avatorFile.isEmpty()) {
-            return R.error("文件上传失败");
+        String storeAvatorPath;
+        try {
+            storeAvatorPath = fileStorageService.saveImage(avatorFile, "img/singerPic");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return R.error(e.getMessage());
         }
-
-        //文件名=当前时间到毫秒+原来的文件名
-        String fileName = System.currentTimeMillis() + avatorFile.getOriginalFilename();
-        //文件路径
-        String filePath = PathUtils.getClassLoadRootPath() + "/img/singerPic/";
-        //如果文件路径不存在，新增该路径
-        File file1 = new File(filePath);
-        if (!file1.exists()) {
-            file1.mkdir();
-        }
-        //实际的文件地址
-        File dest = new File(filePath + fileName);
-        //存储到数据库里的相对文件地址
-        String storeAvatorPath = "/img/singerPic/" + fileName;
-        avatorFile.transferTo(dest);
         Singer singer = new Singer();
         singer.setId(id);
         singer.setPic(storeAvatorPath);

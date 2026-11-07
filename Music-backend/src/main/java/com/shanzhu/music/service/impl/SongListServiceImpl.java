@@ -9,6 +9,7 @@ import com.shanzhu.music.mapper.SongMapper;
 import com.shanzhu.music.service.SongListService;
 import com.shanzhu.music.service.ranking.RankingService;
 import com.shanzhu.music.service.recall.RecallFusionService;
+import com.shanzhu.music.utils.ParseUtils;
 import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import com.shanzhu.music.service.ranking.RecommendationCache;
@@ -203,7 +204,11 @@ public class SongListServiceImpl implements SongListService {
 
     @Override
     public List<Song> queryRecommendedSongById(String id) {
-        int userId = Integer.parseInt(id);
+        Integer userId = ParseUtils.toIntegerOrNull(id);
+        if (userId == null) {
+            log.warn("推荐请求的用户ID不合法，返回空列表，id={}", id);
+            return List.of();
+        }
 
         // 1. 命中缓存直接返回；空列表代表"已确认暂无结果"，不再重跑全链路
         List<Song> cached = recommendationCache.get(userId);

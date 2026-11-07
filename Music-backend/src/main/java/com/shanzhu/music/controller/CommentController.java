@@ -37,6 +37,11 @@ public class CommentController {
      */
     @PostMapping(value = "/add")
     public R addComment(Integer userId, Byte type, Integer songId, Integer songListId, String content) {
+        // type 是 Byte，前端漏传时与 0 比较会触发拆箱 NPE
+        if (type == null) {
+            return R.error("评论类型不能为空");
+        }
+
         //保存到评论的对象中
         Comment comment = new Comment();
         comment.setUserId(userId);

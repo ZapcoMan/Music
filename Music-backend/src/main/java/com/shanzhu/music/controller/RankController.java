@@ -3,6 +3,7 @@ package com.shanzhu.music.controller;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Rank;
 import com.shanzhu.music.service.RankService;
+import com.shanzhu.music.utils.ParseUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,7 +50,10 @@ public class RankController {
      */
     @GetMapping
     public Integer rankOfSongListId(String songListId) {
-        return rankService.rankOfSongListId(Integer.parseInt(songListId));
+        Integer parsedSongListId = ParseUtils.toIntegerOrNull(songListId);        if (parsedSongListId == null) {
+            return 0;
+        }
+        return rankService.rankOfSongListId(parsedSongListId);
     }
 
 }

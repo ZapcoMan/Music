@@ -16,7 +16,7 @@ import com.shanzhu.music.service.ConsumerService;
 import com.shanzhu.music.service.TokenBlacklistService;
 import com.shanzhu.music.utils.IpUtils;
 import com.shanzhu.music.utils.JwtUtils;
-import com.shanzhu.music.utils.PathUtils;
+import com.shanzhu.music.service.FileStorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -50,6 +50,7 @@ public class ConsumerController {
     private final JwtUtils jwtUtils;
     private final IpUtils ipUtils;
     private final TokenBlacklistService tokenBlacklistService;
+    private final FileStorageService fileStorageService;
 
     /**
      * 退出登录：吊销当前令牌，使其在有效期内立即不可用。
@@ -218,31 +219,18 @@ public class ConsumerController {
             @RequestParam("file") MultipartFile avatorFile,
             @RequestParam("id") Integer id
     ) throws IOException {
-        if (avatorFile.isEmpty()) {
-            return R.error("文件上传失败");
+        String storeAvatorPath;
+        try {
+            storeAvatorPath = fileStorageService.saveImage(avatorFile, "userImages");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return R.error(e.getMessage());
         }
-
-        //文件名=当前时间到毫秒+原来的文件名
-        String fileName = System.currentTimeMillis() + avatorFile.getOriginalFilename();
-        //文件路径
-        String filePath = PathUtils.getClassLoadRootPath() + "/userImages/";
-        //如果文件路径不存在，新增该路径
-        File file1 = new File(filePath);
-        if (!file1.exists()) {
-            file1.mkdir();
-        }
-
-        //实际的文件地址
-        File dest = new File(filePath + fileName);
-        //存储到数据库里的相对文件地址
-        String storeAvatorPath = "/userImages/" + fileName;
-        avatorFile.transferTo(dest);
         Consumer consumer = new Consumer();
         consumer.setId(id);
         consumer.setAvator(storeAvatorPath);
 
         UploadConsumerPicVo uploadConsumerPicVo = new UploadConsumerPicVo();
-        uploadConsumerPicVo.setAvator("/userImages/" + fileName);
+        uploadConsumerPicVo.setAvator(storeAvatorPath);
         //更新前端用户
         if (consumerService.update(consumer)) {
             return R.ok("上传成功", uploadConsumerPicVo);

@@ -6,7 +6,8 @@ import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.entity.po.SongList;
 import com.shanzhu.music.entity.vo.UploadPicVo;
 import com.shanzhu.music.service.SongListService;
-import com.shanzhu.music.utils.PathUtils;
+import com.shanzhu.music.service.FileStorageService;
+import com.shanzhu.music.utils.ParseUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,7 @@ public class SongListController {
 
     private static final Logger log = LoggerFactory.getLogger(SongListController.class);
     private final SongListService songListService;
+    private final FileStorageService fileStorageService;
 
     /**
      * 添加歌单
@@ -77,7 +79,11 @@ public class SongListController {
     ) {
         //保存到歌单的对象中
         SongList songList = new SongList();
-        songList.setId(Integer.parseInt(id));
+        Integer parsedId = ParseUtils.toIntegerOrNull(id);
+        if (parsedId == null) {
+            return R.error("歌单ID不合法");
+        }
+        songList.setId(parsedId);
         songList.setTitle(title);
         songList.setIntroduction(introduction);
         songList.setStyle(style);
@@ -167,25 +173,12 @@ public class SongListController {
             @RequestParam("file") MultipartFile avatorFile,
             @RequestParam("id") Integer id
     ) throws IOException {
-        if (avatorFile.isEmpty()) {
-            return R.error("文件上传失败");
+        String storeAvatorPath;
+        try {
+            storeAvatorPath = fileStorageService.saveImage(avatorFile, "img/songListPic");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return R.error(e.getMessage());
         }
-
-        //文件名=当前时间到毫秒+原来的文件名
-        String fileName = System.currentTimeMillis() + avatorFile.getOriginalFilename();
-        //文件路径
-        String filePath = PathUtils.getClassLoadRootPath() + "/img/songListPic/";
-        //如果文件路径不存在，新增该路径
-        File file1 = new File(filePath);
-        if (!file1.exists()) {
-            file1.mkdir();
-        }
-        //实际的文件地址
-        File dest = new File(filePath + fileName);
-        //存储到数据库里的相对文件地址
-        String storeAvatorPath = "/img/songListPic/" + fileName;
-
-        avatorFile.transferTo(dest);
         SongList songList = new SongList();
         songList.setId(id);
         songList.setPic(storeAvatorPath);

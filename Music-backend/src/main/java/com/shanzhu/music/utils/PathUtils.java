@@ -1,11 +1,14 @@
 package com.shanzhu.music.utils;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 
 /**
  * 文件路径工具类
  */
+@Slf4j
 public class PathUtils {
 
     public static String getClassLoadRootPath() {
@@ -29,7 +32,7 @@ public class PathUtils {
                 path = prePath.substring(1, prePath.length() - 1);
             }
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            log.error("解析类加载路径失败，返回空路径", e);
         }
         return path;
     }
