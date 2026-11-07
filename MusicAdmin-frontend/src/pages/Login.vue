@@ -41,8 +41,10 @@ export default {
     data: function () {
         return {
             ruleForm: {
-                username: "admin",
-                password: "123456",
+                // 不在源码里预填凭据：仓库公开后这等于把管理员账号和口令一起交出去，
+                // 也让任何 clone 下来的人以为这就是可用凭据
+                username: "",
+                password: "",
             },
             rules: {
                 username: [

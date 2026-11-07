@@ -76,8 +76,10 @@ public class AdminController {
     @RequestMapping(value = "/admin/login/status", method = RequestMethod.POST)
     @RateLimit(key = "login:admin:", timeWindow = 60, maxRequests = 5, message = "登录尝试次数过多，请60秒后再试")
     public R<AdminLoginVo> loginStatus(
-            @Parameter(description = "管理员账号", required = true, example = "admin") @RequestParam String name,
-            @Parameter(description = "管理员密码", required = true, example = "123456") @RequestParam String password,
+            // 不在 @Parameter 里给 example：仓库公开后 Swagger UI 也是公开的，
+            // 预填的 admin/123456 等于把默认账号与一个弱口令候选一起摊给扫描者
+            @Parameter(description = "管理员账号", required = true) @RequestParam String name,
+            @Parameter(description = "管理员密码", required = true) @RequestParam String password,
             HttpServletRequest request) {
         log.info("管理员登录请求 - username={}", name);
         
