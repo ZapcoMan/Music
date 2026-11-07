@@ -3,7 +3,6 @@ package com.shanzhu.music.controller;
 import com.shanzhu.music.annotation.RateLimit;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Admin;
-import com.shanzhu.music.mapper.AdminMapper;
 import com.shanzhu.music.service.AdminService;
 import com.shanzhu.music.utils.IpUtils;
 import com.shanzhu.music.utils.JwtUtils;
@@ -35,7 +34,6 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService;
-    private final AdminMapper adminMapper;
     private final JwtUtils jwtUtils;
     private final IpUtils ipUtils;
     private final TokenBlacklistService tokenBlacklistService;
@@ -87,7 +85,7 @@ public class AdminController {
         }
 
         //获取管理员信息
-        Admin admin = adminMapper.getByName(name);
+        Admin admin = adminService.getByName(name);
         if (admin == null) {
             return R.error("管理员不存在");
         }

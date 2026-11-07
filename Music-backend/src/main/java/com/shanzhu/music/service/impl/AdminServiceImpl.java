@@ -34,4 +34,15 @@ public class AdminServiceImpl implements AdminService {
         return PasswordUtils.matches(password, admin.getPassword());
     }
 
+    /**
+     * 按账号名查询管理员
+     *
+     * @param username 账号名
+     * @return 管理员，不存在时返回 null
+     */
+    @Override
+    public Admin getByName(String username) {
+        return adminMapper.getByName(username);
+    }
+
 }
