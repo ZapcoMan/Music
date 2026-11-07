@@ -64,6 +64,21 @@
         WHERE consumer_id = #{userId}
     </select>
 
+    <!-- 批量查询多首歌曲的评分统计（通过歌单关联），替代推荐流程中的逐首查询。
+         没有任何评分记录的歌曲不会出现在结果里，由调用方按中性值兜底。 -->
+    <select id="selectRatingStatsBySongIds" resultType="java.util.HashMap">
+        SELECT ls.song_id AS songId,
+               AVG(r.score) AS avgRating,
+               COUNT(r.score) AS ratingCount
+        FROM list_song ls
+        JOIN ranks r ON r.song_list_id = ls.song_list_id
+        WHERE ls.song_id IN
+        <foreach collection="songIds" item="songId" open="(" separator="," close=")">
+            #{songId}
+        </foreach>
+        GROUP BY ls.song_id
+    </select>
+
     <!-- 歌曲评分统计：均值 + 评分次数（通过歌单关联） -->
     <select id="selectSongRatingStats" resultType="java.util.HashMap" parameterType="java.lang.Integer">
         SELECT COALESCE(AVG(r.score), 5.0) AS avgRating,

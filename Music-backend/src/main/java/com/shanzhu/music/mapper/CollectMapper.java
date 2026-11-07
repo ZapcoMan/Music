@@ -86,6 +86,14 @@ public interface CollectMapper {
     Integer countCollectsBySongId(@Param("songId") Integer songId);
 
     /**
+     * 批量统计多首歌曲被收藏的次数，用于替代逐首查询
+     *
+     * @param songIds 歌曲id列表，调用方需保证非空
+     * @return 每项含 songId / collectCount
+     */
+    List<java.util.Map<String, Object>> countCollectsBySongIds(@Param("songIds") List<Integer> songIds);
+
+    /**
      * 统计歌手的所有歌曲被某用户收藏的总次数
      *
      * @param singerId 歌手id

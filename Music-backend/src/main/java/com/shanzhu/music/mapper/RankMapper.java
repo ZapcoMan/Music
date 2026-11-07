@@ -4,6 +4,7 @@ import com.shanzhu.music.entity.po.Rank;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -51,4 +52,12 @@ public interface RankMapper {
      * @return avgRating 平均评分（1-10 分制，无评分时为 5.0）、ratingCount 评分次数
      */
     Map<String, Object> selectSongRatingStats(@Param("songId") Integer songId);
+
+    /**
+     * 批量查询多首歌曲的评分统计，用于替代逐首查询
+     *
+     * @param songIds 歌曲id列表，调用方需保证非空
+     * @return 每项含 songId / avgRating / ratingCount；无评分记录的歌曲不会出现在结果中
+     */
+    List<Map<String, Object>> selectRatingStatsBySongIds(@Param("songIds") List<Integer> songIds);
 }

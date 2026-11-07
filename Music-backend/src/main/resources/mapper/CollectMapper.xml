@@ -106,6 +106,17 @@
         SELECT COUNT(*) FROM collect WHERE song_id = #{songId}
     </select>
 
+    <!-- 批量统计多首歌曲被收藏次数：替代推荐流程中的逐首查询 -->
+    <select id="countCollectsBySongIds" resultType="java.util.HashMap">
+        SELECT song_id AS songId, COUNT(*) AS collectCount
+        FROM collect
+        WHERE song_id IN
+        <foreach collection="songIds" item="songId" open="(" separator="," close=")">
+            #{songId}
+        </foreach>
+        GROUP BY song_id
+    </select>
+
     <!-- 统计歌手的所有歌曲被某用户收藏的总次数 -->
     <select id="countCollectsBySingerId" resultType="java.lang.Integer" parameterType="java.lang.Integer">
         SELECT COUNT(DISTINCT c.id)
