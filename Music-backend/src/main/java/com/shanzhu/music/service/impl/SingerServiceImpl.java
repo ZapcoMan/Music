@@ -1,8 +1,12 @@
 package com.shanzhu.music.service.impl;
 import com.shanzhu.music.common.CacheKeys;
 
+import cn.hutool.core.date.DatePattern;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.util.StrUtil;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.shanzhu.music.entity.dto.SingerRequest;
 import com.shanzhu.music.entity.po.Singer;
 import com.shanzhu.music.mapper.SingerMapper;
 import com.shanzhu.music.entity.po.Song;
@@ -15,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -81,6 +86,58 @@ public class SingerServiceImpl implements SingerService {
             log.info("更新歌手，延时双删缓存");
         }
         return result;
+    }
+
+    /**
+     * 添加歌手（请求入口）
+     *
+     * @param request 歌手信息
+     * @return 结果
+     */
+    @Override
+    public Boolean insert(SingerRequest request) {
+        Singer singer = toSinger(request);
+        // 头像由上传接口单独维护，新增时占空串，与原 Controller 行为一致
+        singer.setPic("");
+        return insert(singer);
+    }
+
+    /**
+     * 修改歌手（请求入口）
+     *
+     * @param request 歌手信息
+     * @return 结果
+     */
+    @Override
+    public Boolean update(SingerRequest request) {
+        Singer singer = toSinger(request);
+        singer.setId(request.getId());
+        return update(singer);
+    }
+
+    /**
+     * 请求 DTO 转持久层对象。
+     *
+     * 库里 birth 是 date，前端传 yyyy-MM-dd 字符串。这段转换原先在 SingerController 的
+     * add 与 update 里各写一遍（ConsumerController 还有同款两份），漏改一处就会出现
+     * "新增存得下生日、修改把生日丢掉"这种半边生效的差异；标签不在请求里，
+     * 因此 tags 保持 null，交给 PO 方法按"不改动"处理。
+     */
+    private Singer toSinger(SingerRequest request) {
+        Singer singer = new Singer();
+        singer.setName(request.getName());
+        singer.setSex(request.getSex());
+        singer.setBirth(parseBirth(request.getBirth()));
+        singer.setLocation(request.getLocation());
+        singer.setIntroduction(request.getIntroduction());
+        return singer;
+    }
+
+    /**
+     * 前端生日字符串转 Date；空串与 null 一律按"未填写"处理成 null。
+     */
+    private static Date parseBirth(String birth) {
+        return StrUtil.isBlank(birth) ? null : DateUtil.parse(birth, DatePattern.NORM_DATE_PATTERN);
     }
 
     /**

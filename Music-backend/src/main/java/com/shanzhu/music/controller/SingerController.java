@@ -1,8 +1,5 @@
 package com.shanzhu.music.controller;
 
-import cn.hutool.core.date.DatePattern;
-import cn.hutool.core.date.DateTime;
-import cn.hutool.core.date.DateUtil;
 import com.alibaba.fastjson2.JSONObject;
 import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.annotation.RequireUserType;
@@ -42,23 +39,8 @@ public class SingerController {
     @PostMapping(value = "/add")
     @RequireUserType("admin")
     public R<Void> addSinger(@Valid @RequestBody SingerRequest request) {
-        //把生日转换成Date格式
-        DateTime birthDate = null;
-        if (request.getBirth() != null && !request.getBirth().isEmpty()) {
-            birthDate = DateUtil.parse(request.getBirth(), DatePattern.NORM_DATE_PATTERN);
-        }
-        
-        //保存到歌手的对象中
-        Singer singer = new Singer();
-        singer.setName(request.getName());
-        singer.setSex(request.getSex());
-        singer.setPic("");
-        singer.setBirth(birthDate);
-        singer.setLocation(request.getLocation());
-        singer.setIntroduction(request.getIntroduction());
-        
-        //保存成功
-        if (singerService.insert(singer)) {
+        // 生日转换与 DTO→PO 组装在 service，这里只做响应塑形
+        if (singerService.insert(request)) {
             return R.ok("添加成功");
         }
         return R.error("添加失败");
@@ -73,23 +55,7 @@ public class SingerController {
     @PostMapping(value = "/update")
     @RequireUserType("admin")
     public R<Void> updateSinger(@Valid @RequestBody SingerRequest request) {
-        //把生日转换成Date格式
-        DateTime birthDate = null;
-        if (request.getBirth() != null && !request.getBirth().isEmpty()) {
-            birthDate = DateUtil.parse(request.getBirth(), DatePattern.NORM_DATE_PATTERN);
-        }
-        
-        //保存到歌手的对象中
-        Singer singer = new Singer();
-        singer.setId(request.getId());
-        singer.setName(request.getName());
-        singer.setSex(request.getSex());
-        singer.setBirth(birthDate);
-        singer.setLocation(request.getLocation());
-        singer.setIntroduction(request.getIntroduction());
-        
-        //保存成功
-        if (singerService.update(singer)) {
+        if (singerService.update(request)) {
             return R.ok("修改成功");
         }
         return R.error("修改失败");

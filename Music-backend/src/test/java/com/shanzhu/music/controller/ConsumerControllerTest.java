@@ -1,17 +1,32 @@
 package com.shanzhu.music.controller;
 
+import cn.hutool.core.date.DateUtil;
 import com.shanzhu.music.BaseTest;
+import com.shanzhu.music.entity.po.Consumer;
+import com.shanzhu.music.service.ConsumerService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 /**
  * ConsumerController 单元测试
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ConsumerControllerTest extends BaseTest {
+
+    /**
+     * 注册与资料修改的逻辑已下沉到 service，这里要用它读回真实落库的结果，
+     * 而不是只看响应体里那个布尔值。
+     */
+    @Autowired
+    private ConsumerService consumerService;
 
     /**
      * 测试用户登录 - 成功
@@ -50,13 +65,19 @@ class ConsumerControllerTest extends BaseTest {
 
     /**
      * 测试用户注册
+     *
+     * 查重、生日解析、DTO→PO 组装都在 service 里完成，所以断的是落库结果：
+     * 只断 $.success 存在的话，"注册失败"与"注册成功但生日没存进去"都能通过。
      */
     @Test
     @Order(3)
     @DisplayName("测试用户注册")
     void testSignUp() throws Exception {
+        // 用户名带时间戳：Redis 是本机共享的，写死用户名的话上一轮跑完留下的
+        // music:consumer:username:* 缓存会让这一轮的注册直接被"已存在"拦下
+        String username = "newuser" + System.currentTimeMillis();
         String jsonRequest = "{" +
-                "\"username\":\"newuser2026\"," +
+                "\"username\":\"" + username + "\"," +
                 "\"password\":\"123456\"," +
                 "\"sex\":1," +
                 "\"phoneNum\":\"13800138002\"," +
@@ -66,14 +87,33 @@ class ConsumerControllerTest extends BaseTest {
                 "\"location\":\"深圳\"," +
                 "\"avator\":\"/userImages/test.jpg\"" +
                 "}";
-        
+
         mockMvc.perform(MockMvcRequestBuilders.post("/consumer/add")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
-        
-        System.out.println("用户注册接口测试通过");
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true));
+
+        Consumer registered = consumerService.getByUsername(username);
+        assertNotNull(registered, "注册后应能按账号查回用户");
+        // 请求里是 "1995-06-15" 字符串，库里是 date 列，转换在 service 的 toConsumer 里
+        assertEquals("1995-06-15", DateUtil.formatDate(registered.getBirth()),
+                "生日应解析成 date 落库，而不是丢掉或按当前时间填充");
+        assertTrue(registered.getPassword().startsWith("$2"),
+                "密码必须加密存储，注册接口不能落明文");
+        assertEquals("", registered.getAvator(),
+                "头像由上传接口维护，注册时只占空串（请求里的 avator 字段不采纳）");
+
+        // 同名再注册应被拒，且第一次注册的数据不被二次写入覆盖
+        mockMvc.perform(MockMvcRequestBuilders.post("/consumer/add")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonRequest))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("用户名已存在"));
+
+        assertEquals("新用户", consumerService.getByUsername(username).getIntroduction(),
+                "重复注册不应改动已存在的账号");
     }
 
     /**
@@ -94,13 +134,26 @@ class ConsumerControllerTest extends BaseTest {
 
     /**
      * 测试修改用户信息
+     *
+     * 上一版用 consumerMvc 的默认令牌（写死 userId=35）直接打这个接口，而测试库的 consumer
+     * 表是空的——服务端返回的一直是"用户不存在"，但用例只断言 $.success 存在，
+     * 于是它从没测过一次真正的修改。这里先注册出一个真实账号，再用它自己的令牌改。
      */
     @Test
     @Order(5)
     @DisplayName("测试修改用户信息")
     void testUpdateConsumer() throws Exception {
+        String username = "profileuser" + System.currentTimeMillis();
+        mockMvc.perform(MockMvcRequestBuilders.post("/consumer/add")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"" + username + "\",\"password\":\"123456\"}"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true));
+
+        Consumer created = consumerService.getByUsername(username);
+        assertNotNull(created, "前置账号应已注册");
+
         String jsonRequest = "{" +
-                "\"username\":\"testuser\"," +
+                "\"username\":\"hijacked\"," +
                 "\"password\":\"123456\"," +
                 "\"sex\":1," +
                 "\"phoneNum\":\"13800138000\"," +
@@ -110,14 +163,23 @@ class ConsumerControllerTest extends BaseTest {
                 "\"location\":\"广州\"," +
                 "\"avator\":\"/userImages/test.jpg\"" +
                 "}";
-        
+
         consumerMvc.perform(MockMvcRequestBuilders.post("/consumer/update")
+                .header("Authorization",
+                        jwtUtils.generateToken(created.getId(), created.getUsername(), "consumer", "127.0.0.1"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
-        
-        System.out.println("修改用户信息接口测试通过");
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true));
+
+        Consumer updated = consumerService.selectByPrimaryKey(created.getId());
+        assertEquals("修改后的简介", updated.getIntroduction(), "资料修改应落库");
+        assertEquals("广州", updated.getLocation());
+        assertEquals("1990-01-01", DateUtil.formatDate(updated.getBirth()),
+                "生日字符串应在 service 里解析成 date，改资料时不能丢");
+        // 请求里谎称 username=hijacked，但用户名是登录凭据，不随资料接口改动
+        assertEquals(username, updated.getUsername());
+        assertNotEquals("hijacked", updated.getUsername(), "用户名不可通过资料接口改名");
     }
 
     /**

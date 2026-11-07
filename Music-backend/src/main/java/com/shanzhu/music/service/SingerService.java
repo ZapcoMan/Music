@@ -1,6 +1,7 @@
 package com.shanzhu.music.service;
 
 import com.github.pagehelper.PageInfo;
+import com.shanzhu.music.entity.dto.SingerRequest;
 import com.shanzhu.music.entity.po.Singer;
 
 import java.util.List;
@@ -19,12 +20,28 @@ public interface SingerService {
     Boolean insert(Singer singer);
 
     /**
+     * 添加歌手（请求入口，生日转换与组装在服务层完成）
+     *
+     * @param request 歌手信息
+     * @return 结果
+     */
+    Boolean insert(SingerRequest request);
+
+    /**
      * 修改歌手
      *
      * @param singer 歌手信息
      * @return 结果
      */
     Boolean update(Singer singer);
+
+    /**
+     * 修改歌手（请求入口，生日转换与组装在服务层完成）
+     *
+     * @param request 歌手信息
+     * @return 结果
+     */
+    Boolean update(SingerRequest request);
 
     /**
      * 删除歌手

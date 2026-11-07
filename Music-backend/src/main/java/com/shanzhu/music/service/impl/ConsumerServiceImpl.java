@@ -1,9 +1,14 @@
 package com.shanzhu.music.service.impl;
 import com.shanzhu.music.common.CacheKeys;
 
+import cn.hutool.core.date.DatePattern;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.util.StrUtil;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.shanzhu.music.entity.dto.ConsumerRequest;
 import com.shanzhu.music.entity.po.Consumer;
+import com.shanzhu.music.exception.BusinessException;
 import com.shanzhu.music.mapper.CollectMapper;
 import com.shanzhu.music.mapper.CommentMapper;
 import com.shanzhu.music.mapper.ConsumerMapper;
@@ -16,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -53,6 +59,77 @@ public class ConsumerServiceImpl implements ConsumerService {
     }
 
     /**
+     * 注册新用户（查重 + 生日解析 + 密码加密）
+     *
+     * @param request 注册请求
+     * @return 已落库的用户
+     */
+    @Override
+    public Consumer register(ConsumerRequest request) {
+        // 查重问数据库，不问缓存：按 username 存的用户缓存有 24 小时寿命，
+        // 账号删除或改名缓存滞后时，注册会对一个其实可用的用户名误报"已存在"。
+        // 唯一性判断必须由权威存储给出。
+        if (consumerMapper.getByUsername(request.getUsername()) != null) {
+            throw new BusinessException("用户名已存在");
+        }
+        Consumer consumer = toConsumer(request);
+        // 头像由上传接口单独维护，注册时先占空串，与原 Controller 行为一致
+        consumer.setAvator("");
+        if (!insert(consumer)) {
+            throw new BusinessException("添加失败");
+        }
+        return consumer;
+    }
+
+    /**
+     * 修改本人资料
+     *
+     * @param request       资料请求
+     * @param currentUserId 令牌中的用户id
+     * @return 修改结果
+     */
+    @Override
+    public Boolean updateProfile(ConsumerRequest request, Integer currentUserId) {
+        // 以令牌身份为准：原实现按 username 反查用户，任何人提交他人用户名即可改其资料
+        Consumer existConsumer = selectByPrimaryKey(currentUserId);
+        if (existConsumer == null) {
+            throw new BusinessException("用户不存在");
+        }
+        Consumer consumer = toConsumer(request);
+        consumer.setId(currentUserId);
+        // 用户名是登录凭据，不允许通过本接口改名
+        consumer.setUsername(existConsumer.getUsername());
+        return update(consumer);
+    }
+
+    /**
+     * 注册/资料请求转持久层对象。
+     *
+     * 库里 birth 是 date，前端传的是 yyyy-MM-dd 字符串，这段转换原先在 ConsumerController
+     * 的 add 与 update 里各写一遍，SingerController 还有两份同款；漏改一处就会出现
+     * "注册能存生日、改资料把生日丢掉"这类只在半边生效的差异。
+     */
+    private Consumer toConsumer(ConsumerRequest request) {
+        Consumer consumer = new Consumer();
+        consumer.setUsername(request.getUsername());
+        consumer.setPassword(request.getPassword());
+        consumer.setSex(request.getSex());
+        consumer.setPhoneNum(request.getPhoneNum());
+        consumer.setEmail(request.getEmail());
+        consumer.setBirth(parseBirth(request.getBirth()));
+        consumer.setIntroduction(request.getIntroduction());
+        consumer.setLocation(request.getLocation());
+        return consumer;
+    }
+
+    /**
+     * 前端生日字符串转 Date；空串与 null 一律按"未填写"处理成 null。
+     */
+    private static Date parseBirth(String birth) {
+        return StrUtil.isBlank(birth) ? null : DateUtil.parse(birth, DatePattern.NORM_DATE_PATTERN);
+    }
+
+    /**
      * 修改前台用户（密码加密）
      *
      * @param consumer 前台用户信息
@@ -64,7 +141,16 @@ public class ConsumerServiceImpl implements ConsumerService {
         if (consumer.getPassword() != null && !consumer.getPassword().isEmpty()) {
             consumer.setPassword(PasswordUtils.encode(consumer.getPassword()));
         }
-        return consumerMapper.update(consumer) > 0;
+        Boolean result = consumerMapper.update(consumer) > 0;
+        if (result) {
+            // 两份缓存都要清：按 id 的那份决定资料页显示什么，按 username 的那份是登录时
+            // 取密码的入口。此前 update 完全没碰缓存，改完密码后旧哈希还能再活 24 小时，
+            // 用户会看到"新密码登不进去、旧密码仍然能用"
+            redisUtils.deleteObject(CONSUMER_CACHE_KEY + consumer.getId());
+            redisUtils.deleteObject(CONSUMER_CACHE_KEY + "username:" + consumer.getUsername());
+            log.info("修改用户资料，清除 id 与 username 两份缓存");
+        }
+        return result;
     }
 
     /**

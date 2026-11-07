@@ -1,8 +1,5 @@
 package com.shanzhu.music.controller;
 
-import cn.hutool.core.date.DatePattern;
-import cn.hutool.core.date.DateTime;
-import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
 import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.annotation.RateLimit;
@@ -89,37 +86,12 @@ public class ConsumerController {
     @RateLimit(key = "register:consumer:", timeWindow = 60, maxRequests = 5, message = "注册过于频繁，请60秒后再试")
     @PostMapping(value = "/add")
     public R<Void> addConsumer(@Valid @RequestBody ConsumerRequest request, HttpServletRequest httpRequest) {
-        //已经存在用户名
-        Consumer existConsumer = consumerService.getByUsername(request.getUsername());
-        if (existConsumer != null) {
-            return R.error("用户名已存在");
-        }
-
-        //把生日转换成Date格式
-        DateTime birthDate = null;
-        if (request.getBirth() != null && !request.getBirth().isEmpty()) {
-            birthDate = DateUtil.parse(request.getBirth(), DatePattern.NORM_DATE_PATTERN);
-        }
-
-        //保存到前端用户的对象中
-        Consumer consumer = new Consumer();
-        consumer.setUsername(request.getUsername());
-        consumer.setPassword(request.getPassword());
-        consumer.setSex(request.getSex());
-        consumer.setPhoneNum(request.getPhoneNum());
-        consumer.setEmail(request.getEmail());
-        consumer.setBirth(birthDate);
-        consumer.setIntroduction(request.getIntroduction());
-        consumer.setLocation(request.getLocation());
-        consumer.setAvator("");
-
-        //保存成功
-        if (consumerService.insert(consumer)) {
-            operationLogService.logAdd(consumer.getId(), request.getUsername(), "consumer",
-                    "用户模块", "注册新用户", ipUtils.getIpAddress(httpRequest));
-            return R.ok("添加成功");
-        }
-        return R.error("添加失败");
+        // 查重、生日转换、DTO→PO 组装与密码加密都在 service，
+        // 注册成功即返回；用户名已存在/写入失败由 service 抛 BusinessException 走全局异常处理
+        Consumer consumer = consumerService.register(request);
+        operationLogService.logAdd(consumer.getId(), request.getUsername(), "consumer",
+                "用户模块", "注册新用户", ipUtils.getIpAddress(httpRequest));
+        return R.ok("添加成功");
     }
 
     /**
@@ -136,33 +108,8 @@ public class ConsumerController {
                             @RequestAttribute("userType") String currentUserType,
                             @Valid @RequestBody ConsumerRequest request,
                             HttpServletRequest httpRequest) {
-        //把生日转换成Date格式
-        DateTime birthDate = null;
-        if (request.getBirth() != null && !request.getBirth().isEmpty()) {
-            birthDate = DateUtil.parse(request.getBirth(), DatePattern.NORM_DATE_PATTERN);
-        }
-
-        // 以令牌身份为准：原实现按 username 反查用户，任何人提交他人用户名即可改其资料
-        Consumer existConsumer = consumerService.selectByPrimaryKey(currentUserId);
-        if (existConsumer == null) {
-            return R.error("用户不存在");
-        }
-
-        //保存到前端用户的对象中
-        Consumer consumer = new Consumer();
-        consumer.setId(currentUserId);
-        // 用户名是登录凭据，不允许通过本接口改名
-        consumer.setUsername(existConsumer.getUsername());
-        consumer.setPassword(request.getPassword());
-        consumer.setSex(request.getSex());
-        consumer.setPhoneNum(request.getPhoneNum());
-        consumer.setEmail(request.getEmail());
-        consumer.setBirth(birthDate);
-        consumer.setIntroduction(request.getIntroduction());
-        consumer.setLocation(request.getLocation());
-
-        //保存成功
-        if (consumerService.update(consumer)) {
+        // 身份只取令牌，生日转换与组装在 service；"用户不存在"由 service 抛 BusinessException
+        if (consumerService.updateProfile(request, currentUserId)) {
             operationLogService.logUpdate(currentUserId, currentUsername, currentUserType,
                     "用户模块", "修改个人资料", ipUtils.getIpAddress(httpRequest));
             return R.ok("修改成功");

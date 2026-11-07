@@ -1,18 +1,36 @@
 package com.shanzhu.music.controller;
 
+import cn.hutool.core.date.DateUtil;
 import com.shanzhu.music.BaseTest;
 import com.shanzhu.music.common.R;
+import com.shanzhu.music.entity.po.Singer;
+import com.shanzhu.music.service.SingerService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 /**
  * SingerController 单元测试
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class SingerControllerTest extends BaseTest {
+
+    @Autowired
+    private SingerService singerService;
+
+    /**
+     * testAddSinger 建出来的歌手，交给 testUpdateSinger 按真实 id 修改。
+     * 原先 update 用例写死 id=1，测的是"恰好存在的那一行"而不是接口本身。
+     */
+    private static Integer addedSingerId;
 
     /**
      * 测试分页查询歌手
@@ -96,6 +114,9 @@ class SingerControllerTest extends BaseTest {
 
     /**
      * 测试添加歌手
+     *
+     * 生日解析与 DTO→PO 组装已下沉到 SingerService，这里断的是落库结果：
+     * 只断 code==20000 的话，"新增成功但生日没存进去"照样通过。
      */
     @Test
     @Order(6)
@@ -109,14 +130,21 @@ class SingerControllerTest extends BaseTest {
                 "\"location\":\"北京\"," +
                 "\"introduction\":\"测试简介\"" +
                 "}";
-        
+
         mockMvc.perform(MockMvcRequestBuilders.post("/singer/add")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").value(20000));
-        
-        System.out.println("添加歌手接口测试通过");
+
+        List<Singer> created = singerService.singerOfName("测试歌手Controller");
+        assertFalse(created.isEmpty(), "新增后应能按名称查回");
+        Singer singer = created.get(0);
+        addedSingerId = singer.getId();
+        assertEquals("1990-01-01", DateUtil.formatDate(singer.getBirth()),
+                "生日应在 service 里解析成 date 落库");
+        assertEquals("", singer.getPic(),
+                "头像由上传接口维护，新增时只占空串（请求里的 pic 字段不采纳）");
     }
 
     /**
@@ -126,22 +154,26 @@ class SingerControllerTest extends BaseTest {
     @Order(7)
     @DisplayName("测试修改歌手")
     void testUpdateSinger() throws Exception {
+        assertNotNull(addedSingerId, "需要一个 testAddSinger 建出来的歌手");
         String jsonRequest = "{" +
-                "\"id\":1," +
-                "\"name\":\"周杰伦\"," +
+                "\"id\":" + addedSingerId + "," +
+                "\"name\":\"测试歌手Controller\"," +
                 "\"sex\":1," +
                 "\"birth\":\"1979-01-18\"," +
                 "\"location\":\"台湾\"," +
                 "\"introduction\":\"华语流行音乐男歌手\"" +
                 "}";
-        
+
         mockMvc.perform(MockMvcRequestBuilders.post("/singer/update")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").value(20000));
-        
-        System.out.println("修改歌手接口测试通过");
+
+        Singer updated = singerService.selectByPrimaryKey(addedSingerId);
+        assertEquals("1979-01-18", DateUtil.formatDate(updated.getBirth()),
+                "修改资料时生日同样要解析，不能丢掉");
+        assertEquals("台湾", updated.getLocation());
     }
 
     /**
