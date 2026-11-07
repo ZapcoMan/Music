@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS `singer` (
     `pic` VARCHAR(255),
     `birth` DATE,
     `location` VARCHAR(255),
+    `tags` VARCHAR(500),
     `introduction` TEXT
 );
 
@@ -25,6 +26,7 @@ CREATE TABLE IF NOT EXISTS `song` (
     `singer_id` INT,
     `name` VARCHAR(255) NOT NULL,
     `introduction` TEXT,
+    `tags` VARCHAR(500),
     `pic` VARCHAR(255),
     `lyric` TEXT,
     `url` VARCHAR(255),
@@ -95,6 +97,69 @@ CREATE TABLE IF NOT EXISTS `ranks` (
     `score` INT NOT NULL
 );
 
+-- 用户歌单评分表（真实库存在，此前测试 schema 缺失）
+CREATE TABLE IF NOT EXISTS `user_ratings` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` INT,
+    `song_list_id` INT,
+    `score` INT,
+    `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 标签字典表
+CREATE TABLE IF NOT EXISTS `tag` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `name` VARCHAR(50) NOT NULL,
+    `type` TINYINT DEFAULT 0,
+    `create_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `update_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 歌曲标签关联表
+CREATE TABLE IF NOT EXISTS `song_tag` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `song_id` INT NOT NULL,
+    `tag_id` INT NOT NULL,
+    `create_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 歌手标签关联表
+CREATE TABLE IF NOT EXISTS `singer_tag` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `singer_id` INT NOT NULL,
+    `tag_id` INT NOT NULL,
+    `create_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 搜索历史表
+CREATE TABLE IF NOT EXISTS `search_history` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` INT NOT NULL,
+    `keywords` VARCHAR(255) NOT NULL,
+    `search_type` TINYINT DEFAULT 0,
+    `create_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 操作审计日志表（V5 迁移新建，测试 schema 需同步，否则审计接线后的写入在 H2 必然失败）
+CREATE TABLE IF NOT EXISTS `operation_log` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` INT,
+    `username` VARCHAR(50),
+    `user_type` VARCHAR(20),
+    `operation_type` VARCHAR(20),
+    `module` VARCHAR(50),
+    `description` VARCHAR(255),
+    `request_url` VARCHAR(255),
+    `request_method` VARCHAR(10),
+    `request_params` TEXT,
+    `response_result` TEXT,
+    `ip_address` VARCHAR(50),
+    `duration` BIGINT,
+    `status` VARCHAR(20),
+    `error_msg` VARCHAR(500),
+    `create_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 插入测试数据
 INSERT INTO `admin` (`name`, `password`) VALUES 
 ('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy');
@@ -115,3 +180,29 @@ INSERT INTO `song_list` (`title`, `pic`, `introduction`, `style`) VALUES
 
 INSERT INTO `consumer` (`username`, `password`, `sex`, `phone_num`, `email`, `avator`) VALUES 
 ('testuser', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 1, '13800138000', 'test@example.com', '/userImages/test.jpg');
+
+-- 标签字典：id 显式指定，与真实库 tag 表的编号语义保持一致（0风格 1情感 3语言）
+INSERT INTO `tag` (`id`, `name`, `type`) VALUES
+(1, '流行', 0), (2, '摇滚', 0), (3, '民谣', 0),
+(6, '抒情', 1), (7, '伤感', 1),
+(16, '中文', 3), (17, '英文', 3);
+
+INSERT INTO `song_tag` (`song_id`, `tag_id`) VALUES
+(1, 1), (1, 6), (1, 16),      -- 七里香
+(2, 1), (2, 3), (2, 16),      -- 青花瓷
+(3, 1), (3, 7), (3, 16);      -- 十年
+
+INSERT INTO `singer_tag` (`singer_id`, `tag_id`) VALUES
+(1, 1), (1, 16),              -- 周杰伦
+(2, 1), (2, 16),              -- 陈奕迅
+(3, 1), (3, 16);              -- 王菲
+
+-- 逗号串与中间表保持一致。真实库经 V6 已两侧对齐，
+-- 测试库若留空会让 Base_Column_List 读出的 tags 与 song_tag 不一致，掩盖问题。
+UPDATE `song` SET `tags` = '流行,抒情,中文' WHERE `id` = 1;
+UPDATE `song` SET `tags` = '流行,民谣,中文' WHERE `id` = 2;
+UPDATE `song` SET `tags` = '流行,伤感,中文' WHERE `id` = 3;
+UPDATE `singer` SET `tags` = '流行,中文' WHERE `id` IN (1, 2, 3);
+
+INSERT INTO `search_history` (`user_id`, `keywords`, `search_type`) VALUES
+(1, '七里香', 0), (1, '青花瓷', 0), (1, '华语经典', 1);
