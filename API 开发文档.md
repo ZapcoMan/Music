@@ -43,13 +43,15 @@ name=admin&password=123456
 **响应：**
 ```json
 {
-  "code": 200,
-  "msg": "登录成功",
+  "success": true,
+  "code": 20000,
+  "message": "登录成功",
   "data": {
     "name": "admin",
     "token": "eyJhbGciOiJIUzI1NiJ9...",
     "expiresIn": 86400
-  }
+  },
+  "dataMap": {}
 }
 ```
 
@@ -64,8 +66,9 @@ username=testuser&password=123456
 **响应：**
 ```json
 {
-  "code": 200,
-  "msg": "登录成功",
+  "success": true,
+  "code": 20000,
+  "message": "登录成功",
   "data": {
     "userMsg": {
       "id": 1,
@@ -82,7 +85,8 @@ username=testuser&password=123456
 - ✅ **IP 地址绑定**：Token 与客户端 IP 绑定，防止盗用
 - ✅ **Token 有效期**：24 小时自动过期
 - ✅ **Token 黑名单**：支持主动登出（Redis 实现）
-- ✅ **API 限流**：登录接口 60 秒最多 5 次尝试
+- ✅ **API 限流**：登录与注册 60 秒最多 5 次；评论发表 10、点赞 30、
+  资料修改与删除 10~20、头像上传 5（`@RateLimit` 逐个接口标注，键按"有令牌用用户、无令牌用 IP"）
 
 📖 详细说明：[01-AUTHENTICATION.md](docs/01-AUTHENTICATION.md) | [02-RATE-LIMITING.md](docs/02-RATE-LIMITING.md)
 
@@ -109,10 +113,16 @@ username=testuser&password=123456
 
 ```json
 {
+  "success": false,
   "code": 400,
-  "msg": "用户名不能为空"
+  "message": "用户名不能为空",
+  "dataMap": {}
 }
 ```
+
+HTTP 状态码同时为 400（`GlobalExceptionHandler` 对该异常标了 `@ResponseStatus(HttpStatus.BAD_REQUEST)`）。
+注意 `code` 这里就是 400 而不是 20002：`R.error(400, message)` 直接传了数字，
+与 `ResultCodeEnum.PARAM_ERROR(20002)` 并存 —— 参数错误的 code 目前有两个来源，属已知不一致。
 
 📖 详细说明：[05-PARAM-VALIDATION.md](docs/05-PARAM-VALIDATION.md)
 
@@ -124,22 +134,30 @@ username=testuser&password=123456
 
 ```json
 {
-  "code": 1,           // 1:成功, 0:失败, 400:参数错误, 401:未认证, 403:禁止访问, 429:限流
-  "msg": "操作成功",    // 提示信息
-  "data": {}           // 返回数据（可选）
+  "success": true,      // 是否成功；失败响应现在会置 false
+  "code": 20000,        // 20000 成功；20001 未知错误；20002 参数错误；20003 空指针；20004 客户端错误
+  "message": "操作成功", // 提示信息（字段名是 message，不是 msg）
+  "data": {},           // 返回数据（可选，为 null 时不出现在 JSON 里）
+  "dataMap": {}         // 另一种数据载体，部分接口用它
 }
 ```
 
+字段说明以 `common/R.java` 与 `common/ResultCodeEnum.java` 为准，本文不再重复维护。
+
 ### 常见状态码
 
-| 状态码 | 说明 | 场景 |
-|-------|------|------|
-| 200 | 成功 | 请求成功处理 |
-| 400 | 参数错误 | 参数校验失败 |
-| 401 | 未认证 | Token 无效或过期 |
-| 403 | 禁止访问 | IP 不匹配或权限不足 |
-| 429 | 请求过多 | 超过限流限制 |
-| 500 | 服务器错误 | 内部异常 |
+HTTP 状态码与业务 code 是两层，不要混看：
+
+| HTTP | 由谁决定 | 场景 |
+|------|---------|------|
+| 200 | 正常返回 | 请求进入业务层并返回 R（**业务失败也返回 200**，需看 `success`） |
+| 400 | GlobalExceptionHandler | `@Valid` 校验失败 |
+| 401 | JwtAuthenticationInterceptor | 未携带 Token、Token 无效/过期、已被登出吊销 |
+| 403 | JwtAuthenticationInterceptor | IP 与令牌绑定不符；或 `@RequireUserType` 角色不匹配 |
+| 429 | RateLimitInterceptor | 超过限流阈值 |
+
+业务 code：20000 成功 / 20001 未知错误 / 20002 参数错误 / 20003 空指针 / 20004 客户端错误，
+另有少数接口直接返回 400/401/403 作为 code（见上表来源），因此判断成败请以 `success` 为准。
 
 ---
 

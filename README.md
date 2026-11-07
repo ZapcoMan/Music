@@ -5,7 +5,7 @@
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.3-brightgreen)
 ![Vue](https://img.shields.io/badge/Vue-2.6.11-4FC08D)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-orange)
-![Tests](https://img.shields.io/badge/Tests-141%20cases%2C%20not%20all%20verified-yellow)
+![Tests](https://img.shields.io/badge/Tests-141%20run%2C%200%20failed%2C%2016%20skipped-yellow)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue)
 ![License](https://img.shields.io/badge/License-Apache%202.0-red)
 
