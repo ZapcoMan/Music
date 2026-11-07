@@ -32,6 +32,10 @@ public class CommentController {
     /**
      * 添加评论
      *
+     * 评论发出后即为不可变内容：本类没有改写接口，service 与持久层也没有更新正文的方法。
+     * 原先的 POST /comment/update（含"本人或管理员可改"的归属校验）已整体下线，
+     * 因为产品口径是"一旦发布，连作者自己也不能修改"。要撤回就删了重发。
+     *
      * @param type       评论类型（0歌曲1歌单）
      * @param songId     歌曲id
      * @param songListId 歌单id
@@ -68,49 +72,6 @@ public class CommentController {
     }
 
     /**
-     * 修改评论
-     *
-     * @param id         主键
-     * @param type       评论类型（0歌曲1歌单）
-     * @param songId     歌曲id
-     * @param songListId 歌单列表id
-     * @param content    评论内容
-     * @return 评论结果
-     */
-    @RateLimit(key = "comment:update:", timeWindow = 60, maxRequests = 20, message = "评论修改过于频繁，请稍后再试")
-    @PostMapping(value = "/update")
-    @RequireUserType({"consumer", "admin"})
-    public R<Void> updateComment(@RequestAttribute("userId") Integer userId,
-                           @RequestAttribute("userType") String userType,
-                           Integer id, Byte type, Integer songId, Integer songListId, String content) {
-        Comment origin = commentService.selectByPrimaryKey(id);
-        if (origin == null) {
-            return R.error("评论不存在");
-        }
-        // 归属校验：非本人且非管理员不得改写，
-        // 原先把 userId 当成普通参数，提交别人的 id 就能把评论"改到"别人名下
-        if (!userId.equals(origin.getUserId()) && !"admin".equals(userType)) {
-            log.warn("评论修改被拒 - 令牌用户={}, 评论作者={}, commentId={}", userId, origin.getUserId(), id);
-            return R.error("无权修改他人评论");
-        }
-        //保存到评论的对象中
-        Comment comment = new Comment();
-        comment.setId(id);
-        comment.setUserId(origin.getUserId());
-        comment.setType(type);
-        comment.setSongId(songId);
-        comment.setSongListId(songListId);
-        comment.setContent(content);
-
-        //更新成功
-        if (commentService.update(comment)) {
-            return R.ok("修改成功");
-        }
-
-        return R.error("修改失败");
-    }
-
-    /**
      * 删除评论
      *
      * @param id 评论id
@@ -122,17 +83,10 @@ public class CommentController {
     public R<Boolean> deleteComment(@RequestAttribute("userId") Integer userId,
                                  @RequestAttribute("userType") String userType,
                                  Integer id) {
-        Comment origin = commentService.selectByPrimaryKey(id);
-        if (origin == null) {
-            return R.error("评论不存在");
-        }
-        if (!userId.equals(origin.getUserId()) && !"admin".equals(userType)) {
-            log.warn("评论删除被拒 - 令牌用户={}, 评论作者={}, commentId={}", userId, origin.getUserId(), id);
-            return R.error("无权删除他人评论");
-        }
-        // 原先"不存在""无权""删除失败"三种情况全塌成同一个 false，调用方无从分辨；
-        // 借统一返回结构之机拆开，成功路径仍返回 data=true
-        return R.ok("删除成功", commentService.delete(id));
+        // 归属校验下沉到 service：原先 Controller 先查再比再删，
+        // "不存在""无权""删除失败"三种情况全塌成同一个 false，调用方无从分辨；
+        // 现在由 service 用 BusinessException 区分前两种，成功路径仍返回 data=true
+        return R.ok("删除成功", commentService.deleteBy(id, userId, userType));
     }
 
     /**
@@ -191,23 +145,12 @@ public class CommentController {
     @PostMapping(value = "/like")
     @RequireUserType("consumer")
     public R<Void> like(Integer id) {
-        Comment origin = commentService.selectByPrimaryKey(id);
-        if (origin == null) {
-            return R.error("评论不存在");
-        }
         // up 原先直接取请求参数，客户端传多少就涨多少（一次请求即可刷到任意数值）。
-        // 现按当前值自增，前端仍传 up 字段但服务端不再采纳。
-        int current = origin.getUp() == null ? 0 : origin.getUp();
-        //保存到评论的对象中
-        Comment comment = new Comment();
-        comment.setId(id);
-        comment.setUp(current + 1);
-
-        //更新成功
-        if (commentService.update(comment)) {
+        // 现按当前值自增，前端仍传 up 字段但服务端不再采纳；
+        // 存在性校验、原子自增与缓存清理都在 service 里
+        if (commentService.like(id)) {
             return R.ok("点赞成功");
         }
-
         return R.error("点赞失败");
     }
     @GetMapping("/frequent-words")

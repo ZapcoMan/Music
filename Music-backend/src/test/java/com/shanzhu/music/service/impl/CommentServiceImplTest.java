@@ -2,6 +2,7 @@ package com.shanzhu.music.service.impl;
 
 import com.shanzhu.music.BaseTest;
 import com.shanzhu.music.entity.po.Comment;
+import com.shanzhu.music.exception.BusinessException;
 import com.shanzhu.music.service.CommentService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,25 +59,20 @@ class CommentServiceImplTest extends BaseTest {
     }
 
     /**
-     * 测试修改评论
+     * 测试点赞由服务端自增
      */
     @Test
     @Order(3)
-    @DisplayName("测试修改评论")
-    void testUpdate() {
-        if (testCommentId != null) {
-            Comment comment = new Comment();
-            comment.setId(testCommentId);
-            comment.setContent("修改后的评论");
+    @DisplayName("测试点赞由服务端按当前值自增")
+    void testLike() {
+        Comment before = commentService.selectByPrimaryKey(testCommentId);
+        assertNotNull(before, "测试前置评论应存在");
+        int up = before.getUp() == null ? 0 : before.getUp();
 
-            Boolean result = commentService.update(comment);
-            assertTrue(result, "修改评论应该成功");
+        assertTrue(commentService.like(testCommentId), "点赞应该成功");
 
-            // 验证修改
-            Comment updatedComment = commentService.selectByPrimaryKey(testCommentId);
-            assertEquals("修改后的评论", updatedComment.getContent(), "评论内容应该已修改");
-            System.out.println("修改后的评论: " + updatedComment.getContent());
-        }
+        assertEquals(up + 1, commentService.selectByPrimaryKey(testCommentId).getUp().intValue(),
+                "点赞数应由服务端自增，而不是采纳客户端给定的数值");
     }
 
     /**
@@ -155,5 +151,38 @@ class CommentServiceImplTest extends BaseTest {
             assertNull(deletedComment, "删除后查询应该返回null");
             System.out.println("评论已删除,ID: " + testCommentId);
         }
+    }
+
+    /**
+     * 测试删除接口的归属校验
+     *
+     * "评论不存在"与"无权删除"必须是两种可区分的失败：此前 Controller 把它们和
+     * 数据库删除失败一起塌成同一个 false，前端只能显示一句模糊的"删除失败"。
+     */
+    @Test
+    @Order(10)
+    @DisplayName("测试 deleteBy 区分越权、不存在与成功")
+    void testDeleteByOwnership() {
+        Comment foreign = new Comment();
+        foreign.setUserId(1);
+        foreign.setType((byte) 0);
+        foreign.setSongId(1);
+        foreign.setContent("属于用户1的评论");
+        commentService.insert(foreign);
+        Integer id = foreign.getId();
+        assertNotNull(id, "评论应已落库");
+
+        BusinessException denied = assertThrows(BusinessException.class,
+                () -> commentService.deleteBy(id, 2, "consumer"),
+                "非本人非管理员删除他人评论应被拒");
+        assertEquals("无权删除他人评论", denied.getMessage());
+        assertNotNull(commentService.selectByPrimaryKey(id), "被拒时不应删除");
+
+        assertTrue(commentService.deleteBy(id, 9, "admin"), "管理员可清理违规评论");
+        assertNull(commentService.selectByPrimaryKey(id), "管理员删除后应查不到");
+
+        BusinessException notFound = assertThrows(BusinessException.class,
+                () -> commentService.deleteBy(-1, 2, "consumer"));
+        assertEquals("评论不存在", notFound.getMessage());
     }
 }

@@ -46,29 +46,46 @@ class CommentControllerTest extends BaseTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
+    /**
+     * 评论发出后不可修改，连作者本人也不行——所以不存在改写接口。
+     * 这里断的是"入口已经关掉"这个产品口径本身：一旦有人再把 update 加回来，用例会失败。
+     */
     @Test
     @Order(3)
-    @DisplayName("测试修改评论")
-    void testUpdateComment() throws Exception {
+    @DisplayName("测试评论改写入口已下线")
+    void testCommentUpdateEndpointRetired() throws Exception {
         consumerMvc.perform(MockMvcRequestBuilders.post("/comment/update")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("id", "1")
-                .param("userId", "1")
                 .param("type", "0")
                 .param("songId", "1")
                 .param("content", "修改后的评论内容"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
+                .andExpect(MockMvcResultMatchers.status().isNotFound())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false));
     }
 
     @Test
     @Order(4)
-    @DisplayName("测试删除评论")
+    @DisplayName("测试本人删除自己的评论")
     void testDeleteComment() throws Exception {
+        // 删除要过归属校验，所以先造一条属于令牌用户(35)的评论再删它。
+        // 上一版直接删种子数据 id=1（属于用户 1），拿到的是"无权删除他人评论"，
+        // 而用例只断言 $.success 存在——被拒也算通过，到底删没删根本没人看。
+        Comment own = new Comment();
+        own.setUserId(35);
+        own.setType((byte) 0);
+        own.setSongId(2);
+        own.setContent("本人可删除的评论");
+        commentService.insert(own);
+        Integer id = own.getId();
+        Assertions.assertNotNull(id, "评论应已落库");
+
         consumerMvc.perform(MockMvcRequestBuilders.delete("/comment/delete")
-                .param("id", "1"))
+                .param("id", String.valueOf(id)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true));
+
+        Assertions.assertNull(commentService.selectByPrimaryKey(id), "评论应已被删除");
     }
 
     @Test
@@ -160,12 +177,11 @@ class CommentControllerTest extends BaseTest {
 
     @Test
     @Order(12)
-    @DisplayName("测试无法修改他人评论")
-    void testUpdateOthersCommentRejected() throws Exception {
+    @DisplayName("测试无法删除他人评论")
+    void testDeleteOthersCommentRejected() throws Exception {
         // 经 service 直接造一条属于他人(userId=1)的评论。
         // 上一版想用 HTTP 造，但这条路已经走不通：/comment/add 只允许 consumer，
-        // 作者必然是令牌里的 35，Admin 打它会 403 —— 造不出"他人评论"这个前提，
-        // 用例便退化成"35 改自己的评论"，断言被拒自然失败。
+        // 作者必然是令牌里的 35，Admin 打它会 403 —— 造不出"他人评论"这个前提。
         Comment foreign = new Comment();
         foreign.setUserId(1);
         foreign.setType((byte) 0);
@@ -175,19 +191,14 @@ class CommentControllerTest extends BaseTest {
         Integer id = foreign.getId();
         Assertions.assertNotNull(id, "评论应已落库");
 
-        // 换成消费者令牌（userId=35）去改它，应被拒绝且内容不变
-        consumerMvc.perform(MockMvcRequestBuilders.post("/comment/update")
-                .header("Authorization", consumerToken())
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("id", String.valueOf(id))
-                .param("type", "0")
-                .param("songId", "2")
-                .param("content", "被篡改的内容"))
+        // 换成消费者令牌（userId=35）去删它，应被拒绝且评论仍在
+        consumerMvc.perform(MockMvcRequestBuilders.delete("/comment/delete")
+                .param("id", String.valueOf(id)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message").value("无权删除他人评论"));
 
-        Assertions.assertEquals("属于其他用户的评论", commentService.selectByPrimaryKey(id).getContent(),
-                "越权修改不应写入");
+        Assertions.assertNotNull(commentService.selectByPrimaryKey(id), "越权删除不应生效");
     }
 
     @Test

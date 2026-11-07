@@ -6,6 +6,9 @@ import java.util.List;
 
 /**
  * 评论 服务层
+ *
+ * 评论正文发出后不可变，含作者本人：本接口不提供改写正文的方法，
+ * 持久层也只有 insert / delete / 点赞自增。要撤回就删了重发。
  */
 public interface CommentService {
 
@@ -18,12 +21,22 @@ public interface CommentService {
     Boolean insert(Comment comment);
 
     /**
-     * 修改评论
+     * 给评论点赞（按当前值原子自增，不接受客户端给定的数值）
      *
-     * @param comment 评论内容
-     * @return 修改结果
+     * @param id 评论id
+     * @return 自增结果
      */
-    Boolean update(Comment comment);
+    Boolean like(Integer id);
+
+    /**
+     * 删除评论（校验归属）
+     *
+     * @param id           评论id
+     * @param operatorId   令牌中的用户id
+     * @param operatorType 令牌中的角色
+     * @return 删除结果
+     */
+    Boolean deleteBy(Integer id, Integer operatorId, String operatorType);
 
     /**
      * 删除评论

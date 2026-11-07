@@ -109,8 +109,9 @@ class AdminWriteAuthMatrixTest extends BaseTest {
     /**
      * 只允许 consumer 的自助写接口。
      *
-     * 评论 update/delete 允许 {consumer, admin}，管理员可清理违规评论，因此不列在这里——
-     * 用 admin 令牌打它们应当是 200 而不是 403。
+     * 评论 delete 允许 {consumer, admin}（管理员可清理违规评论，归属校验在 service 里），
+     * 因此不列在这里——用 admin 令牌打它应当是 200 而不是 403。
+     * 评论正文没有 update 接口：发布后连作者也不能修改。
      */
     static Stream<Arguments> consumerOnlyEndpoints() {
         return Stream.of(

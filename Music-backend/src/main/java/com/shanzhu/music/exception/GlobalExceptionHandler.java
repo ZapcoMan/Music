@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  * 而异常响应恰恰是前端最需要确定形状的那一类返回体：它决定
  * res.success / res.code / res.data 三个键在失败时是否仍然可预期。
  *
- * handleBusinessException 的用法问题（零 throw）单独记在它自己的注释里，不在这里重复。
+ * handleBusinessException 承载服务层抛出的领域规则失败，取舍记在它自己的方法注释里。
  */
 @Slf4j
 @RestControllerAdvice
@@ -38,13 +38,13 @@ public class GlobalExceptionHandler {
     /**
      * 处理业务异常
      *
-     * 需要说清一件事：BusinessException 目前在全仓（含测试）**零 throw 点**。业务失败走的是
-     * return R.error(...)，服务层的参数与状态问题走 IllegalArgumentException /
-     * IllegalStateException，都不经过这里；JaCoCo 也显示该类 0% 覆盖。
+     * 这是服务层表达"业务上不成立"的通道，用法见 CommentServiceImpl.deleteBy：
+     * 越权、对象不存在这类判断属于领域规则，不该散落在 Controller 的 if 里，
+     * 但它们又必须能让调用方看出区别，所以抛出后在这里统一转成响应体。
      *
-     * 所以这条通道现在只是"看起来有一套业务异常约定"。保留还是删除是设计决策，本轮不替你定：
-     * 若保留，建议把服务层现有的 IllegalArgumentException 迁过来，让"失败怎么表达"收敛成一种；
-     * 若确认不需要，连这个 handler 一起删掉更干净，别留一条装饰性的通道。
+     * HTTP 状态保持 200、失败信息放在 code/message 里，是与本项目既有前端约定一致的取舍：
+     * 两套前端判定成功只用 res.code == 20000 || res.success === true，
+     * 把 4xx 写进状态码会让 axios 走 reject 分支，反而看不到 message。
      */
     @ExceptionHandler(BusinessException.class)
     public R<Void> handleBusinessException(BusinessException e) {

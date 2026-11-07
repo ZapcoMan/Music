@@ -21,12 +21,14 @@ public interface CommentMapper {
     Integer insert(Comment comment);
 
     /**
-     * 修改评论
+     * 点赞数原子加一
      *
-     * @param comment 评论内容
-     * @return 修改结果
+     * 评论正文不可改写，所以这里不接收 Comment，只按 id 自增 up 一个字段。
+     *
+     * @param id 评论id
+     * @return 影响行数
      */
-    Integer update(Comment comment);
+    Integer incrementUp(Integer id);
 
     /**
      * 删除评论

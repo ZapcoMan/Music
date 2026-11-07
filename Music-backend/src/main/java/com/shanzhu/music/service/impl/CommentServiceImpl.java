@@ -3,6 +3,7 @@ import com.shanzhu.music.common.CacheKeys;
 
 import com.hankcs.hanlp.HanLP;
 import com.shanzhu.music.entity.po.Comment;
+import com.shanzhu.music.exception.BusinessException;
 import com.shanzhu.music.mapper.CommentMapper;
 import com.shanzhu.music.service.CommentService;
 import com.shanzhu.music.utils.RedisUtils;
@@ -41,26 +42,72 @@ public class CommentServiceImpl implements CommentService {
         Boolean result = commentMapper.insert(comment) > 0;
         if (result) {
             // 使用延时双删策略清除相关缓存
-            if (comment.getSongId() != null) {
-                redisUtils.deleteWithDelay(COMMENT_CACHE_KEY + "song:" + comment.getSongId());
-            }
-            if (comment.getSongListId() != null) {
-                redisUtils.deleteWithDelay(COMMENT_CACHE_KEY + "songlist:" + comment.getSongListId());
-            }
+            evictListCache(comment);
             log.info("新增评论，延时双删缓存");
         }
         return result;
     }
 
     /**
-     * 修改评论
+     * 给评论点赞（原子自增 + 延时双删缓存）
      *
-     * @param comment 评论内容
-     * @return 修改结果
+     * @param id 评论id
+     * @return 自增结果
      */
     @Override
-    public Boolean update(Comment comment) {
-        return commentMapper.update(comment) > 0;
+    public Boolean like(Integer id) {
+        Comment origin = commentMapper.selectByPrimaryKey(id);
+        if (origin == null) {
+            throw new BusinessException("评论不存在");
+        }
+        // 自增交给数据库：此前在 Controller 里"先读出 up 再 +1 回写"，
+        // 两个并发请求会读到同一个值并互相覆盖，点赞数被吞掉。
+        // 同时 up 只能由服务端算，客户端传多少一概不采纳。
+        Boolean result = commentMapper.incrementUp(id) > 0;
+        if (result) {
+            // 列表缓存里存着整条 Comment（含 up），不清掉的话点赞要等 2 小时才可见；
+            // 此前点赞完全没碰缓存
+            evictListCache(origin);
+            log.info("评论点赞，延时双删缓存");
+        }
+        return result;
+    }
+
+    /**
+     * 删除评论（校验归属）
+     *
+     * @param id           评论id
+     * @param operatorId   令牌中的用户id
+     * @param operatorType 令牌中的角色
+     * @return 删除结果
+     */
+    @Override
+    public Boolean deleteBy(Integer id, Integer operatorId, String operatorType) {
+        Comment origin = commentMapper.selectByPrimaryKey(id);
+        if (origin == null) {
+            throw new BusinessException("评论不存在");
+        }
+        // 归属校验：非本人且非管理员不得删除。
+        // 原先把 userId 当成普通参数，提交别人的 id 就能把评论"挪到"别人名下，
+        // 这类判断也不该留在 Controller——漏写一次就是又一条越权通道。
+        if (!operatorId.equals(origin.getUserId()) && !"admin".equals(operatorType)) {
+            log.warn("评论删除被拒 - 令牌用户={}, 评论作者={}, commentId={}",
+                    operatorId, origin.getUserId(), id);
+            throw new BusinessException("无权删除他人评论");
+        }
+        return deleteAndEvict(id, origin);
+    }
+
+    /**
+     * 清除评论所属歌单/歌曲的列表缓存
+     */
+    private void evictListCache(Comment comment) {
+        if (comment.getSongId() != null) {
+            redisUtils.deleteWithDelay(COMMENT_CACHE_KEY + "song:" + comment.getSongId());
+        }
+        if (comment.getSongListId() != null) {
+            redisUtils.deleteWithDelay(COMMENT_CACHE_KEY + "songlist:" + comment.getSongListId());
+        }
     }
 
     /**
@@ -71,16 +118,18 @@ public class CommentServiceImpl implements CommentService {
      */
     @Override
     public Boolean delete(Integer id) {
-        Comment comment = commentMapper.selectByPrimaryKey(id);
+        return deleteAndEvict(id, commentMapper.selectByPrimaryKey(id));
+    }
+
+    /**
+     * 删除已查出的评论并清理其列表缓存。
+     * 单独拆出来是为了让 deleteBy 复用归属校验时那次查询，不必再读一次库。
+     */
+    private Boolean deleteAndEvict(Integer id, Comment comment) {
         Boolean result = commentMapper.delete(id) > 0;
         if (result && comment != null) {
             // 使用延时双删策略清除相关缓存
-            if (comment.getSongId() != null) {
-                redisUtils.deleteWithDelay(COMMENT_CACHE_KEY + "song:" + comment.getSongId());
-            }
-            if (comment.getSongListId() != null) {
-                redisUtils.deleteWithDelay(COMMENT_CACHE_KEY + "songlist:" + comment.getSongListId());
-            }
+            evictListCache(comment);
             log.info("删除评论，延时双删缓存");
         }
         return result;
