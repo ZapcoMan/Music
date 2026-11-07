@@ -178,15 +178,30 @@ class SingerServiceImplTest extends BaseTest {
         assertFalse(result, "删除不存在的歌手应该返回false");
     }
 
-    /**
-     * 测试添加空名称歌手(边界测试)
-     */
+
     @Test
-    @Order(10)
-    @DisplayName("测试添加空名称歌手")
-    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
+    @Order(8)
+    @DisplayName("测试插入无名歌手被数据库约束拒绝")
     void testInsertWithNullName() {
-        // name字段有NOT NULL约束,插入NULL会抛出DataIntegrityViolationException
-        // 这是预期的数据库约束行为,在单元测试环境中跳过
+        // singer.name 是 NOT NULL。此前这个用例什么都不做却计为通过。
+        // 现在断言约束真的存在：service 不会替调用方兜住这个名字缺失
+        Singer singer = new Singer();
+        singer.setName(null);
+        singer.setSex((byte) 1);
+        singer.setIntroduction("缺名探针");
+        Exception thrown = null;
+        try {
+            singerService.insert(singer);
+        } catch (Exception e) {
+            thrown = e;
+        }
+        if (thrown == null) {
+            // 没抛异常就说明约束没生效，必须把这条脏数据清掉并让用例失败
+            singerService.delete(singer.getId());
+            org.junit.jupiter.api.Assertions.fail("name 为 null 应被 NOT NULL 约束拒绝");
+        }
+        org.junit.jupiter.api.Assertions.assertEquals(0,
+                singerService.allSinger().stream().filter(x -> "缺名探针".equals(x.getIntroduction())).count(),
+                "不应留下任何插入成功的痕迹");
     }
 }

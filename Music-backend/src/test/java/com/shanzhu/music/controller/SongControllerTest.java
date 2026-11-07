@@ -67,20 +67,36 @@ class SongControllerTest extends BaseTest {
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
-    @Test
-    @Order(5)
-    @DisplayName("测试更新歌曲图片")
-    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
-    void testUpdateSongPic() {
-        // 文件上传测试需要真实文件系统支持,在单元测试环境中跳过
-    }
 
     @Test
-    @Order(6)
-    @DisplayName("测试更新歌曲文件")
-    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
-    void testUpdateSongUrl() {
-        // 文件上传测试需要真实文件系统支持,在单元测试环境中跳过
+    @Order(30)
+    @DisplayName("测试上传可执行文件被拒绝")
+    void testUpdateSongPic() throws Exception {
+        // 只断言 200 的旧写法等于没测：本项目业务失败也返回 200。
+        // 这里断言的是 #22 那批补上的扩展名白名单确实生效 ——
+        // 校验在落盘之前，所以不会产生垃圾文件
+        byte[] bytes = new byte[]{0x4d, 0x5a, 0x01, 0x02};
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/song/updateSongPic")
+                .file(new MockMultipartFile("file", "evil.exe", "application/octet-stream", bytes))
+                .param("id", "1"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false));
+    }
+
+
+    @Test
+    @Order(31)
+    @DisplayName("测试上传可执行文件被拒绝")
+    void testUpdateSongUrl() throws Exception {
+        // 只断言 200 的旧写法等于没测：本项目业务失败也返回 200。
+        // 这里断言的是 #22 那批补上的扩展名白名单确实生效 ——
+        // 校验在落盘之前，所以不会产生垃圾文件
+        byte[] bytes = new byte[]{0x4d, 0x5a, 0x01, 0x02};
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/song/updateSongUrl")
+                .file(new MockMultipartFile("file", "evil.exe", "application/octet-stream", bytes))
+                .param("id", "1"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false));
     }
 
     @Test

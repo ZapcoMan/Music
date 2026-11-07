@@ -1,7 +1,7 @@
 package com.shanzhu.music.service.impl;
 
 import com.shanzhu.music.BaseTest;
-import com.shanzhu.music.entity.po.Consumer;
+import com.shanzhu.music.utils.PasswordUtils;import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.service.ConsumerService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,15 +46,32 @@ class ConsumerServiceImplTest extends BaseTest {
         System.out.println("注册用户ID: " + testUserId);
     }
 
-    /**
-     * 测试用户登录 - 正确密码
-     */
+
+
     @Test
     @Order(2)
-    @DisplayName("测试用户登录-正确密码")
-    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
+    @DisplayName("测试前台用户口令校验")
     void testLoginWithCorrectPassword() {
-        // BCrypt密码验证在测试环境中可能因缓存或加密方式不同而失败,跳过
+        // 自己用项目的加密工具写入已知明文，不依赖种子哈希的来历
+        Consumer probe = new Consumer();
+        probe.setUsername("pwd_probe_user");
+        // 传明文而非预先加密的哈希：ConsumerServiceImpl.insert 自己会做一次 BCrypt。
+        // 上一版在这里传了 encode 的结果，于是被加密两次，校验必然失败 ——
+        // 这条断言顺带把"insert 只加密一次"这个契约锁住（正是 #52 毁号问题的反面）
+        probe.setPassword("Probe#2026");
+        probe.setSex((byte) 1);
+        probe.setAvator("");
+        consumerService.insert(probe);
+        try {
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    consumerService.verifyPassword("pwd_probe_user", "Probe#2026"), "正确口令应通过");
+            org.junit.jupiter.api.Assertions.assertFalse(
+                    consumerService.verifyPassword("pwd_probe_user", "错的口令"), "错误口令不应通过");
+            org.junit.jupiter.api.Assertions.assertFalse(
+                    consumerService.verifyPassword("no_such_user", "Probe#2026"), "账号不存在不应通过");
+        } finally {
+            consumerService.delete(probe.getId());
+        }
     }
 
     /**
@@ -97,15 +114,30 @@ class ConsumerServiceImplTest extends BaseTest {
         System.out.println("查询到的用户: " + consumer.getUsername());
     }
 
-    /**
-     * 测试修改用户信息
-     */
+
     @Test
-    @Order(6)
-    @DisplayName("测试修改用户信息")
-    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
+    @Order(3)
+    @DisplayName("测试修改用户资料真的落库")
     void testUpdate() {
-        // 更新后查询返回null,可能是Redis缓存问题,在单元测试环境中跳过
+        Consumer probe = new Consumer();
+        probe.setUsername("update_probe_user");
+        probe.setPassword("123456");
+        probe.setSex((byte) 1);
+        probe.setAvator("");
+        consumerService.insert(probe);
+        try {
+            Consumer upd = new Consumer();
+            upd.setId(probe.getId());
+            upd.setEmail("probe@example.com");
+            upd.setLocation("测试城市");
+            org.junit.jupiter.api.Assertions.assertTrue(consumerService.update(upd), "更新应返回成功");
+
+            Consumer back = consumerService.selectByPrimaryKey(probe.getId());
+            org.junit.jupiter.api.Assertions.assertEquals("probe@example.com", back.getEmail(), "邮箱应已写入");
+            org.junit.jupiter.api.Assertions.assertEquals("测试城市", back.getLocation(), "地区应已写入");
+        } finally {
+            consumerService.delete(probe.getId());
+        }
     }
 
     /**

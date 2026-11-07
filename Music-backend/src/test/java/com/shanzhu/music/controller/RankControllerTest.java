@@ -25,11 +25,16 @@ class RankControllerTest extends BaseTest {
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
+
     @Test
     @Order(2)
-    @DisplayName("测试查询歌单评分")
-    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
-    void testRankOfSongListId() {
-        // 该接口在没有评分数据时可能返回null导致500错误,在单元测试环境中跳过
+    @DisplayName("测试按歌单查询平均分")
+    void testRankOfSongListId() throws Exception {
+        // RankController 的读取接口是无路子路径的 @GetMapping，即 GET /rank
+        mockMvc.perform(MockMvcRequestBuilders.get("/rank")
+                .param("songListId", "1"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                // 返回的是 Integer 而非 R：断言它确实是个数字，而不是仅仅 200
+                .andExpect(MockMvcResultMatchers.jsonPath("$").isNumber());
     }
 }
