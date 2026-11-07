@@ -66,8 +66,15 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         Object userIdAttr = request.getAttribute("userId");
         String identity = userIdAttr != null ? "user:" + userIdAttr : "ip:" + ip;
 
-        // 构建限流key: 前缀 + 身份 + uri
-        String key = rateLimit.key() + identity + ":" + request.getRequestURI();
+        // 限流 key = 注解前缀 + 身份，不再拼原始 URI。
+        //
+        // 注解前缀（comment:add:、login:admin: 等）本身已经按接口划分，拼 URI 对固定路径
+        // 不增加任何区分度；但它会让同一接口的 URL 变体各自建键——大小写、尾部斜杠、
+        // 百分号编码、矩阵参数都能造出一个新计数器，攻击者由此绕过限流。
+        // 已核实现有 10 个 @RateLimit 全部挂在字面路径上、无 {PathVariable}，
+        // 因此去掉 URI 不改变任何既有接口的计数行为。
+        // URI 仍保留在日志里，用于排查是哪个入口触发了限流。
+        String key = rateLimit.key() + identity;
 
         // 计数与判定必须原子。原实现是 get -> 判空 -> set(1, ttl)，
         // 并发请求会同时读到 null 并各自把计数写回 1，限流窗口被直接绕过；
