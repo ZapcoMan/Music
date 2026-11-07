@@ -1,6 +1,7 @@
 package com.shanzhu.music.controller;
 
 import com.github.pagehelper.PageInfo;
+import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.entity.vo.UploadPicVo;
@@ -43,6 +44,7 @@ public class SongController {
      * @return 添加结果
      */
     @PostMapping(value = "/add")
+    @RequireUserType("admin")
     public R<UploadSongVo> addSong(
             String singerId,
             String name,
@@ -102,6 +104,7 @@ public class SongController {
      * @return 修改结果
      */
     @PostMapping(value = "/update")
+    @RequireUserType("admin")
     public R updateSong(Integer id, String name, String introduction, String lyric) {
         //保存到歌手的对象中
         Song song = new Song();
@@ -125,6 +128,7 @@ public class SongController {
      * @return 删除结果
      */
     @DeleteMapping(value = "/delete")
+    @RequireUserType("admin")
     public Boolean deleteSinger(Integer id) {
         return songService.delete(id);
     }
@@ -137,6 +141,7 @@ public class SongController {
      * @return 更新结果
      */
     @RequestMapping(value = "/updateSongPic", method = RequestMethod.POST)
+    @RequireUserType("admin")
     public R<UploadPicVo> updateSongPic(
             @RequestParam("file") MultipartFile avatorFile,
             @RequestParam("id") Integer id
@@ -170,6 +175,7 @@ public class SongController {
      * @return 更新结果
      */
     @PostMapping(value = "/updateSongUrl")
+    @RequireUserType("admin")
     public R<UploadSongVo> updateSongUrl(
             @RequestParam("file") MultipartFile avatorFile,
             @RequestParam("id") Integer id

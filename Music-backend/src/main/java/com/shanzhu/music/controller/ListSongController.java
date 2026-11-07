@@ -1,5 +1,6 @@
 package com.shanzhu.music.controller;
 
+import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.ListSong;
 import com.shanzhu.music.service.ListSongService;
@@ -30,6 +31,7 @@ public class ListSongController {
      * @return 添加结果
      */
     @PostMapping(value = "/add")
+    @RequireUserType("admin")
     public R addListSong(Integer songId, Integer songListId) {
         //获取前端传来的参数
         ListSong listSong = new ListSong();
@@ -62,6 +64,7 @@ public class ListSongController {
      * @return 删除结果
      */
     @DeleteMapping(value = "/delete")
+    @RequireUserType("admin")
     public Boolean delete(Integer songId, Integer songListId) {
         return listSongService.deleteBySongIdAndSongListId(songId, songListId);
     }

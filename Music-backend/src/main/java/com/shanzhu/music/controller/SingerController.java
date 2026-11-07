@@ -5,6 +5,7 @@ import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
 import com.alibaba.fastjson2.JSONObject;
 import com.github.pagehelper.PageInfo;
+import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.dto.SingerRequest;
 import com.shanzhu.music.entity.po.Singer;
@@ -38,6 +39,7 @@ public class SingerController {
      * @return 添加结果
      */
     @PostMapping(value = "/add")
+    @RequireUserType("admin")
     public R addSinger(@Valid @RequestBody SingerRequest request) {
         //把生日转换成Date格式
         DateTime birthDate = null;
@@ -68,6 +70,7 @@ public class SingerController {
      * @return 结果
      */
     @PostMapping(value = "/update")
+    @RequireUserType("admin")
     public R updateSinger(@Valid @RequestBody SingerRequest request) {
         //把生日转换成Date格式
         DateTime birthDate = null;
@@ -98,6 +101,7 @@ public class SingerController {
      * @return 删除结果
      */
     @DeleteMapping(value = "/delete")
+    @RequireUserType("admin")
     public Boolean deleteSinger(Integer id) {
         return singerService.delete(id);
     }
@@ -169,6 +173,7 @@ public class SingerController {
      * @return 更新结果
      */
     @PostMapping(value = "/updateSingerPic")
+    @RequireUserType("admin")
     public R<UploadPicVo> updateSingerPic(
             @RequestParam("file") MultipartFile avatorFile,
             @RequestParam("id") Integer id

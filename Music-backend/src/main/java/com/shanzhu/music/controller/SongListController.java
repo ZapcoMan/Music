@@ -1,6 +1,7 @@
 package com.shanzhu.music.controller;
 
 import com.github.pagehelper.PageInfo;
+import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.entity.po.SongList;
@@ -40,6 +41,7 @@ public class SongListController {
      * @return 添加结果
      */
     @PostMapping(value = "/add")
+    @RequireUserType("admin")
     public R addSongList(
             String title,
             String pic,
@@ -71,6 +73,7 @@ public class SongListController {
      * @return 修改结果
      */
     @PostMapping(value = "/update")
+    @RequireUserType("admin")
     public R updateSongList(
             String id,
             String title,
@@ -102,6 +105,7 @@ public class SongListController {
      * @return 删除结果
      */
     @DeleteMapping(value = "/delete")
+    @RequireUserType("admin")
     public Boolean deleteSongList(Integer id) {
         return songListService.delete(id);
     }
@@ -169,6 +173,7 @@ public class SongListController {
      * @return 更新结果
      */
     @PostMapping(value = "/updateSongListPic")
+    @RequireUserType("admin")
     public R<UploadPicVo> updateSongListPic(
             @RequestParam("file") MultipartFile avatorFile,
             @RequestParam("id") Integer id

@@ -187,4 +187,26 @@ class SongControllerTest extends BaseTest {
         anonymous.perform(MockMvcRequestBuilders.get("/song/1715868205989"))
                 .andExpect(MockMvcResultMatchers.status().isNotFound());
     }
+
+    /**
+     * 消费者令牌调用管理写接口必须被拒。
+     *
+     * admin 与 consumer 共用同一个签名密钥，"令牌合法"并不等于"可以做这件事"：
+     * 补上 @RequireUserType("admin") 之前，任何一个已登录用户都能增删改曲库。
+     * 基类预置的是管理员令牌，这条走的是角色不匹配分支，返回 403 而非 401。
+     */
+    @Test
+    @Order(42)
+    @DisplayName("测试消费者令牌调用管理写接口被拒绝")
+    void testAddSongWithConsumerTokenIsForbidden() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "not-mine.mp3", "audio/mpeg", "x".getBytes());
+
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/song/manage/add")
+                        .file(file)
+                        .param("singerId", "1")
+                        .param("name", "越权添加")
+                        .header("Authorization", consumerToken()))
+                .andExpect(MockMvcResultMatchers.status().isForbidden());
+    }
 }
