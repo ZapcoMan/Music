@@ -2,6 +2,7 @@ package com.shanzhu.music.mapper;
 
 import com.shanzhu.music.entity.po.Rank;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * 评价 持久层
