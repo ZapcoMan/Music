@@ -120,6 +120,12 @@ rate-limit:
 # 与 DB/Redis/JWT 不同，这里保留"仅本机"的安全默认值：既不会引入通配风险，
 # 也不会让尚未配置该变量的现网部署在我这次改动后直接启动失败
 security:
+  ip:
+    # 是否信任 X-Forwarded-For 一类代理透传头。默认 false：这类头客户端可自行伪造，
+    # 一旦信任，JWT 的 IP 绑定可被一个请求头绕过、审计与登录日志的来源 IP 失真、
+    # 未登录请求的限流身份可被随意更换。
+    # 只有确认后端不对外直连、全部流量经可信 Nginx/SLB 转发时，才改成 true。
+    trust-proxy-headers: ${TRUST_PROXY_HEADERS:false}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8080,http://localhost:8081}
 

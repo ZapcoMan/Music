@@ -55,7 +55,11 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
         String requestId = generateRequestId();
         // 此前只把 requestId 放在局部变量里，afterCompletion 再从 attribute 取永远为 null
         request.setAttribute("requestId", requestId);
-        String queryString = request.getQueryString();
+        // 查询串必须脱敏：请求头有 maskSensitiveHeaders、请求体有 maskSensitiveInfo，
+        // 唯独这里原样输出，而令牌曾从 ?token= 进入，于是完整 JWT 随 INFO 日志留档 30 天。
+        // 令牌读取入口已收紧，这层脱敏仍保留——防的是以后有人图方便再加一次回落，
+        // 把同一个问题静默带回来。
+        String queryString = maskQueryString(request.getQueryString());
         String userAgent = request.getHeader("User-Agent");
         String contentType = request.getHeader("Content-Type");
 
@@ -192,6 +196,18 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
     /**
      * 获取所有请求头
      */
+    /**
+     * 查询串脱敏。令牌、口令一类凭据都可能出现在 URL 上，而这条日志路径此前是三者中
+     * 唯一没有脱敏的（请求头有 maskSensitiveHeaders、请求体有 maskSensitiveBody）。
+     * INFO 日志按天滚动且保留 30 天，任何一次带凭据的 URL 都会长期留在磁盘上。
+     */
+    private String maskQueryString(String queryString) {
+        if (queryString == null) {
+            return null;
+        }
+        return queryString.replaceAll("(?i)(token|password|passwd|secret|authorization)=([^&]*)", "$1=***");
+    }
+
     private Map<String, String> getAllHeaders(HttpServletRequest request) {
         Map<String, String> headers = new HashMap<>();
         Enumeration<String> headerNames = request.getHeaderNames();

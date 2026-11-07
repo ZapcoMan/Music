@@ -54,10 +54,9 @@ public class AdminController {
                          @RequestAttribute("userId") Integer userId,
                          @RequestAttribute("username") String username,
                          @RequestAttribute("userType") String userType) {
+        // 与鉴权拦截器同一口径：只认头，不认 URL 参数，
+        // 否则完整令牌会随 query string 进访问日志留档
         String token = request.getHeader("Authorization");
-        if (token == null || token.isBlank()) {
-            token = request.getParameter("token");
-        }
         if (token == null || token.isBlank()) {
             return R.error("缺少令牌");
         }

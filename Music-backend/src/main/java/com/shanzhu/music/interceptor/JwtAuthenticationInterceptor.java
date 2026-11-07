@@ -39,12 +39,14 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // 获取Token(从Header或Parameter)
+        // 令牌只认 Authorization 头。
+        //
+        // 此前在没有头时回落到 request.getParameter("token")，看上去只是"多一种方便"，
+        // 实际后果是：RequestResponseLoggingInterceptor 会把 query string 原样打进 INFO 日志，
+        // 而 logback 的 info appender 保留 30 天——于是任何一个带令牌的 URL 都会把完整 JWT
+        // 落盘。拿到日志文件等于拿到 24 小时有效的会话，且不需要任何破解。
+        // 已核实前端与两套管理端都不使用该参数形式，故直接关掉这条入口。
         String token = request.getHeader("Authorization");
-
-        if (!StringUtils.hasText(token)) {
-            token = request.getParameter("token");
-        }
 
         // 未携带 Token 一律拒绝。免登录接口由 WebMvcConfig 的白名单排除，
         // 而不是靠"没有 Token 就放行"——后者会让全部业务接口处于未认证状态
