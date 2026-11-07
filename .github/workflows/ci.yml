@@ -13,17 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
-    # 测试用 H2 内存库（application-test.yml）且 Flyway 在测试期禁用，
-    # 唯一的外部依赖是 Redis：@ActiveProfiles("test") 下缓存读写会真连 localhost:6379。
-    services:
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        # 口令与 application-test.yml 中的 spring.data.redis.password 保持一致。
-        # CI 是一次性环境，这里不是机密，只是让配置对得上。
-        options: --requirepass admin
-
     defaults:
       run:
         shell: bash
@@ -43,23 +32,37 @@ jobs:
           java -version
           mvn -version
 
-      - name: 等待 Redis 就绪
+      # 测试用 H2 内存库（application-test.yml）且 Flyway 在测试期禁用，
+      # 唯一的外部依赖是 Redis：@ActiveProfiles("test") 下缓存读写会真连 localhost:6379。
+      #
+      # 这里不用 services: 块——GitHub 把 services.options 拼在镜像名之前，
+      # 而 --requirepass 是要交给容器里 redis-server 的参数，放前面 docker 直接
+      # 拒绝创建容器（首跑 exit 125）。docker run 把参数写在镜像名之后才成立。
+      # 口令与 application-test.yml 的 spring.data.redis.password 对齐；
+      # CI 是一次性隔离环境，这里不是机密，只是让配置对得上。
+      - name: 启动 Redis 并等待就绪
         run: |
+          docker run -d --name ci-redis -p 6379:6379 redis:7 \
+            redis-server --requirepass admin
+
           for i in $(seq 1 30); do
-            if (exec 3<>/dev/tcp/127.0.0.1/6379) 2>/dev/null; then
-              exec 3<&- 3>&-
-              echo "Redis 端口已就绪"
+            if docker exec ci-redis redis-cli -a admin ping 2>/dev/null | grep -q PONG; then
+              echo "Redis 已就绪，口令可用"
               exit 0
             fi
             sleep 2
           done
-          echo "Redis 6379 始终不可达"
+
+          echo "Redis 未就绪，容器日志如下："
+          docker logs ci-redis
           exit 1
 
       - name: 后端全量校验
         run: mvn -B clean verify
 
       # 只在失败时留证据，成功不占仓库产物额度
+      # 版本保持 v4：Node 20 弃用只是一条 warning，不改变结果；
+      # 这次只动 Redis 一个变量，避免把无关升级混进来导致失败原因难判断。
       - name: 失败时上传测试报告
         if: failure()
         uses: actions/upload-artifact@v4
