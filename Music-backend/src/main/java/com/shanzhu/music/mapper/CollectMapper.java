@@ -102,6 +102,32 @@ public interface CollectMapper {
     Integer countCollectsBySongId(@Param("songId") Integer songId);
 
     /**
+     * 判断用户是否已收藏某歌单
+     *
+     * @param userId     用户ID
+     * @param songListId 歌单ID
+     * @return 记录数
+     */
+    Integer existSongListId(@Param("userId") Integer userId, @Param("songListId") Integer songListId);
+
+    /**
+     * 查询用户收藏的歌单
+     *
+     * @param userId 用户ID
+     * @return 歌单列表
+     */
+    List<com.shanzhu.music.entity.po.SongList> selectSongListsByUserId(@Param("userId") Integer userId);
+
+    /**
+     * 按用户与歌单删除收藏
+     *
+     * @param userId     用户ID
+     * @param songListId 歌单ID
+     * @return 删除条数
+     */
+    Integer deleteByUserIdSongListId(@Param("userId") Integer userId, @Param("songListId") Integer songListId);
+
+    /**
      * 批量统计多首歌曲被收藏的次数，用于替代逐首查询
      *
      * @param songIds 歌曲id列表，调用方需保证非空

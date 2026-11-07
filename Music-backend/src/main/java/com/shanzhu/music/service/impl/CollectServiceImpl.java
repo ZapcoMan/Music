@@ -28,6 +28,11 @@ public class CollectServiceImpl implements CollectService {
     
     // Redis缓存键前缀
     private static final String COLLECT_CACHE_KEY = CacheKeys.COLLECT;
+
+    /**
+     * 歌单收藏与歌曲收藏分键，避免两种列表互相覆盖缓存
+     */
+    private static final String COLLECT_SONG_LIST_CACHE_KEY = CacheKeys.COLLECT + "songlist:user:";
     private static final long CACHE_EXPIRE_HOURS = 12; // 缓存过期时间12小时
 
     /**
@@ -43,6 +48,9 @@ public class CollectServiceImpl implements CollectService {
             Integer userId = collect.getUserId();
             // 使用延时双删策略清除用户收藏列表缓存
             redisUtils.deleteWithDelay(COLLECT_CACHE_KEY + "user:" + userId);
+            // 歌单收藏与歌曲收藏是两个缓存键，写入时都要失效，
+            // 否则收藏新歌单后"我的收藏歌单"仍会返回旧列表
+            redisUtils.deleteWithDelay(COLLECT_SONG_LIST_CACHE_KEY + userId);
             // 让该用户的推荐缓存失效，下次请求按新偏好重新生成
             recommendationCache.evict(userId);
             log.info("新增收藏，清除收藏和推荐缓存，userId={}", userId);
@@ -140,6 +148,35 @@ public class CollectServiceImpl implements CollectService {
      * @param songId 歌曲id
      * @return 是否收藏
      */
+    @Override
+    public Boolean existSongListId(Integer userId, Integer songListId) {
+        return collectMapper.existSongListId(userId, songListId) > 0;
+    }
+
+    @Override
+    public List<com.shanzhu.music.entity.po.SongList> collectSongListOfUserId(Integer userId) {
+        String cacheKey = COLLECT_SONG_LIST_CACHE_KEY + userId;
+        Object cached = redisUtils.getCacheObject(cacheKey);
+        if (cached != null) {
+            log.info("从Redis缓存获取用户收藏歌单，userId={}", userId);
+            return (List<com.shanzhu.music.entity.po.SongList>) cached;
+        }
+        List<com.shanzhu.music.entity.po.SongList> list = collectMapper.selectSongListsByUserId(userId);
+        redisUtils.setCacheObject(cacheKey, list, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
+        return list;
+    }
+
+    @Override
+    public Boolean deleteByUserIdSongListId(Integer userId, Integer songListId) {
+        Boolean result = collectMapper.deleteByUserIdSongListId(userId, songListId) > 0;
+        if (result) {
+            redisUtils.deleteWithDelay(COLLECT_CACHE_KEY + "user:" + userId);
+            redisUtils.deleteWithDelay(COLLECT_SONG_LIST_CACHE_KEY + userId);
+            log.info("取消收藏歌单，延时双删缓存 - userId={}, songListId={}", userId, songListId);
+        }
+        return result;
+    }
+
     @Override
     public Boolean existSongId(Integer userId, Integer songId) {
         return collectMapper.existSongId(userId, songId) > 0;

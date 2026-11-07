@@ -62,6 +62,13 @@
         where id = #{id}
     </delete>
 
+    <delete id="deleteByUserIdSongListId">
+        delete from collect
+        where user_id = #{userId}
+          and song_list_id = #{songListId}
+          and type = 1
+    </delete>
+
     <delete id="deleteByUserIdSongId" parameterType="java.lang.Integer">
         delete
         from collect
@@ -102,11 +109,33 @@
         where user_id = #{userId}
     </select>
 
+    <!-- type = 0 是歌曲收藏。加上该条件后同一张表里两种收藏互不干扰：
+         否则歌单收藏行（song_id 为 0）与某个歌曲 id 撞上就会互相误判 -->
     <select id="existSongId" resultType="java.lang.Integer">
         select count(*)
         from collect
         where user_id = #{userId}
           and song_id = #{songId}
+          and type = 0
+    </select>
+
+    <select id="existSongListId" resultType="java.lang.Integer">
+        select count(*)
+        from collect
+        where user_id = #{userId}
+          and song_list_id = #{songListId}
+          and type = 1
+    </select>
+
+    <!-- 用户收藏的歌单：只取列表需要的列，不拉 introduction 大字段 -->
+    <select id="selectSongListsByUserId" resultType="com.shanzhu.music.entity.po.SongList">
+        SELECT sl.id, sl.title, sl.pic, sl.style
+        FROM collect c
+        JOIN song_list sl ON c.song_list_id = sl.id
+        WHERE c.user_id = #{userId}
+          AND c.type = 1
+        ORDER BY c.create_time DESC
+        LIMIT 200
     </select>
 
     <!-- 查询用户收藏的歌曲ID列表 -->

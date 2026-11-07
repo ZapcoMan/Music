@@ -58,4 +58,30 @@ public interface CollectService {
      * @return 是否收藏
      */
     Boolean existSongId(@Param("userId") Integer userId, @Param("songId") Integer songId);
+
+    /**
+     * 判断当前用户是否已收藏某歌单
+     *
+     * @param userId     用户ID
+     * @param songListId 歌单ID
+     * @return 是否存在
+     */
+    Boolean existSongListId(Integer userId, Integer songListId);
+
+    /**
+     * 查询当前用户收藏的歌单
+     *
+     * @param userId 用户ID
+     * @return 歌单列表
+     */
+    List<com.shanzhu.music.entity.po.SongList> collectSongListOfUserId(Integer userId);
+
+    /**
+     * 取消某歌单收藏
+     *
+     * @param userId     用户ID
+     * @param songListId 歌单ID
+     * @return 结果
+     */
+    Boolean deleteByUserIdSongListId(Integer userId, Integer songListId);
 }

@@ -3,6 +3,7 @@ package com.shanzhu.music.controller;
 import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Collect;
+import com.shanzhu.music.entity.po.SongList;
 import com.shanzhu.music.service.CollectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -40,17 +41,30 @@ public class CollectController {
     @PostMapping(value = "/add")
     public R addCollect(@RequestAttribute("userId") Integer userId,
                         @RequestParam Byte type,
-                        @RequestParam Integer songId) {
-        if (songId == null) {
-            return R.error("收藏歌曲为空");
-        }
-        if (collectService.existSongId(userId, songId)) {
-            return R.error(2, "已收藏");
-        }
+                        @RequestParam(required = false) Integer songId,
+                        @RequestParam(required = false) Integer songListId) {
         Collect collect = new Collect();
         collect.setUserId(userId);
         collect.setType(type);
-        collect.setSongId(songId);
+        // 原先只有歌曲一条路：songId 必传且无条件写入 song_id，
+        // 所以 type=1 的歌单收藏根本存不进去（也就无从读取）
+        if (type == 0) {
+            if (songId == null) {
+                return R.error("收藏歌曲为空");
+            }
+            if (collectService.existSongId(userId, songId)) {
+                return R.error(2, "已收藏");
+            }
+            collect.setSongId(songId);
+        } else {
+            if (songListId == null) {
+                return R.error("收藏歌单为空");
+            }
+            if (collectService.existSongListId(userId, songListId)) {
+                return R.error(2, "已收藏");
+            }
+            collect.setSongListId(songListId);
+        }
         if (collectService.insert(collect)) {
             return R.ok("收藏成功");
         }
@@ -67,8 +81,23 @@ public class CollectController {
      */
     @DeleteMapping(value = "/delete")
     public Boolean deleteCollect(@RequestAttribute("userId") Integer userId,
-                                @RequestParam Integer songId) {
+                                @RequestParam(required = false) Integer songId,
+                                @RequestParam(required = false) Integer songListId) {
+        if (songListId != null) {
+            return collectService.deleteByUserIdSongListId(userId, songListId);
+        }
         return collectService.deleteByUserIdSongId(userId, songId);
+    }
+
+    /**
+     * 查询当前登录用户收藏的歌单
+     *
+     * @param userId 当前登录用户，取自令牌
+     * @return 歌单列表
+     */
+    @GetMapping(value = "/songList")
+    public List<SongList> collectSongList(@RequestAttribute("userId") Integer userId) {
+        return collectService.collectSongListOfUserId(userId);
     }
 
     /**
