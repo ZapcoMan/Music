@@ -111,23 +111,23 @@ jwt:
 rate-limit:
   enabled: true  # 开发环境开启限流
 
-# Actuator监控配置 - 开发环境开放所有端点
+# Actuator监控配置 - 只暴露运行所需端点
 management:
   endpoints:
     web:
       exposure:
-        include: "*"  # 开发环境开放所有端点
+        include: health,info,metrics,prometheus   # 不再暴露 env / configprops / loggers 等可 dump 配置的端点
       base-path: /actuator
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized    # 组件详情含数据源等内部信息，需授权才显示
       show-components: always
     info:
       access: unrestricted
     metrics:
       access: unrestricted
     env:
-      show-values: always
+      show-values: never               # 纵深防御：即便 env 端点被重新打开也不回显属性值
   info:
     env:
       enabled: true

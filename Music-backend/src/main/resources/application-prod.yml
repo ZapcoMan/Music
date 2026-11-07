@@ -17,8 +17,9 @@ spring:
   # 数据库配置 - 生产MySQL
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/db_music?zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:root}
+    # 生产环境不设默认值：缺失时启动即失败，避免弱口令兜底悄悄上线
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.alibaba.druid.pool.DruidDataSource
     druid:
@@ -56,7 +57,7 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:admin}
+      password: ${REDIS_PASSWORD}
       database: 0
       timeout: 5000ms               # 超时时间增加
       lettuce:
@@ -102,7 +103,8 @@ pagehelper:
 
 # JWT配置 - 生产环境使用环境变量
 jwt:
-  secret: ${JWT_SECRET:MusicWebsiteSecretKey2026ForJWTTokenGenerationAndValidation}
+  # 必须由环境变量提供；带默认值会让漏配时直接使用源码里的公开密钥，任何人可离线自签令牌
+  secret: ${JWT_SECRET}
   expiration: 86400000  # 24小时
 
 # API限流配置
@@ -125,7 +127,7 @@ management:
     metrics:
       access: unrestricted
     env:
-      show-values: when-authorized    # 需要认证才显示值
+      show-values: never              # 属性值含口令，任何情况下都不回显
   info:
     env:
       enabled: true

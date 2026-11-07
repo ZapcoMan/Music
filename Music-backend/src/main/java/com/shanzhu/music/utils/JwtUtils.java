@@ -20,9 +20,11 @@ import java.util.Map;
 public class JwtUtils {
 
     /**
-     * JWT密钥(从配置文件读取)
+     * JWT密钥。
+     * 刻意不提供默认值：漏配时应启动失败，而不是悄悄改用源码里公开的密钥 ——
+     * 后者会让任何读到源码的人都能离线自签合法令牌，且线上无人察觉。
      */
-    @Value("${jwt.secret:MusicWebsiteSecretKey2026ForJWTTokenGenerationAndValidation}")
+    @Value("${jwt.secret}")
     private String secret;
 
     /**
