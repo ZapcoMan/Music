@@ -6,7 +6,7 @@
         <p class="title">修改头像</p>
         <hr/>
         <div class="section">
-            <el-upload drag :action="uploadUrl()" :show-file-list="false" :on-success="handleAvatorSuccess"
+            <el-upload drag :action="uploadUrl()" :headers="uploadHeaders" :show-file-list="false" :on-success="handleAvatorSuccess"
                 :before-upload="beforeAvatorUpload">
                 <i class="el-icon-upload"></i>
                 <div>
@@ -27,7 +27,11 @@ export default {
     computed:{
         ...mapGetters([
             'userId'
-        ])
+        ]),
+        // el-upload 走原生 XHR，不经过 axios 请求拦截器，需自行携带 Token
+        uploadHeaders() {
+            return { Authorization: localStorage.getItem('userToken') || '' };
+        }
     },
     methods:{
         //上传地址

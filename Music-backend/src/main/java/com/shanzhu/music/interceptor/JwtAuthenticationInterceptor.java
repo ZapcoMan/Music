@@ -1,6 +1,7 @@
 package com.shanzhu.music.interceptor;
 
 import com.alibaba.fastjson2.JSON;
+import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.utils.IpUtils;
 import com.shanzhu.music.utils.JwtUtils;
@@ -9,8 +10,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
@@ -34,9 +37,14 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
             token = request.getParameter("token");
         }
 
-        // 不需要认证的接口直接放行
+        // 未携带 Token 一律拒绝。免登录接口由 WebMvcConfig 的白名单排除，
+        // 而不是靠"没有 Token 就放行"——后者会让全部业务接口处于未认证状态
         if (!StringUtils.hasText(token)) {
-            return true;
+            log.warn("鉴权失败 - 未携带 Token, uri={}", request.getRequestURI());
+            response.setContentType("application/json;charset=UTF-8");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write(JSON.toJSONString(R.error(401, "未登录或登录已失效")));
+            return false;
         }
 
         // 验证Token格式是否有效
@@ -73,6 +81,18 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
             return false;
         }
 
+        // 角色域校验：标注了 @RequireUserType 的接口必须匹配令牌中的 userType。
+        // admin 与 consumer 共用同一签名密钥，缺这层校验时消费者令牌可直接调管理接口
+        RequireUserType required = resolveRequiredUserType(handler);
+        if (required != null && !required.value().equals(userType)) {
+            log.warn("鉴权失败 - 角色不匹配, 需要={}, 实际={}, uri={}",
+                    required.value(), userType, request.getRequestURI());
+            response.setContentType("application/json;charset=UTF-8");
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.getWriter().write(JSON.toJSONString(R.error(403, "无权访问该接口")));
+            return false;
+        }
+
         // 将用户信息放入request属性,供Controller使用
         request.setAttribute("userId", userId);
         request.setAttribute("userType", userType);
@@ -80,5 +100,22 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
 
         log.debug("JWT认证成功 - userId={}, userType={}, ip={}", userId, userType, currentIp);
         return true;
+    }
+
+    /**
+     * 读取接口或其所在类上的 @RequireUserType。
+     * 静态资源等非 HandlerMethod 请求返回 null，即不做角色限制。
+     */
+    private RequireUserType resolveRequiredUserType(Object handler) {
+        if (!(handler instanceof HandlerMethod handlerMethod)) {
+            return null;
+        }
+        RequireUserType onMethod = AnnotatedElementUtils.findMergedAnnotation(
+                handlerMethod.getMethod(), RequireUserType.class);
+        if (onMethod != null) {
+            return onMethod;
+        }
+        return AnnotatedElementUtils.findMergedAnnotation(
+                handlerMethod.getBeanType(), RequireUserType.class);
     }
 }

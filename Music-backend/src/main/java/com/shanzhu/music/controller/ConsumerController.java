@@ -6,6 +6,7 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
 import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.annotation.RateLimit;
+import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.dto.ConsumerRequest;
 import com.shanzhu.music.entity.po.Consumer;
@@ -95,23 +96,25 @@ public class ConsumerController {
      * @return 修改结果
      */
     @PostMapping(value = "/update")
-    public R updateConsumer(@Valid @RequestBody ConsumerRequest request) {
+    public R updateConsumer(@RequestAttribute("userId") Integer currentUserId,
+                            @Valid @RequestBody ConsumerRequest request) {
         //把生日转换成Date格式
         DateTime birthDate = null;
         if (request.getBirth() != null && !request.getBirth().isEmpty()) {
             birthDate = DateUtil.parse(request.getBirth(), DatePattern.NORM_DATE_PATTERN);
         }
 
-        //保存到前端用户的对象中
-        Consumer consumer = new Consumer();
-        // 注意:实际应该从 JWT Token 中获取用户ID
-        Consumer existConsumer = consumerService.getByUsername(request.getUsername());
-        if (existConsumer != null) {
-            consumer.setId(existConsumer.getId());
-        } else {
+        // 以令牌身份为准：原实现按 username 反查用户，任何人提交他人用户名即可改其资料
+        Consumer existConsumer = consumerService.selectByPrimaryKey(currentUserId);
+        if (existConsumer == null) {
             return R.error("用户不存在");
         }
-        consumer.setUsername(request.getUsername());
+
+        //保存到前端用户的对象中
+        Consumer consumer = new Consumer();
+        consumer.setId(currentUserId);
+        // 用户名是登录凭据，不允许通过本接口改名
+        consumer.setUsername(existConsumer.getUsername());
         consumer.setPassword(request.getPassword());
         consumer.setSex(request.getSex());
         consumer.setPhoneNum(request.getPhoneNum());
@@ -134,6 +137,7 @@ public class ConsumerController {
      * @return 删除结果
      */
     @GetMapping(value = "/delete")
+    @RequireUserType("admin")
     public Boolean deleteConsumer(Integer id) {
         return consumerService.delete(id);
     }
@@ -157,6 +161,7 @@ public class ConsumerController {
      */
     @Operation(summary = "查询所有用户", description = "查询所有前台用户列表")
     @GetMapping(value = "/allConsumer")
+    @RequireUserType("admin")
     public List<Consumer> allConsumer() {
         return consumerService.allConsumer();
     }

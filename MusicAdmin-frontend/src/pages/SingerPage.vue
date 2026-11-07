@@ -43,7 +43,7 @@
                         <img :src="getUrl(scope.row.pic)" style="width: 100%" />
                     </div>
                     <el-upload
-                        :action="uploadUrl(scope.row.id)"
+                        :action="uploadUrl(scope.row.id)" :headers="uploadHeaders()"
                         :before-upload="beforeAvatorUpload"
                         :on-success="handleAvatorSuccess"
                     >
@@ -395,6 +395,12 @@ export default {
             this.editVisible = false;
         },
         //更新图片
+        // el-upload 走原生 XHR，不经过 axios 请求拦截器，需自行携带 Token
+        uploadHeaders() {
+            return {
+                Authorization: localStorage.getItem("adminToken") || "",
+            };
+        },
         uploadUrl(id) {
             return `${this.$store.state.HOST}/singer/updateSingerPic?id=${id}`;
         },

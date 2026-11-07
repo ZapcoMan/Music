@@ -18,7 +18,7 @@
                     <div class="songList-img">
                         <img :src="getUrl(scope.row.pic)" style="width:100%"/>
                     </div>
-                    <el-upload :action="uploadUrl(scope.row.id)" :before-upload="beforeAvatorUpload"
+                    <el-upload :action="uploadUrl(scope.row.id)" :headers="uploadHeaders()" :before-upload="beforeAvatorUpload"
                         :on-success="handleAvatorSuccess">
                         <el-button style="font-size: 14px;" size="small" type="success"><i class="iconfont icon-refresh-button" style="font-size: 15px"></i> 更换</el-button>
                     </el-upload>
@@ -228,6 +228,12 @@ export default {
             this.editVisible = false;
         },
         //更新图片
+        // el-upload 走原生 XHR，不经过 axios 请求拦截器，需自行携带 Token
+        uploadHeaders() {
+            return {
+                Authorization: localStorage.getItem("adminToken") || "",
+            };
+        },
         uploadUrl(id){
             return `${this.$store.state.HOST}/songList/updateSongListPic?id=${id}`
         },

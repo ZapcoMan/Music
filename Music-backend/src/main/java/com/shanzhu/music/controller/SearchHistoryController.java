@@ -21,14 +21,14 @@ public class SearchHistoryController {
     /**
      * 记录搜索历史
      *
-     * @param userId 用户ID
+     * @param userId 当前登录用户，取自令牌
      * @param keywords 搜索关键词
      * @param searchType 搜索类型（0歌曲1歌手2歌单）
      * @return 结果
      */
     @PostMapping("/record")
     public R<Boolean> recordSearch(
-            @RequestParam Integer userId,
+            @RequestAttribute("userId") Integer userId,
             @RequestParam String keywords,
             @RequestParam(required = false, defaultValue = "0") Byte searchType
     ) {
@@ -48,7 +48,7 @@ public class SearchHistoryController {
      */
     @GetMapping("/recent")
     public R<List<SearchHistory>> getRecentHistory(
-            @RequestParam Integer userId,
+            @RequestAttribute("userId") Integer userId,
             @RequestParam(required = false, defaultValue = "20") Integer limit
     ) {
         List<SearchHistory> historyList = searchHistoryService.getRecentHistory(userId, limit);
@@ -64,7 +64,7 @@ public class SearchHistoryController {
      */
     @GetMapping("/keywords")
     public R<List<String>> getRecentKeywords(
-            @RequestParam Integer userId,
+            @RequestAttribute("userId") Integer userId,
             @RequestParam(required = false, defaultValue = "10") Integer limit
     ) {
         List<String> keywords = searchHistoryService.getRecentKeywords(userId, limit);
@@ -78,7 +78,7 @@ public class SearchHistoryController {
      * @return 结果
      */
     @DeleteMapping("/clear")
-    public R<Boolean> clearHistory(@RequestParam Integer userId) {
+    public R<Boolean> clearHistory(@RequestAttribute("userId") Integer userId) {
         Boolean result = searchHistoryService.clearHistory(userId);
         if (result) {
             return R.ok("清空成功");
@@ -95,7 +95,7 @@ public class SearchHistoryController {
      */
     @DeleteMapping("/clean-old")
     public R<Boolean> cleanOldHistory(
-            @RequestParam Integer userId,
+            @RequestAttribute("userId") Integer userId,
             @RequestParam(required = false, defaultValue = "30") Integer days
     ) {
         Boolean result = searchHistoryService.cleanOldHistory(userId, days);

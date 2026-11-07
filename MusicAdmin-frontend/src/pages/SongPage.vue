@@ -94,7 +94,7 @@
             <el-table-column label="资源更新" align="center" width="100">
                 <template slot-scope="scope">
                     <el-upload
-                        :action="uploadUrl(scope.row.id)"
+                        :action="uploadUrl(scope.row.id)" :headers="uploadHeaders()"
                         :before-upload="beforeAvatorUpload"
                         :on-success="handleAvatorSuccess"
                     >
@@ -102,7 +102,7 @@
                     </el-upload>
                     <br />
                     <el-upload
-                        :action="uploadSongUrl(scope.row.id)"
+                        :action="uploadSongUrl(scope.row.id)" :headers="uploadHeaders()"
                         :before-upload="beforeSongUpload"
                         :on-success="handleSongSuccess"
                     >
@@ -369,6 +369,12 @@ export default {
             this.editVisible = false;
         },
         //更新图片
+        // el-upload 走原生 XHR，不经过 axios 请求拦截器，需自行携带 Token
+        uploadHeaders() {
+            return {
+                Authorization: localStorage.getItem("adminToken") || "",
+            };
+        },
         uploadUrl(id) {
             return `${this.$store.state.HOST}/song/updateSongPic?id=${id}`;
         },
