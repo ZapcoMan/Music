@@ -70,3 +70,8 @@ replay_pid*
 .DS_Store
 /Music-backend/Music-backend.ipr
 /Music-backend/Music-backend.iws
+
+######################################
+# Qoder local data
+######################################
+.qoder-credits
