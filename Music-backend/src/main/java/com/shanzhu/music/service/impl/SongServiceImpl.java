@@ -3,12 +3,16 @@ package com.shanzhu.music.service.impl;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.entity.po.Song;
+import com.shanzhu.music.mapper.CollectMapper;
+import com.shanzhu.music.mapper.CommentMapper;
+import com.shanzhu.music.mapper.ListSongMapper;
 import com.shanzhu.music.mapper.SongMapper;
 import com.shanzhu.music.service.SongService;
 import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -22,6 +26,9 @@ import java.util.concurrent.TimeUnit;
 public class SongServiceImpl implements SongService {
 
     private final SongMapper songMapper;
+    private final ListSongMapper listSongMapper;
+    private final CollectMapper collectMapper;
+    private final CommentMapper commentMapper;
     private final RedisUtils redisUtils;
     
     // Redis缓存键前缀
@@ -74,9 +81,18 @@ public class SongServiceImpl implements SongService {
      * @return 删除结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean delete(Integer id) {
         Song song = songMapper.selectByPrimaryKey(id);
         Boolean result = songMapper.delete(id) > 0;
+        if (result) {
+            // 级联清理引用该歌曲的关联数据。残留会让歌单列表显示不存在的歌曲、
+            // 热门榜与协同过滤继续统计一首已删除的歌
+            listSongMapper.deleteBySongId(id);
+            collectMapper.deleteBySongId(id);
+            commentMapper.deleteBySongId(id);
+            log.info("删除歌曲 {}，已级联清理歌单关联、收藏与评论", id);
+        }
         if (result && song != null) {
             // 使用延时双删策略
             redisUtils.deleteWithDelay(ALL_SONG_KEY);

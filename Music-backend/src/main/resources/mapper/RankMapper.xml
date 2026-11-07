@@ -42,6 +42,18 @@
         </trim>
     </insert>
 
+    <!-- 删除歌单时级联清理其评分，否则残留评分会继续参与相似度与均值统计 -->
+    <delete id="deleteBySongListId" parameterType="java.lang.Integer">
+        delete from ranks
+        where song_list_id = #{songListId}
+    </delete>
+
+    <!-- 删除用户时级联清理其评分，避免相似度计算仍把已注销用户计入 -->
+    <delete id="deleteByConsumerId" parameterType="java.lang.Integer">
+        delete from ranks
+        where consumer_id = #{consumerId}
+    </delete>
+
     <select id="selectScoreSum" resultType="java.lang.Integer" parameterType="java.lang.Integer">
         select COALESCE(sum(score),0) as score
         from ranks

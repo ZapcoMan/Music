@@ -38,6 +38,22 @@ public interface CollectMapper {
     Integer deleteByUserIdSongId(@Param("userId") Integer userId, @Param("songId") Integer songId);
 
     /**
+     * 删除指向某首歌曲的全部收藏（删除歌曲时级联清理，避免残留无效收藏）
+     *
+     * @param songId 歌曲id
+     * @return 影响行数
+     */
+    Integer deleteBySongId(@Param("songId") Integer songId);
+
+    /**
+     * 删除某用户的全部收藏（删除用户时级联清理）
+     *
+     * @param userId 用户id
+     * @return 影响行数
+     */
+    Integer deleteByUserId(@Param("userId") Integer userId);
+
+    /**
      * 查询所有收藏
      *
      * @return 收藏列表

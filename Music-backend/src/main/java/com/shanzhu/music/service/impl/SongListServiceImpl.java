@@ -13,7 +13,11 @@ import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import com.shanzhu.music.service.ranking.RecommendationCache;
 import lombok.extern.slf4j.Slf4j;
+import com.shanzhu.music.mapper.CommentMapper;
+import com.shanzhu.music.mapper.ListSongMapper;
+import com.shanzhu.music.mapper.RankMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,6 +39,9 @@ public class SongListServiceImpl implements SongListService {
 
     private final SongListMapper songListMapper;
     private final SongMapper songMapper;
+    private final ListSongMapper listSongMapper;
+    private final CommentMapper commentMapper;
+    private final RankMapper rankMapper;
     private final RedisUtils redisUtils;
     private final RecallFusionService recallFusionService;
     private final RankingService rankingService;
@@ -88,8 +95,17 @@ public class SongListServiceImpl implements SongListService {
      * @return 删除结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean delete(Integer id) {
         Boolean result = songListMapper.delete(id) > 0;
+        if (result) {
+            // 级联清理：残留关联会让歌单里出现不存在的歌曲、评论挂在已消失的歌单上，
+            // 而 ranks 中的历史评分仍会参与协同过滤相似度与均值统计
+            listSongMapper.deleteBySongListId(id);
+            commentMapper.deleteBySongListId(id);
+            rankMapper.deleteBySongListId(id);
+            log.info("删除歌单 {}，已级联清理关联歌曲、评论与评分", id);
+        }
         // 删除成功后使用延时双删清除缓存
         if (result) {
             redisUtils.deleteWithDelay(ALL_SONG_LIST_KEY);

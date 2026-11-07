@@ -62,6 +62,18 @@
         where song_id=#{songId} and song_list_id=#{songListId}
     </delete>
 
+    <!-- 删除歌单时级联清理其包含关系，避免残留指向不存在歌单的关联 -->
+    <delete id="deleteBySongListId" parameterType="java.lang.Integer">
+        delete from list_song
+        where song_list_id=#{songListId}
+    </delete>
+
+    <!-- 删除歌曲时级联清理各歌单中的引用 -->
+    <delete id="deleteBySongId" parameterType="java.lang.Integer">
+        delete from list_song
+        where song_id=#{songId}
+    </delete>
+
     <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer">
         select
         <include refid="Base_Column_List"/>

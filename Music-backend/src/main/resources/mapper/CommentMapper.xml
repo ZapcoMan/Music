@@ -100,6 +100,24 @@
         where id=#{id}
     </delete>
 
+    <!-- 删除歌曲时级联清理其评论（type=0 歌曲评论） -->
+    <delete id="deleteBySongId" parameterType="java.lang.Integer">
+        delete from comment
+        where song_id=#{songId} and type=0
+    </delete>
+
+    <!-- 删除歌单时级联清理其评论（type=1 歌单评论） -->
+    <delete id="deleteBySongListId" parameterType="java.lang.Integer">
+        delete from comment
+        where song_list_id=#{songListId} and type=1
+    </delete>
+
+    <!-- 删除用户时级联清理其发布的评论 -->
+    <delete id="deleteByUserId" parameterType="java.lang.Integer">
+        delete from comment
+        where user_id=#{userId}
+    </delete>
+
     <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer">
         select
         <include refid="Base_Column_List"/>

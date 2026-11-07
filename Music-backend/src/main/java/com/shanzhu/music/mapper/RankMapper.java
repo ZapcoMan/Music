@@ -53,6 +53,16 @@ public interface RankMapper {
      */
     Map<String, Object> selectSongRatingStats(@Param("songId") Integer songId);
 
+    Integer deleteBySongListId(@Param("songListId") Integer songListId);
+
+    /**
+     * 删除某用户的全部评分（删除用户时级联清理，避免相似度计算把已注销用户算进去）
+     *
+     * @param consumerId 用户id
+     * @return 影响行数
+     */
+    Integer deleteByConsumerId(@Param("consumerId") Integer consumerId);
+
     /**
      * 批量查询多首歌曲的评分统计，用于替代逐首查询
      *

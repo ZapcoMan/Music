@@ -69,6 +69,22 @@
           and song_id = #{songId}
     </delete>
 
+    <!-- 删除歌曲时级联清理指向它的收藏。
+         残留收藏会让热门榜计数、协同过滤与特征统计出现无效数据 -->
+    <delete id="deleteBySongId" parameterType="java.lang.Integer">
+        delete
+        from collect
+        where song_id = #{songId}
+          and type = 0
+    </delete>
+
+    <!-- 删除用户时级联清理其收藏 -->
+    <delete id="deleteByUserId" parameterType="java.lang.Integer">
+        delete
+        from collect
+        where user_id = #{userId}
+    </delete>
+
     <select id="allCollect" resultMap="BaseResultMap">
         select
         <include refid="Base_Column_List"/>

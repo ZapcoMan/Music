@@ -2,6 +2,7 @@ package com.shanzhu.music.mapper;
 
 import com.shanzhu.music.entity.po.ListSong;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -43,6 +44,22 @@ public interface ListSongMapper {
      * @return 删除结果
      */
     Integer deleteBySongIdAndSongListId(Integer songId, Integer songListId);
+
+    /**
+     * 删除某歌单包含的全部歌曲关联（删除歌单时级联清理）
+     *
+     * @param songListId 歌单id
+     * @return 影响行数
+     */
+    Integer deleteBySongListId(@Param("songListId") Integer songListId);
+
+    /**
+     * 删除某歌曲在各歌单中的全部关联（删除歌曲时级联清理）
+     *
+     * @param songId 歌曲id
+     * @return 影响行数
+     */
+    Integer deleteBySongId(@Param("songId") Integer songId);
 
     /**
      * 根据主键查询歌单里面歌曲

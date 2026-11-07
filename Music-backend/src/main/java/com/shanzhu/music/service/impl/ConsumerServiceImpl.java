@@ -3,13 +3,17 @@ package com.shanzhu.music.service.impl;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.entity.po.Consumer;
+import com.shanzhu.music.mapper.CollectMapper;
+import com.shanzhu.music.mapper.CommentMapper;
 import com.shanzhu.music.mapper.ConsumerMapper;
+import com.shanzhu.music.mapper.RankMapper;
 import com.shanzhu.music.service.ConsumerService;
 import com.shanzhu.music.utils.PasswordUtils;
 import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +27,9 @@ import java.util.concurrent.TimeUnit;
 public class ConsumerServiceImpl implements ConsumerService {
 
     private final ConsumerMapper consumerMapper;
+    private final CollectMapper collectMapper;
+    private final CommentMapper commentMapper;
+    private final RankMapper rankMapper;
     private final RedisUtils redisUtils;
     
     // Redis缓存键前缀
@@ -66,9 +73,18 @@ public class ConsumerServiceImpl implements ConsumerService {
      * @return 结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean delete(Integer id) {
         Consumer consumer = consumerMapper.selectByPrimaryKey(id);
         Boolean result = consumerMapper.delete(id) > 0;
+        if (result) {
+            // 级联清理：残留收藏会让热门榜与协同过滤统计一个已不存在的用户，
+            // 残留评分会继续参与相似度计算，残留评论则显示为无名用户
+            collectMapper.deleteByUserId(id);
+            commentMapper.deleteByUserId(id);
+            rankMapper.deleteByConsumerId(id);
+            log.info("删除用户 {}，已级联清理收藏、评论与评分", id);
+        }
         if (result && consumer != null) {
             redisUtils.deleteObject(CONSUMER_CACHE_KEY + id);
             redisUtils.deleteObject(CONSUMER_CACHE_KEY + "username:" + consumer.getUsername());
