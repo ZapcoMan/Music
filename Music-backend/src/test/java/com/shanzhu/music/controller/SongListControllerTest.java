@@ -1,6 +1,8 @@
 package com.shanzhu.music.controller;
 
 import com.shanzhu.music.BaseTest;
+import com.shanzhu.music.entity.po.SongList;
+import com.shanzhu.music.service.SongListService;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -8,11 +10,32 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 /**
  * SongListController 单元测试
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class SongListControllerTest extends BaseTest {
+
+    @Autowired
+    private SongListService songListService;
+
+    /**
+     * 本类自己新增的那一行歌单的标题。
+     * 修改与删除只针对它，绝不碰 schema.sql 的种子行 id=1——
+     * 种子行被删掉之后，任何 INNER JOIN song_list 的查询都会变空，
+     * 而这类破坏只在测试类顺序变化时才暴露：surefire 默认按文件系统顺序跑，
+     * Windows 与 Linux 的目录枚举顺序不同，于是本地常绿、CI 常红。
+     */
+    private static final String PROBE_TITLE = "单测专用歌单（勿改此标题）";
+
+    private Integer probeId() {
+        List<SongList> found = songListService.songListOfTitle(PROBE_TITLE);
+        return found == null || found.isEmpty() ? null : found.get(0).getId();
+    }
 
     @Test
     @Order(1)
@@ -20,21 +43,25 @@ class SongListControllerTest extends BaseTest {
     void testAddSongList() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.post("/songList/add")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("title", "测试歌单")
+                .param("title", PROBE_TITLE)
                 .param("pic", "/img/songListPic/test.jpg")
                 .param("introduction", "这是一个测试歌单")
                 .param("style", "流行"))
                 .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Assertions.assertNotNull(probeId(), "新增的歌单应能按标题查回，后续用例只操作这一行");
     }
 
     @Test
     @Order(2)
     @DisplayName("测试修改歌单")
     void testUpdateSongList() throws Exception {
+        Integer id = probeId();
+        assertNotNull(id);
         mockMvc.perform(MockMvcRequestBuilders.post("/songList/update")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("id", "1")
-                .param("title", "修改后的歌单")
+                .param("id", String.valueOf(id))
+                .param("title", PROBE_TITLE)
                 .param("introduction", "修改后的简介")
                 .param("style", "摇滚"))
                 .andExpect(MockMvcResultMatchers.status().isOk());
@@ -42,11 +69,19 @@ class SongListControllerTest extends BaseTest {
 
     @Test
     @Order(3)
-    @DisplayName("测试删除歌单")
+    @DisplayName("测试删除歌单：只删自己新增的那一行")
     void testDeleteSongList() throws Exception {
+        Integer id = probeId();
+        assertNotNull(id);
         mockMvc.perform(MockMvcRequestBuilders.delete("/songList/delete")
-                .param("id", "1"))
+                .param("id", String.valueOf(id)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Assertions.assertNull(songListService.selectByPrimaryKey(id),
+                "删除后这一行不应再存在");
+        // 种子行必须还活着：它是其它用例 INNER JOIN 的依赖
+        Assertions.assertNotNull(songListService.selectByPrimaryKey(1),
+                "删除用例不得伤及 schema.sql 的种子歌单 id=1");
     }
 
     @Test

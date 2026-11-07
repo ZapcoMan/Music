@@ -10,6 +10,14 @@ spring:
   # Flyway 配置 - 测试时禁用
   flyway:
     enabled: false
+
+  # H2 的 schema.sql 由 Spring Boot 执行。不指定编码时按平台编码读取，
+  # 本机平台编码是 GBK，UTF-8 写的中文种子（歌手名、歌单标题）会全部变乱码，
+  # 于是 `singerOfName("%周%")` 之类依赖中文的断言在库里根本查不到东西——
+  # 之前能过是因为 Redis 里有历史缓存命中，绕过了数据库，属假绿。
+  sql:
+    init:
+      encoding: UTF-8
   
   # Redis 配置 - 测试时使用嵌入式或 Mock
   data:
