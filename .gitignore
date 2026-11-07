@@ -82,3 +82,6 @@ replay_pid*
 .env
 .env.*
 !.env.example
+
+# 前端 jest 覆盖率产物
+**/test/unit/coverage/

@@ -13,22 +13,30 @@ export const mixin = {
         },
         //获取性别中文
         changeSex(value){
-            if(value == 0){
+            // 用严格比较：原先 value == 0 会把空串判成 0，
+            // 于是性别未设置的歌手在列表里显示"女"
+            if(value === 0){
                 return '女';
             }
-            if(value == 1){
+            if(value === 1){
                 return '男';
             }
-            if(value == 2){
+            if(value === 2){
                 return '组合';
             }
-            if(value == 3){
+            if(value === 3){
                 return '不明';
             }
-            return value;
+            // 未知编码返回空，不把原始数字直接渲染到表格上
+            return '';
         },
         //获取生日
         attachBirth(val){
+            // 数据为缺失时返回空串：String(null) 会得到 "null" 并显示在界面上，
+            // 与本轮在数据侧清理的 "null" 字面量是同一类问题
+            if(val === null || val === undefined || val === ''){
+                return '';
+            }
             return String(val).substr(0,10);
         },
         //上传图片之前的校验
