@@ -35,8 +35,10 @@ export const getAllConsumer =() => get(`consumer/allConsumer`);
 export const SignUp =(params) => post(`/consumer/add`,params);
 //登录
 export const loginIn =(params) => post(`/consumer/login`,params);
-//根据用户id查询该用户的详细信息
+//根据用户id查询该用户的公开信息（账号/头像），用于评论区展示他人身份
 export const getUserOfId =(id) => get(`/consumer/selectByPrimaryKey?id=${id}`);
+//查询本人完整资料（含手机号、邮箱等私密字段），身份由令牌决定
+export const getMyProfile =() => get(`/consumer/profile`);
 //更新用户信息
 export const updateUserMsg =(params) => post(`/consumer/update`,params);
 

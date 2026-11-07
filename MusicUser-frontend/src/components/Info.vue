@@ -53,7 +53,7 @@
 import {mapGetters} from 'vuex'
 import {rules,cities} from '../assets/data/form'
 import {mixin} from '../mixins'
-import {getUserOfId,updateUserMsg} from '../api/index'
+import {getMyProfile,updateUserMsg} from '../api/index'
 
 export default {
     name: 'info',
@@ -84,11 +84,12 @@ export default {
         this.cities = cities;
     },
     mounted(){
-        this.getMsg(this.userId);
+        this.getMsg();
     },
     methods:{
-        getMsg(userId){
-            getUserOfId(userId)
+        getMsg(){
+            // 编辑页需要手机号、邮箱等私密字段，改用只返回本人资料的 /consumer/profile
+            getMyProfile()
                 .then(res =>{
                     this.registerForm.username = res.username;
                     // 不再回填 res.password：那是 BCrypt 哈希，

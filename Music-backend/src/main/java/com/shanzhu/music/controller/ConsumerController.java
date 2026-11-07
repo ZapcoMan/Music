@@ -10,6 +10,7 @@ import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.dto.ConsumerRequest;
 import com.shanzhu.music.entity.po.Consumer;
+import com.shanzhu.music.entity.vo.ConsumerPublicVo;
 import com.shanzhu.music.entity.vo.UploadConsumerPicVo;
 import com.shanzhu.music.service.ConsumerService;
 import com.shanzhu.music.service.TokenBlacklistService;
@@ -166,15 +167,36 @@ public class ConsumerController {
     }
 
     /**
-     * 查询前台用户
+     * 查询用户公开信息
      *
      * @param id 主键id
-     * @return 前台用户
+     * @return 前台用户公开信息
      */
-    @Operation(summary = "查询用户详情", description = "根据ID查询前台用户详细信息")
+    @Operation(summary = "查询用户公开信息", description = "按ID查询账号与头像，供评论区展示他人身份；手机号、邮箱等私密资料不在此返回")
     @GetMapping(value = "/selectByPrimaryKey")
-    public Consumer selectByPrimaryKey(@Parameter(description = "用户ID", required = true, example = "1") Integer id) {
-        return consumerService.selectByPrimaryKey(id);
+    public ConsumerPublicVo selectByPrimaryKey(@Parameter(description = "用户ID", required = true, example = "1") Integer id) {
+        Consumer consumer = consumerService.selectByPrimaryKey(id);
+        if (consumer == null) {
+            return null;
+        }
+        ConsumerPublicVo publicVo = new ConsumerPublicVo();
+        publicVo.setId(consumer.getId());
+        publicVo.setUsername(consumer.getUsername());
+        publicVo.setAvator(consumer.getAvator());
+        return publicVo;
+    }
+
+    /**
+     * 查询本人完整资料
+     * 不接受 id 参数：身份只取自令牌，否则可通过遍历 id 读到他人手机号与邮箱
+     *
+     * @param currentUserId 令牌中的用户id
+     * @return 当前用户的完整资料
+     */
+    @Operation(summary = "查询本人资料", description = "返回当前令牌用户的完整资料，含私密字段")
+    @GetMapping(value = "/profile")
+    public Consumer profile(@RequestAttribute("userId") Integer currentUserId) {
+        return consumerService.selectByPrimaryKey(currentUserId);
     }
 
     /**
@@ -198,6 +220,7 @@ public class ConsumerController {
      */
     @Operation(summary = "分页查询用户", description = "分页查询所有前台用户")
     @GetMapping(value = "/allConsumerByPage")
+    @RequireUserType("admin")
     public R<PageInfo<Consumer>> allConsumerByPage(
             @Parameter(description = "页码", example = "1") @RequestParam(defaultValue = "1") int pageNum,
             @Parameter(description = "每页大小", example = "10") @RequestParam(defaultValue = "10") int pageSize
@@ -209,15 +232,25 @@ public class ConsumerController {
     /**
      * 更新前台用户头像
      *
-     * @param avatorFile 头像文件
-     * @param id         用户id
+     * @param avatorFile    头像文件
+     * @param id            用户id
+     * @param currentUserId 令牌中的用户id
+     * @param userType      令牌中的用户类型
      * @return 上传结果
      */
     @PostMapping(value = "/updateConsumerPic")
     public R<UploadConsumerPicVo> updateConsumerPic(
             @RequestParam("file") MultipartFile avatorFile,
-            @RequestParam("id") Integer id
+            @RequestParam("id") Integer id,
+            @RequestAttribute("userId") Integer currentUserId,
+            @RequestAttribute("userType") String userType
     ) throws IOException {
+        // 管理端可代改他人头像，普通用户只能改自己的。
+        // 校验放在落盘之前，否则越权请求也会先把文件写进磁盘
+        if (!currentUserId.equals(id) && !"admin".equals(userType)) {
+            log.warn("头像更新被拒 - 令牌用户={}, 目标用户={}", currentUserId, id);
+            return R.error("无权修改他人头像");
+        }
         String storeAvatorPath;
         try {
             storeAvatorPath = fileStorageService.saveImage(avatorFile, "userImages");

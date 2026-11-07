@@ -30,7 +30,7 @@
 <script>
 import {mixin} from '../mixins';
 import {mapGetters} from 'vuex';
-import {getUserOfId,getCollectOfUserId,songOfSongId} from '../api/index';
+import {getMyProfile,getCollectOfUserId,songOfSongId} from '../api/index';
 import AlbumContent from "../components/AlbumContent";
 
 export default {
@@ -58,12 +58,13 @@ export default {
         ])
     },
     mounted(){
-        this.getMsg(this.userId);
+        this.getMsg();
         this.getCollection(this.userId);
     },
     methods:{
-        getMsg(userId){
-            getUserOfId(userId)
+        getMsg(){
+            // 本人资料走 /consumer/profile：身份取自令牌，不再按 id 查询
+            getMyProfile()
                 .then(res =>{
                     this.avator = res.avator;
                     this.username = res.username;
