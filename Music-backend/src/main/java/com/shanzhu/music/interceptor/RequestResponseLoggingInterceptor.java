@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.util.ContentCachingRequestWrapper;
-import org.springframework.web.util.ContentCachingResponseWrapper;
+import org.springframework.web.util.WebUtils;
 
 import java.net.InetAddress;
 import java.util.Enumeration;
@@ -36,10 +36,6 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
         long startTime = System.currentTimeMillis();
         request.setAttribute(START_TIME_ATTRIBUTE, startTime);
 
-        // 包装请求和响应以支持多次读取
-        ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request);
-        ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
-
         // 获取客户端IP
         String clientIp = getClientIp(request);
 
@@ -57,6 +53,8 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
         requestLog.append("【请求头】      : {}\n");
 
         String requestId = generateRequestId();
+        // 此前只把 requestId 放在局部变量里，afterCompletion 再从 attribute 取永远为 null
+        request.setAttribute("requestId", requestId);
         String queryString = request.getQueryString();
         String userAgent = request.getHeader("User-Agent");
         String contentType = request.getHeader("Content-Type");
@@ -75,28 +73,6 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
                 contentType,
                 maskSensitiveHeaders(headers)
         );
-
-        // 记录请求体(仅POST/PUT/PATCH)
-        String method = request.getMethod().toUpperCase();
-        if ("POST".equals(method) || "PUT".equals(method) || "PATCH".equals(method)) {
-            try {
-                byte[] body = wrappedRequest.getContentAsByteArray();
-                if (body.length > 0) {
-                    String bodyStr = new String(body, request.getCharacterEncoding());
-                    if (bodyStr.length() <= MAX_PAYLOAD_LENGTH) {
-                        log.info("【请求体】      : {}", maskSensitiveBody(bodyStr, contentType));
-                    } else {
-                        log.info("【请求体】      : {}... (内容过长,已截断)", bodyStr.substring(0, MAX_PAYLOAD_LENGTH));
-                    }
-                }
-            } catch (Exception e) {
-                log.warn("读取请求体失败", e);
-            }
-        }
-
-        // 将包装后的对象设置回request/response
-        // 注意: 这里不能直接替换,需要在Controller中通过其他方式获取
-        // Spring会自动处理ContentCachingRequestWrapper
 
         return true;
     }
@@ -132,6 +108,10 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
                 exceptionMsg
         );
 
+        // 请求体要在处理结束后才读得到：此时流已被 @RequestBody 消费，
+        // ContentCachingRequestWrapper 才把字节缓存起来
+        logRequestBody(request);
+
         // 如果有异常,记录详细堆栈
         if (ex != null) {
             log.error("请求处理异常 - URL: {}, Method: {}", request.getRequestURI(), request.getMethod(), ex);
@@ -140,6 +120,41 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
         // 性能警告
         if (duration > 3000) {
             log.warn("⚠️ 慢请求警告 - URL: {}, 耗时: {} ms", request.getRequestURI(), duration);
+        }
+    }
+
+    /**
+     * 记录请求体。仅 POST/PUT/PATCH 且包装器有缓存时输出，
+     * multipart（文件上传）不缓存也不记录。
+     */
+    private void logRequestBody(HttpServletRequest request) {
+        String method = request.getMethod() == null ? "" : request.getMethod().toUpperCase();
+        if (!"POST".equals(method) && !"PUT".equals(method) && !"PATCH".equals(method)) {
+            return;
+        }
+        // 不能用 instanceof：Spring Security 等过滤器会在本包装器之外再套一层
+        // HttpServletRequestWrapper，此时 request 的运行时类型不是 ContentCachingRequestWrapper。
+        // getNativeRequest 沿包装链逐层解包，才取得到真正缓存了字节的那一层。
+        ContentCachingRequestWrapper wrapper =
+                WebUtils.getNativeRequest(request, ContentCachingRequestWrapper.class);
+        if (wrapper == null) {
+            return;
+        }
+        try {
+            byte[] body = wrapper.getContentAsByteArray();
+            if (body.length == 0) {
+                return;
+            }
+            String charset = request.getCharacterEncoding() != null ? request.getCharacterEncoding() : "UTF-8";
+            String bodyStr = new String(body, charset);
+            String contentType = request.getContentType();
+            if (bodyStr.length() <= MAX_PAYLOAD_LENGTH) {
+                log.info("【请求体】      : {}", maskSensitiveBody(bodyStr, contentType));
+            } else {
+                log.info("【请求体】      : {}... (内容过长,已截断)", bodyStr.substring(0, MAX_PAYLOAD_LENGTH));
+            }
+        } catch (Exception e) {
+            log.warn("读取请求体失败", e);
         }
     }
 
@@ -225,16 +240,19 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
             return body;
         }
 
-        // JSON格式脱敏
-        if (contentType != null && contentType.contains("application/json")) {
-            try {
+        try {
+            if (contentType != null && contentType.contains("application/json")) {
                 // 简单的密码字段脱敏
                 body = body.replaceAll("\"password\"\\s*:\\s*\"[^\"]*\"", "\"password\":\"***\"");
                 body = body.replaceAll("\"token\"\\s*:\\s*\"[^\"]*\"", "\"token\":\"***\"");
                 body = body.replaceAll("\"secret\"\\s*:\\s*\"[^\"]*\"", "\"secret\":\"***\"");
-            } catch (Exception e) {
-                log.debug("JSON脱敏失败", e);
+            } else {
+                // 表单体同样带明文凭令：本项目登录与修改资料都走 x-www-form-urlencoded。
+                // 只对 JSON 脱敏的话，请求体一旦能被记录，口令就跟着进了日志文件。
+                body = body.replaceAll("(?i)(password|passwd|token|secret)=([^&\"]*)", "$1=***");
             }
+        } catch (Exception e) {
+            log.debug("请求体脱敏失败", e);
         }
 
         return body;
