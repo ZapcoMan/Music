@@ -86,6 +86,7 @@ public class ConsumerController {
      * @return 添加结果
      */
     @Operation(summary = "注册用户", description = "注册新的前台用户账号")
+    @RateLimit(key = "register:consumer:", timeWindow = 60, maxRequests = 5, message = "注册过于频繁，请60秒后再试")
     @PostMapping(value = "/add")
     public R addConsumer(@Valid @RequestBody ConsumerRequest request, HttpServletRequest httpRequest) {
         //已经存在用户名
@@ -127,6 +128,7 @@ public class ConsumerController {
      * @param request 用户信息
      * @return 修改结果
      */
+    @RateLimit(key = "update:consumer:", timeWindow = 60, maxRequests = 10, message = "资料修改过于频繁，请稍后再试")
     @PostMapping(value = "/update")
     public R updateConsumer(@RequestAttribute("userId") Integer currentUserId,
                             @RequestAttribute("username") String currentUsername,
@@ -173,6 +175,7 @@ public class ConsumerController {
      * @param id 用户id
      * @return 删除结果
      */
+    @RateLimit(key = "delete:consumer:", timeWindow = 60, maxRequests = 10, message = "用户删除过于频繁，请稍后再试")
     @DeleteMapping(value = "/delete")
     @RequireUserType("admin")
     public Boolean deleteConsumer(@RequestAttribute("userId") Integer operatorId,
@@ -259,6 +262,7 @@ public class ConsumerController {
      * @param userType      令牌中的用户类型
      * @return 上传结果
      */
+    @RateLimit(key = "upload:avatar:", timeWindow = 60, maxRequests = 5, message = "头像上传过于频繁，请稍后再试")
     @PostMapping(value = "/updateConsumerPic")
     public R<UploadConsumerPicVo> updateConsumerPic(
             @RequestParam("file") MultipartFile avatorFile,

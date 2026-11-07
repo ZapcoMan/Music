@@ -1,5 +1,6 @@
 package com.shanzhu.music.controller;
 
+import com.shanzhu.music.annotation.RateLimit;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Comment;
 import com.shanzhu.music.service.CommentService;
@@ -35,6 +36,7 @@ public class CommentController {
      * @param content    评论内容
      * @return 添加结果
      */
+    @RateLimit(key = "comment:add:", timeWindow = 60, maxRequests = 10, message = "评论发表过于频繁，请稍后再试")
     @PostMapping(value = "/add")
     public R addComment(Integer userId, Byte type, Integer songId, Integer songListId, String content) {
         // type 是 Byte，前端漏传时与 0 比较会触发拆箱 NPE
@@ -72,6 +74,7 @@ public class CommentController {
      * @param content    评论内容
      * @return 评论结果
      */
+    @RateLimit(key = "comment:update:", timeWindow = 60, maxRequests = 20, message = "评论修改过于频繁，请稍后再试")
     @PostMapping(value = "/update")
     public R updateComment(Integer id, Integer userId, Byte type, Integer songId, Integer songListId, String content) {
         //保存到评论的对象中
@@ -97,6 +100,7 @@ public class CommentController {
      * @param id 评论id
      * @return 删除结果
      */
+    @RateLimit(key = "comment:delete:", timeWindow = 60, maxRequests = 20, message = "评论删除过于频繁，请稍后再试")
     @DeleteMapping(value = "/delete")
     public Boolean deleteComment(Integer id) {
         return commentService.delete(id);
@@ -152,6 +156,7 @@ public class CommentController {
      * @param up 点赞数
      * @return 结果
      */
+    @RateLimit(key = "comment:like:", timeWindow = 60, maxRequests = 30, message = "点赞过于频繁，请稍后再试")
     @PostMapping(value = "/like")
     public R like(Integer id, Integer up) {
         //保存到评论的对象中

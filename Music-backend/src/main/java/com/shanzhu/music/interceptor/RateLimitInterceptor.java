@@ -59,8 +59,15 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         // 获取客户端IP
         String ip = ipUtils.getIpAddress(request);
 
-        // 构建限流key: rate_limit:ip:uri
-        String key = rateLimit.key() + ip + ":" + request.getRequestURI();
+        // 限流主体优先用登录身份，退回 IP。
+        // 只按 IP 计数时，同一出口（校园网、公司 NAT、移动网络）下的所有用户
+        // 会共用一个计数器，一个人刷接口就把整栋楼限死；本应用在 JWT 拦截器之后执行，
+        // 已登录请求可以从 attribute 拿到 userId。
+        Object userIdAttr = request.getAttribute("userId");
+        String identity = userIdAttr != null ? "user:" + userIdAttr : "ip:" + ip;
+
+        // 构建限流key: 前缀 + 身份 + uri
+        String key = rateLimit.key() + identity + ":" + request.getRequestURI();
 
         // 计数与判定必须原子。原实现是 get -> 判空 -> set(1, ttl)，
         // 并发请求会同时读到 null 并各自把计数写回 1，限流窗口被直接绕过；
