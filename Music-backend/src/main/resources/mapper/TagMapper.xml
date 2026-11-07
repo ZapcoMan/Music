@@ -66,7 +66,7 @@
             #{tagId}
         </foreach>
         GROUP BY s.id
-        ORDER BY match_count DESC, st.create_time DESC
+        ORDER BY match_count DESC, MAX(st.create_time) DESC
         LIMIT #{limit}
     </select>
 

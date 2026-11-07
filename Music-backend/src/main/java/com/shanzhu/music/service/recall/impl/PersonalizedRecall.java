@@ -35,7 +35,7 @@ public class PersonalizedRecall implements RecallStrategy {
         List<Song> recalledSongs = new ArrayList<>();
         
         try {
-            // 1. 获取用户最近收藏的歌曲（取最后10首作为兴趣代表）
+            // 1. 获取用户收藏的歌曲（SQL 已按收藏时间倒序返回）
             List<Song> userCollectedSongs = songMapper.getCollectByUserID(userId);
             
             if (userCollectedSongs == null || userCollectedSongs.isEmpty()) {
@@ -43,7 +43,7 @@ public class PersonalizedRecall implements RecallStrategy {
                 return new RecallResult(getStrategyName(), recalledSongs, 0, STRATEGY_WEIGHT);
             }
             
-            // 2. 选取最近的歌曲作为种子（简化：取前5首）
+            // 2. 选取最近收藏的歌曲作为种子
             int seedCount = Math.min(userCollectedSongs.size(), 5);
             List<Song> seedSongs = userCollectedSongs.subList(0, seedCount);
             

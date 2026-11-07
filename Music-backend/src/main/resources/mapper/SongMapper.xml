@@ -169,11 +169,12 @@
 
     </select>
 
-<select id="getCollectByUserID" resultMap="BaseResultMap">
-    SELECT s.id, s.name, s.introduction, s.pic, s.lyric, s.url
+    <select id="getCollectByUserID" resultMap="BaseResultMap">
+    SELECT s.id, s.singer_id, s.name, s.introduction, s.pic, s.url, s.create_time, s.update_time
     FROM `collect` c
              JOIN `song` s ON c.song_id = s.id
-    WHERE c.user_id = #{userId};
+    WHERE c.user_id = #{userId}
+    ORDER BY c.create_time DESC
 </select>
 
     <!-- 获取用户已播放的歌曲ID列表 -->

@@ -145,10 +145,11 @@
         FROM ranks r1
         JOIN ranks r2 ON r1.song_list_id = r2.song_list_id
         WHERE r1.consumer_id = #{id}
-        AND r1.consumer_id &lt; r2.consumer_id
-        GROUP BY r1.consumer_id, r2.consumer_id
+        AND r2.consumer_id != #{id}
+        GROUP BY r2.consumer_id
         HAVING similarity > 0.5
         ORDER BY similarity DESC
+        LIMIT 20
     </select>
 
 
