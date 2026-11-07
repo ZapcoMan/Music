@@ -6,6 +6,41 @@
 
 ---
 
+## 未发布（v2.0.0 预备）
+
+属破坏性变更，故下一版为 major：返回契约与权限模型都改了，旧调用方式不再成立。
+
+### 变更（破坏性）
+
+- **返回结构统一为 `R<T>`**：`Object` 返回 5 处、裸 `List<PO>`/`Boolean`/`PO` 23 处、raw `R` 17 处全部消除，`R` 删除 `dataMap` 第二条载体，`R.success(T)` 补上漏掉的 `setSuccess`。前端 27 处取值点随之改为 `res.data`，Home/SongPage 里"兼容两种形态"的双分支兜底一并删除。
+- **权限模型改为默认拒绝**：37 个写接口全部显式声明角色域（`@RequireUserType` 由 22 处增至 38 处，注解 `value` 改为数组以表达 `{consumer, admin}` 这类集合）；拦截器对未声明角色的写接口直接 403；新增守卫测试扫描全部写接口，漏标注即变红。`/comment/allComment` 补 admin——此前任何消费者令牌可一次拉走全站评论。
+- **`/song` 业务接口下沉至 `/song/manage/*`**，白名单由 `/song/**` 收窄为 `/song/*`；静态音频仍匿名可取。
+
+### 安全修复
+
+- **凭据不再随查询串落盘**：令牌只认 `Authorization` 头（三处 `getParameter("token")` 回落全部关闭），查询串进 INFO 日志前按键名脱敏。此前二者叠加会把完整 JWT 写入保留 30 天的日志文件——拿到日志等于拿到 24 小时会话。
+- **来源 IP 默认不采信可伪造的透传头**：新增 `security.ip.trust-proxy-headers`，默认 false 只用容器给出的对端地址；同时修掉原兜底分支判空对象写错（查 `ipAddresses` 而非 `ip`）的问题。
+
+### 可靠性与性能
+
+- 延时双删由"每次 new 一个线程 sleep 三秒"改为共享调度池，并把第二次删除挂到事务 `afterCommit`——原先事务超过三秒时二次删除跑在提交之前，双删等于没删。
+- 限流 key 不再拼接原始 URI（URL 变体可各建一个计数器从而绕过限流）；URI 仍留在日志中用于定位。
+- prod `multipart` 上限由 1024MB 收紧为 100MB/110MB，与 `FileStorageService` 的应用层上限对齐。
+- 删除 `getSongsBySimilarTags` / `getSongsByStyle` 及其 XML：两处 `ORDER BY RAND()` 全仓无任何调用点，属不可达死代码。
+
+### 前端工程
+
+- `.eslintignore` 原以 `/*` 结尾，导致 lint 一行源码都没检查过；现只忽略产物目录，档位升到 `plugin:vue/strongly-recommended`，存量 9500+ 项按"排版 warn / 真缺陷分级"处理，两端 0 error。
+- `build` 链路的 webpack3 不读 `.env`，使 `VUE_APP_API_BASE_URL` 恒为 undefined、Dockerfile 的 ARG 全部失效；新增零依赖 `config/load-env.js` 接通该链路，实测构建产物内无任何硬编码地址。
+- `:key="index"` 换稳定业务 id 共 12 处；`TheAside`/`TheHeader` 匿名监听器改为具名并在 `beforeDestroy` 解除；`LoginIn`/`SignUp` 的跳转定时器补 `clearTimeout`。
+- 根 `.gitignore` 的 `.env` 规则会吞掉新建设置文件，已逐文件精确放行（不通配，避免连带放行后端口令文件）。
+
+### 测试
+
+用例 142 → **215**：管理接口鉴权矩阵 44 项（22 端点 × 匿名 401 / 消费者 403）、消费者端点矩阵 20 项、写接口角色守卫 1 项、令牌载体回归 5 项、`R` 单一载体与 `success` 标志 2 项；删除 3 项测试已不存在的 `dataMap` 链式 API 的用例。
+
+---
+
 ## v1.1.0 — 2026-11-07
 
 安全收口批次：鉴权覆盖面、身份来源、凭据暴露、明文密钥。定版于仓库转公开之后、对外可访问之前。

@@ -302,9 +302,9 @@ done
 // 修改RateLimitInterceptor
 String userId = request.getAttribute("userId");
 if (userId != null) {
-    key = rateLimit.key() + "user:" + userId + ":" + request.getRequestURI();
+    key = rateLimit.key() + "user:" + userId;
 } else {
-    key = rateLimit.key() + ip + ":" + request.getRequestURI();
+    key = rateLimit.key() + "ip:" + ip;
 }
 ```
 

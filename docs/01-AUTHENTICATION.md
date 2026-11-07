@@ -20,7 +20,9 @@
 ### 2. IP 地址绑定
 - 登录时记录客户端真实 IP
 - 每次请求验证 IP 是否匹配
-- 支持代理服务器 IP 提取（X-Forwarded-For, X-Real-IP等）
+- 代理透传头（X-Forwarded-For、X-Real-IP 等）提取**默认关闭**，由
+  `security.ip.trust-proxy-headers` 控制：这类头客户端可随意伪造，无条件采信会让
+  IP 绑定校验被一个请求头绕过、审计与限流身份失真。只有确认客户端无法直连后端时才开启。
 
 ### 3. 统一认证架构
 - **管理员**：使用 JWT Token（已移除 Session）
@@ -115,7 +117,14 @@ Authorization: eyJhbGciOiJIUzI1NiJ9...
 
 #### 方式二：URL 参数
 ```bash
-GET http://localhost:9171/song/allSong?token=eyJhbGciOiJIUzI1NiJ9...
+> 令牌只能通过 `Authorization` 头传递，**不支持 `?token=` 查询参数**。
+> 早期文档曾示范 URL 形式，实际后果是查询串会随 INFO 日志留档 30 天，
+> 等于把完整 JWT 写进磁盘；该回落已连同日志脱敏一并关闭（见 TokenTransportTest）。
+
+```bash
+curl -H "Authorization: eyJhbGciOiJIUzI1NiJ9..." \
+     http://localhost:9171/song/manage/allSong
+```
 ```
 
 ---
