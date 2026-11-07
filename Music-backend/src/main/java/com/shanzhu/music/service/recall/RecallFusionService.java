@@ -93,11 +93,23 @@ public class RecallFusionService {
         List<RecallResult> recallResults = new ArrayList<>();
         for (RecallStrategy strategy : recallStrategies) {
             try {
-                RecallResult result = strategy.recall(userId);
-                recallResults.add(result);
+                recallResults.add(strategy.recall(userId));
             } catch (Exception e) {
-                log.error("召回策略 {} 执行失败", strategy.getStrategyName(), e);
+                log.error("召回策略 {} 执行异常", strategy.getStrategyName(), e);
+                recallResults.add(RecallResult.failed(
+                    strategy.getStrategyName(), strategy.getWeight(), e.getMessage()));
             }
+        }
+
+        // 显式汇总不可用的策略，避免"SQL 报错""表不存在""确实无数据"三种情况
+        // 对外呈现为同一种静默的空结果
+        List<String> degraded = recallResults.stream()
+            .filter(RecallResult::isFailed)
+            .map(r -> r.getStrategyName() + "[" + r.getFailureReason() + "]")
+            .toList();
+        if (!degraded.isEmpty()) {
+            log.warn("用户 {} 召回降级：{}/{} 路不可用 -> {}",
+                userId, degraded.size(), recallResults.size(), degraded);
         }
         
         // 3. 融合排序并保留召回信息

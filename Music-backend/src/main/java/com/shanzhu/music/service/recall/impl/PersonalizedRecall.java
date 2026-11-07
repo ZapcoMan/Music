@@ -91,6 +91,7 @@ public class PersonalizedRecall implements RecallStrategy {
             
         } catch (Exception e) {
             log.error("个性化召回失败，userId={}", userId, e);
+            return RecallResult.failed(getStrategyName(), STRATEGY_WEIGHT, e.getMessage());
         }
         
         return new RecallResult(getStrategyName(), recalledSongs, recalledSongs.size(), STRATEGY_WEIGHT);

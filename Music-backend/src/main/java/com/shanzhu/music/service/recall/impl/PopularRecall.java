@@ -59,6 +59,7 @@ public class PopularRecall implements RecallStrategy {
             
         } catch (Exception e) {
             log.error("热门召回失败，userId={}", userId, e);
+            return RecallResult.failed(getStrategyName(), STRATEGY_WEIGHT, e.getMessage());
         }
         
         return new RecallResult(getStrategyName(), recalledSongs, recalledSongs.size(), STRATEGY_WEIGHT);

@@ -95,6 +95,7 @@ public class TagBasedRecall implements RecallStrategy {
             
         } catch (Exception e) {
             log.error("标签召回失败，userId={}", userId, e);
+            return RecallResult.failed(getStrategyName(), STRATEGY_WEIGHT, e.getMessage());
         }
         
         return new RecallResult(getStrategyName(), recalledSongs, recalledSongs.size(), STRATEGY_WEIGHT);
