@@ -105,13 +105,14 @@ public class SingerServiceImpl implements SingerService {
     /**
      * 修改歌手（请求入口）
      *
+     * @param id      歌手id，以 URL 指向的资源为准
      * @param request 歌手信息
      * @return 结果
      */
     @Override
-    public Boolean update(SingerRequest request) {
+    public Boolean update(Integer id, SingerRequest request) {
         Singer singer = toSinger(request);
-        singer.setId(request.getId());
+        singer.setId(id);
         return update(singer);
     }
 
@@ -223,7 +224,9 @@ public class SingerServiceImpl implements SingerService {
      */
     @Override
     public List<Singer> singerOfName(String name) {
-        return singerMapper.singerOfName(name);
+        // 模糊匹配模式属于查询实现细节，原先在 Controller 里拼 "%" + name + "%"；
+        // 放到这里之后，调用方传的就是用户输入本身
+        return singerMapper.singerOfName("%" + name + "%");
     }
 
     /**

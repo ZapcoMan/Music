@@ -402,7 +402,7 @@ export default {
             };
         },
         uploadUrl(id) {
-            return `${this.$store.state.API_HOST}/singer/updateSingerPic?id=${id}`;
+            return `${this.$store.state.API_HOST}/singers/${id}/picture`;
         },
         //删除一名歌手
         deleteRow() {

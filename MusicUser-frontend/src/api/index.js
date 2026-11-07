@@ -3,9 +3,9 @@ import {get,post,del,patch} from "./http";
 
 //============歌手相关================
 //查询歌手
-export const getAllSinger =() => get(`singer/allSinger`);
+export const getAllSinger =() => get(`singers`);
 //根据性别查询歌手
-export const getSingerOfSex = (sex) => get(`singer/singerOfSex?sex=${sex}`);
+export const getSingerOfSex = (sex) => get(`singers?sex=${sex}`);
 
 //============歌曲相关================
 //根据歌手id查询歌曲

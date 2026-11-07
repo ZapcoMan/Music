@@ -22,7 +22,7 @@ import java.util.List;
  * 歌手 控制层
  */
 @RestController
-@RequestMapping("/api/v1/singer")
+@RequestMapping("/api/v1/singers")
 @RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 public class SingerController {
@@ -36,7 +36,7 @@ public class SingerController {
      * @param request 歌手信息
      * @return 添加结果
      */
-    @PostMapping(value = "/add")
+    @PostMapping
     @RequireUserType("admin")
     public R<Void> addSinger(@Valid @RequestBody SingerRequest request) {
         // 生日转换与 DTO→PO 组装在 service，这里只做响应塑形
@@ -49,13 +49,15 @@ public class SingerController {
     /**
      * 修改歌手
      *
+     * @param id      歌手id，以路径为准
      * @param request 歌手信息
      * @return 结果
      */
-    @PostMapping(value = "/update")
+    @PatchMapping(value = "/{id}")
     @RequireUserType("admin")
-    public R<Void> updateSinger(@Valid @RequestBody SingerRequest request) {
-        if (singerService.update(request)) {
+    public R<Void> updateSinger(@PathVariable("id") Integer id,
+                                @Valid @RequestBody SingerRequest request) {
+        if (singerService.update(id, request)) {
             return R.ok("修改成功");
         }
         return R.error("修改失败");
@@ -67,9 +69,9 @@ public class SingerController {
      * @param id 歌手id
      * @return 删除结果
      */
-    @DeleteMapping(value = "/delete")
+    @DeleteMapping(value = "/{id}")
     @RequireUserType("admin")
-    public R<Boolean> deleteSinger(Integer id) {
+    public R<Boolean> deleteSinger(@PathVariable("id") Integer id) {
         return R.ok(singerService.delete(id));
     }
 
@@ -79,8 +81,8 @@ public class SingerController {
      * @param id 歌手id
      * @return 歌手
      */
-    @GetMapping(value = "/selectByPrimaryKey")
-    public R<Singer> selectByPrimaryKey(Integer id) {
+    @GetMapping(value = "/{id}")
+    public R<Singer> selectByPrimaryKey(@PathVariable("id") Integer id) {
         return R.ok(singerService.selectByPrimaryKey(id));
     }
 
@@ -89,7 +91,7 @@ public class SingerController {
      *
      * @return 歌手列表
      */
-    @GetMapping(value = "/allSinger")
+    @GetMapping
     public R<List<Singer>> allSinger() {
         return R.ok(singerService.allSinger());
     }
@@ -101,7 +103,7 @@ public class SingerController {
      * @param pageSize 每页大小，默认10
      * @return 分页结果
      */
-    @GetMapping(value = "/allSingerByPage")
+    @GetMapping(value = "/page")
     public R<PageInfo<Singer>> allSingerByPage(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize
@@ -116,9 +118,9 @@ public class SingerController {
      * @param name 歌手名称
      * @return 歌手列表
      */
-    @GetMapping(value = "/singerOfName")
+    @GetMapping(params = "name")
     public R<List<Singer>> singerOfName(String name) {
-        return R.ok(singerService.singerOfName("%" + name + "%"));
+        return R.ok(singerService.singerOfName(name));
     }
 
     /**
@@ -127,7 +129,7 @@ public class SingerController {
      * @param sex 性别
      * @return 歌手列表
      */
-    @GetMapping(value = "/singerOfSex")
+    @GetMapping(params = "sex")
     public R<List<Singer>> singerOfSex(Integer sex) {
         return R.ok(singerService.singerOfSex(sex));
     }
@@ -139,11 +141,11 @@ public class SingerController {
      * @param id         更是id
      * @return 更新结果
      */
-    @PostMapping(value = "/updateSingerPic")
+    @PostMapping(value = "/{id}/picture")
     @RequireUserType("admin")
     public R<UploadPicVo> updateSingerPic(
             @RequestParam("file") MultipartFile avatorFile,
-            @RequestParam("id") Integer id
+            @PathVariable("id") Integer id
     ) throws IOException {
         String storeAvatorPath;
         try {

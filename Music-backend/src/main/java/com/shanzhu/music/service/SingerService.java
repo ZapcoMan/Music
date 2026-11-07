@@ -38,10 +38,14 @@ public interface SingerService {
     /**
      * 修改歌手（请求入口，生日转换与组装在服务层完成）
      *
+     * id 由调用方以路径变量给出并显式传入：请求体里也带 id 时，两个来源可能不一致，
+     * 以哪个为准必须是个明确决定，这里定的是"以 URL 指向的资源为准"。
+     *
+     * @param id      歌手id
      * @param request 歌手信息
      * @return 结果
      */
-    Boolean update(SingerRequest request);
+    Boolean update(Integer id, SingerRequest request);
 
     /**
      * 删除歌手

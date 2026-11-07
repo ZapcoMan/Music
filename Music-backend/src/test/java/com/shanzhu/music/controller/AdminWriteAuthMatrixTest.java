@@ -49,10 +49,10 @@ class AdminWriteAuthMatrixTest extends BaseTest {
                 Arguments.of("POST", "/api/v1/song/manage/updateSongPic", true),
                 Arguments.of("POST", "/api/v1/song/manage/updateSongUrl", true),
                 // 曲库：歌手
-                Arguments.of("POST", "/api/v1/singer/add", false),
-                Arguments.of("POST", "/api/v1/singer/update", false),
-                Arguments.of("DELETE", "/api/v1/singer/delete", false),
-                Arguments.of("POST", "/api/v1/singer/updateSingerPic", true),
+                Arguments.of("POST", "/api/v1/singers", false),
+                Arguments.of("PATCH", "/api/v1/singers/1", false),
+                Arguments.of("DELETE", "/api/v1/singers/1", false),
+                Arguments.of("POST", "/api/v1/singers/1/picture", true),
                 // 曲库：歌单
                 Arguments.of("POST", "/api/v1/songList/add", false),
                 Arguments.of("POST", "/api/v1/songList/update", false),
