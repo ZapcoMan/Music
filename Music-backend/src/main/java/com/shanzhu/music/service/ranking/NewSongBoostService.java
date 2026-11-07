@@ -1,95 +1,56 @@
 package com.shanzhu.music.service.ranking;
 
-import com.shanzhu.music.entity.po.Song;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
-
 /**
  * 新歌曲流量扶持服务
- * 
- * 扶持策略：
- * 1. 新歌定义：发布30天内的歌曲
- * 2. 扶持系数：根据歌曲年龄动态调整
- *    - 0-7天: 1.5倍曝光
- *    - 8-14天: 1.3倍曝光
- *    - 15-30天: 1.1倍曝光
- *    - 30天以上: 1.0倍（无扶持）
+ *
+ * 扶持以"加性增益"形式在 sigmoid 之前生效，使最终得分仍落在 (0,1) 区间内。
+ * 原先的做法是在 sigmoid 之后乘以 1.1~1.5：那会把概率推成大于 1 的无意义数值，
+ * 并且与线性特征 songAgeDays 的负权重构成重复计分。
+ *
+ * 扶持分档（与发布天数 songAgeDays 同源，不再重复读 createTime）：
+ *   0-7 天    +0.15
+ *   8-14 天   +0.10
+ *   15-30 天  +0.05
+ *   30 天以上 或 年龄未知  不扶持
  */
 @Slf4j
 @Service
 public class NewSongBoostService {
-    
-    // 新歌定义：发布天数阈值
+
+    /** 新歌定义：发布天数阈值 */
     private static final int NEW_SONG_DAYS_THRESHOLD = 30;
-    
+
     /**
-     * 计算新歌扶持系数
+     * 计算新歌扶持增益
      *
-     * @param song 歌曲对象
-     * @return 扶持系数（>= 1.0）
+     * @param songAgeDays 歌曲发布天数，null 或负值表示年龄未知
+     * @return 叠加到排序得分上的增益，恒 >= 0
      */
-    public double calculateBoostFactor(Song song) {
-        if (song == null || song.getCreateTime() == null) {
-            return 1.0;
+    public double calculateBonus(Integer songAgeDays) {
+        if (songAgeDays == null || songAgeDays < 0 || songAgeDays > NEW_SONG_DAYS_THRESHOLD) {
+            return 0.0;
         }
-        
-        // 计算歌曲发布天数
-        LocalDate createDate = song.getCreateTime().toInstant()
-            .atZone(ZoneId.systemDefault()).toLocalDate();
-        long daysSinceRelease = ChronoUnit.DAYS.between(createDate, LocalDate.now());
-        
-        // 如果不是新歌，返回1.0（无扶持）
-        if (daysSinceRelease > NEW_SONG_DAYS_THRESHOLD) {
-            return 1.0;
-        }
-        
-        // 根据歌曲年龄计算扶持系数
-        double boostFactor;
-        if (daysSinceRelease <= 7) {
-            // 0-7天：强力扶持 1.5倍
-            boostFactor = 1.5;
-        } else if (daysSinceRelease <= 14) {
-            // 8-14天：中等扶持 1.3倍
-            boostFactor = 1.3;
+
+        double bonus;
+        if (songAgeDays <= 7) {
+            bonus = 0.15;
+        } else if (songAgeDays <= 14) {
+            bonus = 0.10;
         } else {
-            // 15-30天：轻度扶持 1.1倍
-            boostFactor = 1.1;
+            bonus = 0.05;
         }
-        
-        log.debug("歌曲 {} 发布 {} 天，扶持系数: {}", song.getId(), daysSinceRelease, boostFactor);
-        return boostFactor;
+
+        log.debug("歌曲发布 {} 天，新歌扶持增益: {}", songAgeDays, bonus);
+        return bonus;
     }
-    
+
     /**
-     * 应用新歌扶持到排序得分
-     *
-     * @param originalScore 原始得分
-     * @param song          歌曲对象
-     * @return 扶持后的得分
+     * 是否处于扶持期内
      */
-    public double applyBoost(double originalScore, Song song) {
-        double boostFactor = calculateBoostFactor(song);
-        double boostedScore = originalScore * boostFactor;
-        
-        if (boostFactor > 1.0) {
-            log.debug("歌曲 {} 得分提升: {} -> {} (系数: {})", 
-                song.getId(), originalScore, boostedScore, boostFactor);
-        }
-        
-        return boostedScore;
-    }
-    
-    /**
-     * 检查是否为新歌
-     *
-     * @param song 歌曲对象
-     * @return true=新歌, false=老歌
-     */
-    public boolean isNewSong(Song song) {
-        return calculateBoostFactor(song) > 1.0;
+    public boolean isBoosted(Integer songAgeDays) {
+        return calculateBonus(songAgeDays) > 0.0;
     }
 }

@@ -129,7 +129,10 @@ public class FeatureEngineeringService {
             long days = ChronoUnit.DAYS.between(createDate, LocalDate.now());
             feature.setSongAgeDays((int) days);
         } else {
-            feature.setSongAgeDays(0);
+            // 创建时间缺失时记为"年龄未知"，由打分侧按不扶持、不惩罚处理。
+            // 旧实现填 0 会被当成当天发布的新歌而吃到扶持加分，与 boost 侧
+            // 把 null 判为老歌的语义正好相反
+            feature.setSongAgeDays(null);
         }
         
         // 交叉特征
@@ -175,7 +178,10 @@ public class FeatureEngineeringService {
             long days = ChronoUnit.DAYS.between(createDate, LocalDate.now());
             feature.setSongAgeDays((int) days);
         } else {
-            feature.setSongAgeDays(0);
+            // 创建时间缺失时记为"年龄未知"，由打分侧按不扶持、不惩罚处理。
+            // 旧实现填 0 会被当成当天发布的新歌而吃到扶持加分，与 boost 侧
+            // 把 null 判为老歌的语义正好相反
+            feature.setSongAgeDays(null);
         }
         
         // 交叉特征

@@ -46,7 +46,8 @@ public class GBDTRankingService {
         FEATURE_WEIGHTS.put("songCollectCount", 0.25);  // 热度最重要
         FEATURE_WEIGHTS.put("songAvgRating", 0.2);
         FEATURE_WEIGHTS.put("songRatingCount", 0.05);   // 置信度
-        FEATURE_WEIGHTS.put("songAgeDays", -0.02);      // 新歌优先（负权重）
+        // 不再对 songAgeDays 设负权重：新歌提权统一由 NewSongBoostService
+        // 在 sigmoid 之前以加性增益实现，避免两处重复计分
         
         // 交叉特征权重
         FEATURE_WEIGHTS.put("userLikedSinger", 0.15);
@@ -70,12 +71,9 @@ public class GBDTRankingService {
         List<SongScore> songScores = new ArrayList<>();
         
         for (FeatureEngineeringService.SongWithFeature swf : songsWithFeatures) {
+            // 新歌扶持已在 calculateScore 内、sigmoid 之前叠加
             double score = calculateScore(swf.getFeature());
-            
-            // 2. 应用新歌扶持机制
-            double boostedScore = newSongBoostService.applyBoost(score, swf.getSong());
-            
-            songScores.add(new SongScore(swf.getSong(), boostedScore));
+            songScores.add(new SongScore(swf.getSong(), score));
         }
         
         // 3. 按得分降序排序
@@ -109,7 +107,6 @@ public class GBDTRankingService {
         linearScore += FEATURE_WEIGHTS.get("songCollectCount") * normalize(feature.getSongCollectCount(), 0, 1000);
         linearScore += FEATURE_WEIGHTS.get("songAvgRating") * normalize(feature.getSongAvgRating(), 0, RATING_MAX);
         linearScore += FEATURE_WEIGHTS.get("songRatingCount") * normalize(feature.getSongRatingCount(), 0, 1000);
-        linearScore += FEATURE_WEIGHTS.get("songAgeDays") * normalize(feature.getSongAgeDays(), 0, 3650);
         
         // 交叉特征
         linearScore += FEATURE_WEIGHTS.get("userLikedSinger") * (feature.getUserLikedSinger() ? 1.0 : 0.0);
@@ -124,7 +121,8 @@ public class GBDTRankingService {
         
         // ========== 3. 组合得分 ==========
         double bias = 0.5;
-        double finalScore = linearScore + 0.3 * fmScore + bias; // FM部分权重0.3
+        double newSongBonus = newSongBoostService.calculateBonus(feature.getSongAgeDays());
+        double finalScore = linearScore + 0.3 * fmScore + bias + newSongBonus; // FM部分权重0.3
         
         // Sigmoid激活函数，将得分映射到(0, 1)区间
         return sigmoid(finalScore);
