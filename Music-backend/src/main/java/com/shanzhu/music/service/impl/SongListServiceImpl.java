@@ -5,10 +5,8 @@ import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.entity.po.SongList;
 import com.shanzhu.music.mapper.SongListMapper;
-import com.shanzhu.music.mapper.SongMapper;
 import com.shanzhu.music.service.SongListService;
 import com.shanzhu.music.service.ranking.RankingService;
-import com.shanzhu.music.service.recall.RecallFusionService;
 import com.shanzhu.music.utils.ParseUtils;
 import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
@@ -26,10 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-//import ArrayList;
-//import List;
-//import concurrent.TimeUnit;
-
 /**
  * 歌单 服务层实现类
  */
@@ -39,12 +33,10 @@ import java.util.concurrent.TimeUnit;
 public class SongListServiceImpl implements SongListService {
 
     private final SongListMapper songListMapper;
-    private final SongMapper songMapper;
     private final ListSongMapper listSongMapper;
     private final CommentMapper commentMapper;
     private final RankMapper rankMapper;
     private final RedisUtils redisUtils;
-    private final RecallFusionService recallFusionService;
     private final RankingService rankingService;
     private final RecommendationCache recommendationCache;
     

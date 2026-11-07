@@ -10,7 +10,6 @@ import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.dto.ConsumerRequest;
 import com.shanzhu.music.entity.po.Consumer;
-import com.shanzhu.music.entity.vo.ConsumerLoginVo;
 import com.shanzhu.music.entity.vo.UploadConsumerPicVo;
 import com.shanzhu.music.service.ConsumerService;
 import com.shanzhu.music.service.TokenBlacklistService;
