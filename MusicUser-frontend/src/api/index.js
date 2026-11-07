@@ -1,5 +1,5 @@
 import Axios from "axios";
-import {get,post} from "./http";
+import {get,post,del} from "./http";
 
 //============歌手相关================
 //查询歌手
@@ -73,7 +73,7 @@ export const getAllComment = (type,id) => {
 export const setCollect =(params) => post(`/collect/add`,params);
 //指定用户的收藏列表
 export const getCollectOfUserId = (userId) => get(`/collect/collectOfUserId?userId=${userId}`);
-export const  delCollectOfUserId = (userId,songId) => get(`/collect/delete?userId=${userId}&songId=${songId}`)
+export const  delCollectOfUserId = (userId,songId) => del(`/collect/delete?userId=${userId}&songId=${songId}`)
 export const getfeaturedComment =(songId) => get(`/comment/frequent-words?songId=${songId}`)
 
 //===========搜索历史==================

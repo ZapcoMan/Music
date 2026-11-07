@@ -6,6 +6,7 @@ import com.shanzhu.music.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.annotations.Param;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -97,7 +98,7 @@ public class CommentController {
      * @param id 评论id
      * @return 删除结果
      */
-    @GetMapping(value = "/delete")
+    @DeleteMapping(value = "/delete")
     public Boolean deleteComment(Integer id) {
         return commentService.delete(id);
     }

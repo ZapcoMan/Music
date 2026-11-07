@@ -48,7 +48,9 @@ export const mixin = {
         //上传图片成功之后要做的工作
         handleAvatorSuccess(res){
             let _this = this;
-            if(res.code == 1){
+            // 后端 ResultCodeEnum 成功码是 20000，这里的 1 是历史遗留判定，
+            // 永远不成立，导致上传成功后既不刷新也不提示
+            if(res.code == 20000 || res.success === true){
                 _this.getData();
                 _this.$notify({
                     title: '上传成功',

@@ -97,7 +97,7 @@ public class SingerController {
      * @param id 歌手id
      * @return 删除结果
      */
-    @GetMapping(value = "/delete")
+    @DeleteMapping(value = "/delete")
     public Boolean deleteSinger(Integer id) {
         return singerService.delete(id);
     }

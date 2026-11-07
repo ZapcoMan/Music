@@ -4,6 +4,7 @@ import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.ListSong;
 import com.shanzhu.music.service.ListSongService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -60,7 +61,7 @@ public class ListSongController {
      * @param songListId 歌单id
      * @return 删除结果
      */
-    @GetMapping(value = "/delete")
+    @DeleteMapping(value = "/delete")
     public Boolean delete(Integer songId, Integer songListId) {
         return listSongService.deleteBySongIdAndSongListId(songId, songListId);
     }

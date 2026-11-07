@@ -101,7 +101,7 @@ public class SongListController {
      * @param id 歌单id
      * @return 删除结果
      */
-    @GetMapping(value = "/delete")
+    @DeleteMapping(value = "/delete")
     public Boolean deleteSongList(Integer id) {
         return songListService.delete(id);
     }

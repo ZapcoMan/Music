@@ -5,6 +5,7 @@ import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Collect;
 import com.shanzhu.music.service.CollectService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
@@ -64,7 +65,7 @@ public class CollectController {
      * @param songId 歌曲id
      * @return 删除结果
      */
-    @GetMapping(value = "/delete")
+    @DeleteMapping(value = "/delete")
     public Boolean deleteCollect(@RequestAttribute("userId") Integer userId,
                                 @RequestParam Integer songId) {
         return collectService.deleteByUserIdSongId(userId, songId);

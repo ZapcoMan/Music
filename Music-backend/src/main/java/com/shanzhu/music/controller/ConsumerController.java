@@ -160,7 +160,7 @@ public class ConsumerController {
      * @param id 用户id
      * @return 删除结果
      */
-    @GetMapping(value = "/delete")
+    @DeleteMapping(value = "/delete")
     @RequireUserType("admin")
     public Boolean deleteConsumer(Integer id) {
         return consumerService.delete(id);

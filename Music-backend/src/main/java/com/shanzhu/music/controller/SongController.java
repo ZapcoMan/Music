@@ -120,7 +120,7 @@ public class SongController {
      * @param id 歌曲id
      * @return 删除结果
      */
-    @GetMapping(value = "/delete")
+    @DeleteMapping(value = "/delete")
     public Boolean deleteSinger(Integer id) {
         return songService.delete(id);
     }
