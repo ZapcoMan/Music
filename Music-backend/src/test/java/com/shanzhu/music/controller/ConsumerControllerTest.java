@@ -145,4 +145,20 @@ class ConsumerControllerTest extends BaseTest {
         
         System.out.println("删除用户接口测试通过");
     }
+
+    @Test
+    @Order(9)
+    @DisplayName("测试参数校验失败的 code 取自枚举而非 400")
+    void testParamValidationErrorUsesEnumCode() throws Exception {
+        // 同一个"参数错误"语义此前有两个 code 来源：ResultCodeEnum.PARAM_ERROR 是 20002，
+        // 而 GlobalExceptionHandler 直接写了 R.error(400, ...)
+        String jsonRequest = "{\"username\":\"\",\"password\":\"123456\"}";
+        mockMvc.perform(MockMvcRequestBuilders.post("/consumer/add")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonRequest))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value(20002))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message").value(org.hamcrest.Matchers.containsString("用户名不能为空")));
+    }
 }

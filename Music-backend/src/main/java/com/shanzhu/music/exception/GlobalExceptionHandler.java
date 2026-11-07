@@ -1,6 +1,7 @@
 package com.shanzhu.music.exception;
 
 import com.shanzhu.music.common.R;
+import com.shanzhu.music.common.ResultCodeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
@@ -46,7 +47,9 @@ public class GlobalExceptionHandler {
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
         log.warn("参数校验异常: {}", message);
-        return R.error(400, message);
+        // code 统一取 ResultCodeEnum.PARAM_ERROR，不再与 HTTP 状态码 400 混用；
+        // 协议语义仍由 @ResponseStatus 决定
+        return R.error(ResultCodeEnum.PARAM_ERROR.getCode(), message);
     }
 
     /**
@@ -59,7 +62,7 @@ public class GlobalExceptionHandler {
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
         log.warn("参数绑定异常: {}", message);
-        return R.error(400, message);
+        return R.error(ResultCodeEnum.PARAM_ERROR.getCode(), message);
     }
 
     /**
@@ -72,7 +75,7 @@ public class GlobalExceptionHandler {
                 .map(ConstraintViolation::getMessage)
                 .collect(Collectors.joining(", "));
         log.warn("约束违反异常: {}", message);
-        return R.error(400, message);
+        return R.error(ResultCodeEnum.PARAM_ERROR.getCode(), message);
     }
 
     /**
@@ -92,7 +95,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public R handleIllegalArgumentException(IllegalArgumentException e) {
         log.warn("非法参数异常: {}", e.getMessage());
-        return R.error(400, e.getMessage());
+        return R.error(ResultCodeEnum.PARAM_ERROR.getCode(), e.getMessage());
     }
 
     /**
@@ -130,7 +133,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public R handleMissingParameter(MissingServletRequestParameterException e) {
         log.warn("缺少必填参数: {}", e.getParameterName());
-        return R.error(400, "缺少必填参数: " + e.getParameterName());
+        return R.error(ResultCodeEnum.PARAM_ERROR.getCode(), "缺少必填参数: " + e.getParameterName());
     }
 
     /**
@@ -162,7 +165,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public R handleNullPointerException(NullPointerException e) {
         log.error("空指针异常", e);
-        return R.error(500, "系统内部错误");
+        return R.error(ResultCodeEnum.NULL_POINT.getCode(), "系统内部错误");
     }
 
     /**
@@ -172,7 +175,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public R handleException(Exception e) {
         log.error("系统异常", e);
-        return R.error(500, "系统异常，请联系管理员");
+        return R.error(ResultCodeEnum.UNKNOWN_ERROR.getCode(), "系统异常，请联系管理员");
     }
 
 }
