@@ -7,6 +7,7 @@ import com.shanzhu.music.utils.ParseUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,16 +24,19 @@ public class RankController {
     /**
      * 新增评价
      *
+     * 评分人身份取自令牌，不再接受入参 consumerId：此前任何登录用户都能指定
+     * consumerId 打任意分，而评分是协同过滤与精排的直接输入，污染它等于污染推荐结果。
+     * 前端本就在传自己的 userId（SongListAlbum.vue），行为对正常用户无变化。
+     *
      * @param songListId 歌单id
-     * @param consumerId 用户id
      * @param score      评价
      * @return 结果
      */
     @PostMapping(value = "/add")
-    public R add(Integer songListId, Integer consumerId, Integer score) {
+    public R add(@RequestAttribute("userId") Integer userId, Integer songListId, Integer score) {
         Rank rank = new Rank();
         rank.setSongListId(songListId);
-        rank.setConsumerId(consumerId);
+        rank.setConsumerId(userId);
         rank.setScore(score);
 
         if (rankService.insert(rank)) {

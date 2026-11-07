@@ -118,7 +118,7 @@ export default {
             if(this.loginIn){
                 let params = new URLSearchParams();
                 params.append('songListId',this.songListId);
-                params.append('consumerId',this.userId);
+                // 不再传 consumerId：评分人身份由后端从令牌取，传了也不参与判定
                 params.append('score',this.rank *2);
                 setRank(params)
                     .then(res => {
