@@ -282,6 +282,38 @@
                     </excludes>
                 </configuration>
             </plugin>
+
+            <!--
+              静态缺陷扫描。绑定 verify 阶段，因此本地与 CI 的同一条
+              mvn -B clean verify 都会执行，不存在"只有 CI 才查"的双标。
+
+              阈值取 High 是实测结果而非妥协：High 为 0 个问题；Medium 有 126 个，
+              而这 126 个全部是 EI_EXPOSE_REP / EI_EXPOSE_REP2——Lombok @Data 为
+              @ConfigurationProperties 生成的 getter/setter 返回并持有内部集合引用。
+              配置载体本就应当暴露这些集合，逐条"修"只会把配置类改成无法注入的样子，
+              所以用 exclude 文件精准压掉这一类，而不是放宽阈值或忽略整个插件。
+            -->
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>4.8.6.4</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>High</threshold>
+                    <includeTests>false</includeTests>
+                    <failOnError>true</failOnError>
+                    <excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>spotbugs-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
 
         <!-- 资源文件配置 - 启用过滤以替换变量 -->

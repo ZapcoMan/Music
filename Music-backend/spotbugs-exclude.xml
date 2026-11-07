@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs 排除规则。
+
+  目前只排除一类：EI_EXPOSE_REP 与 EI_EXPOSE_REP2。
+  它们由 Lombok @Data 为 @ConfigurationProperties 类生成的 getter / setter 触发
+  ——这些方法直接返回、直接持有内部的 Map 与 List 引用。配置载体是只读的，
+  调用方不会把它拿走改写，按缺陷逐条"修"会让配置类失去可注入性。
+  Medium 阈值下 126 条告警全部落在这一类，排除后再收紧到 Medium，剩下的才值得看。
+
+  新增排除项请连同意图一起写在这里。这个文件的用途是压掉结构性误报，
+  不是让真实缺陷静音——一旦有人用它来跳过自己不想修的告警，它就失去意义。
+-->
+<FindBugsFilter>
+    <Match>
+        <Or>
+            <Bug pattern="EI_EXPOSE_REP"/>
+            <Bug pattern="EI_EXPOSE_REP2"/>
+        </Or>
+    </Match>
+</FindBugsFilter>
