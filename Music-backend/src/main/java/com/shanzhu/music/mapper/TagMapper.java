@@ -1,6 +1,7 @@
 package com.shanzhu.music.mapper;
 
 import com.shanzhu.music.entity.po.Song;
+import com.shanzhu.music.entity.vo.TaggedSongVo;
 import com.shanzhu.music.entity.po.Tag;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -62,7 +63,7 @@ public interface TagMapper {
      * @param limit 限制数量
      * @return 歌曲列表
      */
-    List<Song> selectSongsByTagIds(@Param("tagIds") List<Integer> tagIds, @Param("limit") Integer limit);
+    List<TaggedSongVo> selectSongsByTagIds(@Param("tagIds") List<Integer> tagIds, @Param("limit") Integer limit);
 
     /**
      * 统计标签下的歌曲数量

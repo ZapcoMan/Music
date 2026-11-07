@@ -2,6 +2,7 @@ package com.shanzhu.music.service.recall.impl;
 
 import com.shanzhu.music.entity.dto.RecallResult;
 import com.shanzhu.music.entity.po.Song;
+import com.shanzhu.music.entity.vo.TaggedSongVo;
 import com.shanzhu.music.entity.po.Tag;
 import com.shanzhu.music.mapper.CollectMapper;
 import com.shanzhu.music.mapper.SongMapper;
@@ -83,13 +84,20 @@ public class TagBasedRecall implements RecallStrategy {
                 .collect(Collectors.toSet());
             
             // 根据多个标签ID查询相关歌曲，并按匹配标签数排序
-            List<Song> candidateSongs = tagMapper.selectSongsByTagIds(preferredTagIds, MAX_RECALL_COUNT * 2);
+            List<TaggedSongVo> candidateSongs = tagMapper.selectSongsByTagIds(preferredTagIds, MAX_RECALL_COUNT * 2);
             
             // 5. 排除用户已收藏的歌曲
-            recalledSongs = candidateSongs.stream()
-                .filter(song -> !collectedSongIds.contains(song.getId()))
-                .limit(MAX_RECALL_COUNT)
-                .collect(Collectors.toList());
+            // TaggedSongVo 是 Song 的子类，直接作为召回结果携带 matchCount，
+            // 便于后续解释"这首歌为什么被推荐"
+            for (TaggedSongVo candidate : candidateSongs) {
+                if (collectedSongIds.contains(candidate.getId())) {
+                    continue;
+                }
+                recalledSongs.add(candidate);
+                if (recalledSongs.size() >= MAX_RECALL_COUNT) {
+                    break;
+                }
+            }
             
             log.debug("标签召回 {} 首歌曲", recalledSongs.size());
             
