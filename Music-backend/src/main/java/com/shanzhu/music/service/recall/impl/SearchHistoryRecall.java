@@ -60,20 +60,32 @@ public class SearchHistoryRecall implements RecallStrategy {
             Map<Integer, Song> candidateSongs = new HashMap<>();
             Map<Integer, Integer> songRelevanceScore = new HashMap<>();
             
+            // 一个关键词可能同时是歌名、歌单名或专辑名，三条路径都要试：
+            // 此前只按歌名匹配，于是 type=1 的搜索记录（歌单名、专辑名）永远召不回内容
             for (String keyword : recentKeywords) {
-                // 使用模糊查询匹配歌曲名称
-                List<Song> matchedSongs = songMapper.likeSongOfNameForRecall("%" + keyword + "%");
-                
-                if (matchedSongs != null && !matchedSongs.isEmpty()) {
+                String like = "%" + keyword + "%";
+                List<List<Song>> hits = new ArrayList<>();
+                hits.add(songMapper.likeSongOfNameForRecall(like));
+                hits.add(songMapper.likeSongOfListTitleForRecall(like));
+                hits.add(songMapper.likeSongOfIntroductionForRecall(like));
+
+                for (List<Song> matchedSongs : hits) {
+                    if (matchedSongs == null || matchedSongs.isEmpty()) {
+                        continue;
+                    }
                     for (Song song : matchedSongs) {
                         // 排除用户已收藏的歌曲
-                        if (!collectedSongIds.contains(song.getId())) {
-                            candidateSongs.putIfAbsent(song.getId(), song);
-                            
-                            // 累加相关度得分（匹配的关键词次数）
-                            int currentScore = songRelevanceScore.getOrDefault(song.getId(), 0);
-                            songRelevanceScore.put(song.getId(), currentScore + 1);
+                        if (collectedSongIds.contains(song.getId())) {
+                            continue;
                         }
+                        // 同一首歌被多条路径命中只计一次关键词分，避免"歌名+歌单名"重复加分
+                        if (candidateSongs.containsKey(song.getId())) {
+                            candidateSongs.putIfAbsent(song.getId(), song);
+                            continue;
+                        }
+                        candidateSongs.put(song.getId(), song);
+                        int currentScore = songRelevanceScore.getOrDefault(song.getId(), 0);
+                        songRelevanceScore.put(song.getId(), currentScore + 1);
                     }
                 }
             }

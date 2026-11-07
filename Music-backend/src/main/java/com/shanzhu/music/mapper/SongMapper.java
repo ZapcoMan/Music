@@ -96,6 +96,22 @@ public interface SongMapper {
      */
     List<Song> likeSongOfNameForRecall(String name);
 
+    /**
+     * 搜索历史召回：按歌单名称模糊匹配，取歌单内的歌曲
+     *
+     * @param title 歌单名称（含通配符）
+     * @return 歌曲列表，只含召回所需列
+     */
+    List<Song> likeSongOfListTitleForRecall(@Param("title") String title);
+
+    /**
+     * 搜索历史召回：按专辑名（song.introduction）模糊匹配
+     *
+     * @param introduction 专辑名（含通配符）
+     * @return 歌曲列表，只含召回所需列
+     */
+    List<Song> likeSongOfIntroductionForRecall(@Param("introduction") String introduction);
+
 
 
     List<Song> getSongsByUserIdNotInOtherUser(@Param("userId") int userId, @Param("otherUserId") int otherUserId);

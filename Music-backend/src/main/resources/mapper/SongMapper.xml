@@ -187,6 +187,29 @@
         from song
         where name like #{name}
     </select>
+
+    <!-- 按歌单名召回：用户搜"华语伤感女声"这类词时命中的是歌单而不是歌名，
+         此前这条路径完全不存在，导致 type=1 的搜索记录白记 -->
+    <select id="likeSongOfListTitleForRecall" resultMap="BaseResultMap" parameterType="java.lang.String">
+        <!-- 列必须带 s. 前缀：这里 join 了 list_song 与 song_list，
+             三张表都有 id 列，直接复用 Recall_Column_List 的裸 id 会报
+             "Column 'id' in field list is ambiguous"（实测踩中） -->
+        select s.id, s.singer_id, s.name, s.introduction, s.create_time,
+               s.update_time, s.pic, s.url
+        from song s
+        join list_song ls on ls.song_id = s.id
+        join song_list sl on sl.id = ls.song_list_id
+        where sl.title like #{title}
+    </select>
+
+    <!-- 按专辑名召回：song.introduction 存的就是专辑名 -->
+    <select id="likeSongOfIntroductionForRecall" resultMap="BaseResultMap" parameterType="java.lang.String">
+        select
+        <include refid="Recall_Column_List"/>
+        from song
+        where introduction is not null
+          and introduction like #{introduction}
+    </select>
     <!-- 协同过滤召回：相似用户收藏、当前用户未收藏的歌曲，只需召回列 -->
     <select id="getSongsByUserIdNotInOtherUser" resultMap="BaseResultMap">
         SELECT s.id, s.singer_id, s.name, s.introduction, s.create_time,
