@@ -10,11 +10,12 @@
         <result column="pic" jdbcType="VARCHAR" property="pic"/>
         <result column="birth" jdbcType="TIMESTAMP" property="birth"/>
         <result column="location" jdbcType="VARCHAR" property="location"/>
+        <result column="tags" jdbcType="VARCHAR" property="tags"/>
         <result column="introduction" jdbcType="VARCHAR" property="introduction"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,name,sex,pic,birth,location,introduction
+        id,name,sex,pic,birth,location,tags,introduction
     </sql>
 
     <insert id="insert" parameterType="com.shanzhu.music.entity.po.Singer" useGeneratedKeys="true" keyProperty="id">
@@ -37,6 +38,9 @@
             </if>
             <if test="location != null">
                 location,
+            </if>
+            <if test="tags != null">
+                tags,
             </if>
             <if test="introduction != null">
                 introduction,
@@ -61,6 +65,9 @@
             <if test="location != null">
                 #{location},
             </if>
+            <if test="tags != null">
+                #{tags},
+            </if>
             <if test="introduction != null">
                 #{introduction},
             </if>
@@ -84,6 +91,9 @@
             </if>
             <if test="location != null">
                 location = #{location},
+            </if>
+            <if test="tags != null">
+                tags = #{tags},
             </if>
             <if test="introduction != null">
                 introduction = #{introduction},

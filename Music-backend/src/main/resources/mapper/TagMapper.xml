@@ -91,4 +91,25 @@
         DELETE FROM song_tag WHERE song_id = #{songId}
     </delete>
 
+    <!-- 查询歌手的标签 -->
+    <select id="selectTagsBySingerId" resultMap="TagResultMap">
+        SELECT t.id, t.name, t.type, t.create_time, t.update_time
+        FROM singer_tag gt
+        JOIN tag t ON gt.tag_id = t.id
+        WHERE gt.singer_id = #{singerId}
+        ORDER BY t.id
+    </select>
+
+    <!-- 批量插入歌手标签关联：重复组合由唯一键忽略 -->
+    <insert id="batchInsertSingerTags">
+        INSERT IGNORE INTO singer_tag (singer_id, tag_id, create_time) VALUES
+        <foreach collection="tagIds" item="tagId" separator=",">
+            (#{singerId}, #{tagId}, NOW())
+        </foreach>
+    </insert>
+
+    <delete id="deleteSingerTags">
+        DELETE FROM singer_tag WHERE singer_id = #{singerId}
+    </delete>
+
 </mapper>

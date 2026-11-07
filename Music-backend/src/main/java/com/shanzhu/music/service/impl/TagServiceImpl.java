@@ -89,4 +89,39 @@ public class TagServiceImpl implements TagService {
     public List<Tag> hotTags(int limit) {
         return tagMapper.selectHotTags(limit);
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int replaceSingerTags(Integer singerId, String tagsCsv) {
+        if (singerId == null) {
+            return 0;
+        }
+        List<Integer> tagIds = new ArrayList<>();
+        if (tagsCsv != null && !tagsCsv.isEmpty()) {
+            for (String name : tagsCsv.split(",")) {
+                Tag tag = tagMapper.selectByName(name.trim());
+                if (tag != null) {
+                    tagIds.add(tag.getId());
+                }
+            }
+        }
+        tagMapper.deleteSingerTags(singerId);
+        if (!tagIds.isEmpty()) {
+            tagMapper.batchInsertSingerTags(singerId, tagIds);
+        }
+        log.info("重建歌手标签关联 - singerId={}, tags={}, 数量={}", singerId, tagsCsv, tagIds.size());
+        return tagIds.size();
+    }
+
+    @Override
+    public List<String> singerTagNames(Integer singerId) {
+        List<String> result = new ArrayList<>();
+        List<Tag> tags = tagMapper.selectTagsBySingerId(singerId);
+        if (tags != null) {
+            for (Tag tag : tags) {
+                result.add(tag.getName());
+            }
+        }
+        return result;
+    }
 }

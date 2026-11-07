@@ -3,8 +3,10 @@ package com.shanzhu.music.controller;
 import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Tag;
+import com.shanzhu.music.entity.po.Singer;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.entity.vo.TaggedSongVo;
+import com.shanzhu.music.service.SingerService;
 import com.shanzhu.music.service.SongService;
 import com.shanzhu.music.mapper.TagMapper;
 import com.shanzhu.music.service.TagService;
@@ -41,6 +43,7 @@ public class TagController {
     private final TagService tagService;
     private final TagMapper tagMapper;
     private final SongService songService;
+    private final SingerService singerService;
 
     /**
      * 热门标签，供前台筛选与后台标签云使用
@@ -114,6 +117,50 @@ public class TagController {
                 return R.error("设置失败：歌曲不存在或更新未生效");
             }
             return R.ok("设置成功", tagService.songTagNames(songId).size());
+        } catch (IllegalArgumentException e) {
+            return R.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 查询某位歌手的标签
+     *
+     * @param singerId 歌手id
+     * @return 标签名列表，取自 singer_tag 中间表
+     */
+    @Operation(summary = "查询歌手标签", description = "从 singer_tag 中间表读取，避免逗号串滞后")
+    @GetMapping(value = "/ofSinger")
+    public R<List<String>> ofSinger(@Parameter(description = "歌手ID", required = true) Integer singerId) {
+        return R.ok(tagService.singerTagNames(singerId));
+    }
+
+    /**
+     * 设置某位歌手的标签（整体替换）
+     *
+     * @param singerId 歌手id
+     * @param tags     逗号分隔的标签名，空串表示清空
+     * @return 生效的标签数量
+     */
+    @Operation(summary = "设置歌手标签", description = "先删后插重建关联，并同步 singer.tags 逗号串")
+    @PostMapping(value = "/singer/update")
+    @RequireUserType("admin")
+    public R<Integer> updateSingerTags(@RequestAttribute("userId") Integer operatorId,
+                                       Integer singerId, String tags) {
+        if (singerId == null) {
+            return R.error("singerId 不能为空");
+        }
+        if (tags == null) {
+            return R.error("tags 不能为空，清空请传空串");
+        }
+        try {
+            // 走歌手自身的更新路径：逗号串写入与缓存失效都在它身上
+            Singer singer = new Singer();
+            singer.setId(singerId);
+            singer.setTags(tagService.normalizeTags(tags));
+            if (!singerService.update(singer)) {
+                return R.error("设置失败：歌手不存在或更新未生效");
+            }
+            return R.ok("设置成功", tagService.singerTagNames(singerId).size());
         } catch (IllegalArgumentException e) {
             return R.error(e.getMessage());
         }

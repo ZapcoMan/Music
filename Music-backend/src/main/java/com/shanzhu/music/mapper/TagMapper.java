@@ -88,4 +88,29 @@ public interface TagMapper {
      * @return 删除数量
      */
     Integer deleteSongTags(@Param("songId") Integer songId);
+
+    /**
+     * 查询歌手的标签
+     *
+     * @param singerId 歌手ID
+     * @return 标签列表
+     */
+    List<Tag> selectTagsBySingerId(@Param("singerId") Integer singerId);
+
+    /**
+     * 批量插入歌手标签关联（重复忽略）
+     *
+     * @param singerId 歌手ID
+     * @param tagIds   标签ID列表
+     * @return 插入数量
+     */
+    Integer batchInsertSingerTags(@Param("singerId") Integer singerId, @Param("tagIds") List<Integer> tagIds);
+
+    /**
+     * 删除歌手的标签关联
+     *
+     * @param singerId 歌手ID
+     * @return 删除数量
+     */
+    Integer deleteSingerTags(@Param("singerId") Integer singerId);
 }

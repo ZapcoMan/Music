@@ -49,4 +49,22 @@ public interface TagService {
      * @return 标签列表
      */
     List<Tag> hotTags(int limit);
+
+    /**
+     * 用规范化标签串重建某位歌手的标签关联（先删后插）。
+     * 与歌曲侧同构：singer_tag 是真源，singer.tags 逗号串由歌手更新路径写入。
+     *
+     * @param singerId 歌手id
+     * @param tagsCsv  已经 normalizeTags 处理过的逗号串
+     * @return 生效的标签数量
+     */
+    int replaceSingerTags(Integer singerId, String tagsCsv);
+
+    /**
+     * 查询歌手当前标签（取自 singer_tag 这一真源）
+     *
+     * @param singerId 歌手id
+     * @return 标签名列表
+     */
+    List<String> singerTagNames(Integer singerId);
 }

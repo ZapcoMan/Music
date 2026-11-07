@@ -8,6 +8,7 @@ import com.shanzhu.music.mapper.SingerMapper;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.service.SingerService;
 import com.shanzhu.music.service.SongService;
+import com.shanzhu.music.service.TagService;
 import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class SingerServiceImpl implements SingerService {
 
     private final SingerMapper singerMapper;
     private final SongService songService;
+    private final TagService tagService;
     private final RedisUtils redisUtils;
     
     // Redis缓存键前缀
@@ -41,7 +43,15 @@ public class SingerServiceImpl implements SingerService {
      */
     @Override
     public Boolean insert(Singer singer) {
+        // 与歌曲侧同一套约定：tags 为 null 表示不改动，规范化后再落库，
+        // 中间表由 tagService 重建，两侧不会各写各的
+        if (singer.getTags() != null) {
+            singer.setTags(tagService.normalizeTags(singer.getTags()));
+        }
         Boolean result = singerMapper.insert(singer) > 0;
+        if (result && singer.getTags() != null) {
+            tagService.replaceSingerTags(singer.getId(), singer.getTags());
+        }
         if (result) {
             // 使用延时双删策略
             redisUtils.deleteWithDelay(ALL_SINGER_KEY);
@@ -57,7 +67,13 @@ public class SingerServiceImpl implements SingerService {
      */
     @Override
     public Boolean update(Singer singer) {
+        if (singer.getTags() != null) {
+            singer.setTags(tagService.normalizeTags(singer.getTags()));
+        }
         Boolean result = singerMapper.update(singer) > 0;
+        if (result && singer.getTags() != null) {
+            tagService.replaceSingerTags(singer.getId(), singer.getTags());
+        }
         if (result) {
             // 使用延时双删策略
             redisUtils.deleteWithDelay(ALL_SINGER_KEY);
