@@ -74,8 +74,14 @@ spring:
   # 文件上传配置
   servlet:
     multipart:
-      max-file-size: 1024MB
-      max-request-size: 1024MB
+      # 此前两值都是 1024MB。Spring 在解析阶段就会按这个上限接收请求体并落临时盘，
+      # 而应用层的 FileStorageService 上限只有图片 10MB / 音频 100MB——它在解析之后才校验。
+      # 结果是任何匿名或低权请求都能先让服务器写满 1GB 临时文件，才收到一句"文件超过大小上限"，
+      # 这是 DoS 面，不是"配置方便"。
+      # 现在容器层对齐应用层最大单项（音频 100MB），请求层留 10MB 给 multipart 边界与其余字段；
+      # 图片超限仍由 FileStorageService 给出带具体数值的友好错误。
+      max-file-size: 100MB
+      max-request-size: 110MB
 
   # Flyway配置 - 生产环境开启校验
   flyway:

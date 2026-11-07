@@ -23,6 +23,13 @@ import java.util.stream.Collectors;
 
 /**
  * 全局异常处理
+ *
+ * 本轮的改动只有一件：13 个 handler 统一返回 R&lt;Void&gt;。此前它们全是 raw R——
+ * Controller 侧的 raw R 已经清零，这里却漏了。raw 会让调用点失去泛型检查，
+ * 而异常响应恰恰是前端最需要确定形状的那一类返回体：它决定
+ * res.success / res.code / res.data 三个键在失败时是否仍然可预期。
+ *
+ * handleBusinessException 的用法问题（零 throw）单独记在它自己的注释里，不在这里重复。
  */
 @Slf4j
 @RestControllerAdvice
@@ -30,9 +37,17 @@ public class GlobalExceptionHandler {
 
     /**
      * 处理业务异常
+     *
+     * 需要说清一件事：BusinessException 目前在全仓（含测试）**零 throw 点**。业务失败走的是
+     * return R.error(...)，服务层的参数与状态问题走 IllegalArgumentException /
+     * IllegalStateException，都不经过这里；JaCoCo 也显示该类 0% 覆盖。
+     *
+     * 所以这条通道现在只是"看起来有一套业务异常约定"。保留还是删除是设计决策，本轮不替你定：
+     * 若保留，建议把服务层现有的 IllegalArgumentException 迁过来，让"失败怎么表达"收敛成一种；
+     * 若确认不需要，连这个 handler 一起删掉更干净，别留一条装饰性的通道。
      */
     @ExceptionHandler(BusinessException.class)
-    public R handleBusinessException(BusinessException e) {
+    public R<Void> handleBusinessException(BusinessException e) {
         log.warn("业务异常: {}", e.getMessage());
         return R.error(e.getCode(), e.getMessage());
     }
@@ -42,7 +57,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public R handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+    public R<Void> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
@@ -57,7 +72,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BindException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public R handleBindException(BindException e) {
+    public R<Void> handleBindException(BindException e) {
         String message = e.getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
@@ -70,7 +85,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public R handleConstraintViolationException(ConstraintViolationException e) {
+    public R<Void> handleConstraintViolationException(ConstraintViolationException e) {
         String message = e.getConstraintViolations().stream()
                 .map(ConstraintViolation::getMessage)
                 .collect(Collectors.joining(", "));
@@ -83,7 +98,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     @ResponseStatus(HttpStatus.PAYLOAD_TOO_LARGE)
-    public R handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
+    public R<Void> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
         log.warn("文件上传大小超限: {}", e.getMessage());
         return R.error(413, "文件大小超过限制");
     }
@@ -93,7 +108,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public R handleIllegalArgumentException(IllegalArgumentException e) {
+    public R<Void> handleIllegalArgumentException(IllegalArgumentException e) {
         log.warn("非法参数异常: {}", e.getMessage());
         return R.error(ResultCodeEnum.PARAM_ERROR.getCode(), e.getMessage());
     }
@@ -107,7 +122,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
-    public R handleMethodNotSupported(HttpRequestMethodNotSupportedException e,
+    public R<Void> handleMethodNotSupported(HttpRequestMethodNotSupportedException e,
                                       jakarta.servlet.http.HttpServletRequest request) {
         log.warn("请求方法不支持 - method={}, uri={}, 支持={}",
                 e.getMethod(), request.getRequestURI(),
@@ -121,7 +136,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-    public R handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException e) {
+    public R<Void> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException e) {
         log.warn("Content-Type 不支持: {}", e.getContentType());
         return R.error(415, "不支持的请求类型: " + e.getContentType());
     }
@@ -131,7 +146,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public R handleMissingParameter(MissingServletRequestParameterException e) {
+    public R<Void> handleMissingParameter(MissingServletRequestParameterException e) {
         log.warn("缺少必填参数: {}", e.getParameterName());
         return R.error(ResultCodeEnum.PARAM_ERROR.getCode(), "缺少必填参数: " + e.getParameterName());
     }
@@ -143,7 +158,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(NoResourceFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public R handleNoResourceFound(NoResourceFoundException e) {
+    public R<Void> handleNoResourceFound(NoResourceFoundException e) {
         log.debug("静态资源未找到: {}", e.getResourcePath());
         return R.error(404, "资源不存在");
     }
@@ -153,7 +168,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(NoHandlerFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public R handleNoHandlerFound(NoHandlerFoundException e) {
+    public R<Void> handleNoHandlerFound(NoHandlerFoundException e) {
         log.warn("接口不存在 - {} {}", e.getHttpMethod(), e.getRequestURL());
         return R.error(404, "接口不存在");
     }
@@ -163,7 +178,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(NullPointerException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public R handleNullPointerException(NullPointerException e) {
+    public R<Void> handleNullPointerException(NullPointerException e) {
         log.error("空指针异常", e);
         return R.error(ResultCodeEnum.NULL_POINT.getCode(), "系统内部错误");
     }
@@ -173,7 +188,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public R handleException(Exception e) {
+    public R<Void> handleException(Exception e) {
         log.error("系统异常", e);
         return R.error(ResultCodeEnum.UNKNOWN_ERROR.getCode(), "系统异常，请联系管理员");
     }
