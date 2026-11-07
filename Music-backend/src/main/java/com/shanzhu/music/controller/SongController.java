@@ -18,9 +18,13 @@ import java.util.List;
 
 /**
  * 歌曲 控制层
+ *
+ * 前缀带 /manage 一层而非直接挂 /song：/song/* 已被 WebMvcConfig 排除用于免登录访问
+ * 静态音频文件（<audio> 标签无法携带 Authorization 头），若业务接口也留在该层，
+ * 增删改与文件上传会一并处于未认证状态。下沉一层后业务接口全部落在鉴权之内。
  */
 @RestController
-@RequestMapping("/song")
+@RequestMapping("/song/manage")
 @RequiredArgsConstructor
 public class SongController {
 

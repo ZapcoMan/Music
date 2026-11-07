@@ -60,7 +60,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/consumer/add",         // 用户注册
                         "/manage",               // 管理端页面入口
                         "/img/**",               // 静态图片
-                        "/song/**",              // 静态音频
+                        // 静态音频。只放行单层 /song/*：音频文件的落盘路径就是
+                        // /song/{时间戳-随机名}（见 FileStorageService.store），全部单层且多数无扩展名，
+                        // 因此既不能整体放行 /song/**（此前正是这样，把 SongController 的
+                        // add/update/delete/updateSongPic/updateSongUrl 一起放成了匿名可调），
+                        // 也不能按扩展名收窄（库里 50+ 条历史 URL 形如 /song/1715868205989，没有后缀）。
+                        // 业务接口因此下沉一层到 /song/manage/*，天然落在本条排除之外。
+                        "/song/*",
                         "/userImages/**",        // 用户头像
                         "/v3/api-docs/**",       // OpenAPI 文档
                         "/swagger-ui/**",
