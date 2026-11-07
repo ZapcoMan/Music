@@ -95,3 +95,19 @@ export function del(url,params={}){
         })
     });
 }
+
+/**
+ * 封装patch方法：部分更新（改资料）用它，与后端 @PatchMapping 对应；
+ * 后端 CORS 已把 PATCH 列入允许方法，否则浏览器预检会先失败
+ */
+export function patch(url,data={}){
+    return new Promise((resolve,reject) => {
+        axios.patch(url,data)
+        .then(response =>{
+            resolve(response.data);
+        })
+        .catch(err =>{
+            reject(err);
+        })
+    });
+}

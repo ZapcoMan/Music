@@ -18,6 +18,7 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.Arrays;
+import java.util.Set;
 
 /**
  * JWT认证拦截器
@@ -31,8 +32,27 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
     private final RedisUtils redisUtils;
     private final IpUtils ipUtils;
 
+    /**
+     * 免登录入口，按"HTTP 方法 + 路径"整体匹配。
+     *
+     * 之所以不再用 WebMvcConfig#excludePathPatterns 表达：那条规则只认路径不认方法。
+     * 登录是 POST /consumers/sessions，登出是 DELETE /consumers/sessions —— 同一个字面，
+     * 一个必须匿名可调、另一个必须带令牌。按路径排除会把登出一起放成匿名入口，
+     * 而登出方法用 @RequestAttribute 读令牌身份，匿名请求会因为属性缺失直接抛 500，
+     * 客户端看到"系统异常"，真实原因只是没登录。
+     */
+    private static final Set<String> ANONYMOUS_ENTRIES = Set.of(
+            "POST /api/v1/admin/sessions",        // 管理员登录
+            "POST /api/v1/consumers/sessions",    // 用户登录
+            "POST /api/v1/consumers/registrations" // 用户注册
+    );
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        if (ANONYMOUS_ENTRIES.contains(request.getMethod() + " " + request.getRequestURI())) {
+            return true;
+        }
+
         // 令牌只认 Authorization 头。
         //
         // 此前在没有头时回落到 request.getParameter("token")，看上去只是"多一种方便"，

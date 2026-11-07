@@ -51,17 +51,15 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .order(0);
 
         // JWT认证拦截器 - 除白名单外一律要求携带有效 Token。
-        // 免登录接口在此显式声明，而不是靠拦截器"无 Token 就放行"。
         //
-        // 业务接口整体在 /api/v1 下；白名单里的静态资源前缀必须保持裸路径：
-        // <audio>/<img> 带不了 Authorization 头，历史数据里存的也是 /song/xxx 这种绝对路径，
-        // 一旦给它们加前缀，全库歌曲与头像会在浏览器里集体 404。
+        // 这里只排除"与 HTTP 方法无关"的入口：静态资源、后台页面、接口文档、错误页。
+        // 登录/注册这类"同一字面上有匿名方法"的入口改由
+        // JwtAuthenticationInterceptor#ANONYMOUS_ENTRIES 按 (方法, 路径) 精确放行——
+        // excludePathPatterns 认路径不认方法，用它放行 POST /sessions 会把
+        // DELETE /sessions（登出，必须带令牌）一起放成匿名可调。
         registry.addInterceptor(jwtAuthenticationInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
-                        "/api/v1/admin/login/status",   // 管理员登录
-                        "/api/v1/consumer/login",       // 用户登录
-                        "/api/v1/consumer/add",         // 用户注册
                         "/manage",               // 管理端页面入口（HTML，不在 API 前缀下）
                         "/img/**",               // 静态图片
                         // 静态音频。只放行单层 /song/*：音频文件的落盘路径就是
@@ -69,6 +67,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         // 因此既不能整体放行 /song/**（此前正是这样，把 SongController 的
                         // add/update/delete/updateSongPic/updateSongUrl 一起放成了匿名可调），
                         // 也不能按扩展名收窄（库里 50+ 条历史 URL 形如 /song/1715868205989，没有后缀）。
+                        // 这些前缀必须保持裸路径：<audio>/<img> 发不出 Authorization 头，
+                        // 而且库里存的历史 URL 就是 /song/xxx 这种形态，加 /api/v1 会让全库歌曲集体 404。
                         // 业务接口因此下沉一层到 /song/manage/*，天然落在本条排除之外。
                         "/song/*",
                         "/userImages/**",        // 用户头像

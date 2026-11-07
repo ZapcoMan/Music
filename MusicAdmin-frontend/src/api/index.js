@@ -1,7 +1,7 @@
-import {get,post,del} from "./http";
+import {get,post,del,patch} from "./http";
 
 // 判断管理员是否登录成功
-export const getLoginStatus = (params) => post(`admin/login/status`,params);
+export const getLoginStatus = (params) => post(`admin/sessions`,params);
 
 
 //============歌手相关================
@@ -52,17 +52,17 @@ export const delListSong = (songId,songListId) => del(`listSong/delete?songId=${
 
 //============用户相关================
 //查询用户
-export const getAllConsumer =() => get(`consumer/allConsumer`);
+export const getAllConsumer =() => get(`consumers`);
 //分页查询用户
-export const getConsumerByPage =(pageNum, pageSize) => get(`consumer/allConsumerByPage?pageNum=${pageNum}&pageSize=${pageSize}`);
+export const getConsumerByPage =(pageNum, pageSize) => get(`consumers/page?pageNum=${pageNum}&pageSize=${pageSize}`);
 //添加用户
-export const setConsumer = (params) => post(`consumer/add`,params);
+export const setConsumer = (params) => post(`consumers/registrations`,params);
 //编辑用户
-export const updateConsumer = (params) => post(`consumer/update`,params);
+export const updateConsumer = (params) => patch(`consumers/profile`,params);
 //删除用户
-export const delConsumer = (id) => del(`consumer/delete?id=${id}`);
+export const delConsumer = (id) => del(`consumers/${id}`);
 //根据用户id查询该用户的详细信息
-export const getUserOfId =(id) => get(`/consumer/selectByPrimaryKey?id=${id}`);
+export const getUserOfId =(id) => get(`/consumers/${id}`);
 
 //===============收藏===================
 //指定用户的收藏列表

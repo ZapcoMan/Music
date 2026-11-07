@@ -38,7 +38,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/consumer")
+@RequestMapping("/api/v1/consumers")
 @RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 @Tag(name = "前台用户管理", description = "前台用户注册、登录、信息查询等接口")
@@ -59,7 +59,7 @@ public class ConsumerController {
      * @return 结果
      */
     @Operation(summary = "用户登出", description = "使当前令牌立即失效")
-    @PostMapping(value = "/logout")
+    @DeleteMapping(value = "/sessions")
     @RequireUserType({"consumer", "admin"})
     public R<Void> logout(HttpServletRequest request,
                     @RequestAttribute("userId") Integer userId,
@@ -84,7 +84,7 @@ public class ConsumerController {
      */
     @Operation(summary = "注册用户", description = "注册新的前台用户账号")
     @RateLimit(key = "register:consumer:", timeWindow = 60, maxRequests = 5, message = "注册过于频繁，请60秒后再试")
-    @PostMapping(value = "/add")
+    @PostMapping(value = "/registrations")
     public R<Void> addConsumer(@Valid @RequestBody ConsumerRequest request, HttpServletRequest httpRequest) {
         // 查重、生日转换、DTO→PO 组装与密码加密都在 service，
         // 注册成功即返回；用户名已存在/写入失败由 service 抛 BusinessException 走全局异常处理
@@ -101,7 +101,7 @@ public class ConsumerController {
      * @return 修改结果
      */
     @RateLimit(key = "update:consumer:", timeWindow = 60, maxRequests = 10, message = "资料修改过于频繁，请稍后再试")
-    @PostMapping(value = "/update")
+    @PatchMapping(value = "/profile")
     @RequireUserType("consumer")
     public R<Void> updateConsumer(@RequestAttribute("userId") Integer currentUserId,
                             @RequestAttribute("username") String currentUsername,
@@ -124,12 +124,12 @@ public class ConsumerController {
      * @return 删除结果
      */
     @RateLimit(key = "delete:consumer:", timeWindow = 60, maxRequests = 10, message = "用户删除过于频繁，请稍后再试")
-    @DeleteMapping(value = "/delete")
+    @DeleteMapping(value = "/{id}")
     @RequireUserType("admin")
     public R<Boolean> deleteConsumer(@RequestAttribute("userId") Integer operatorId,
                                   @RequestAttribute("username") String operatorName,
                                   @RequestAttribute("userType") String operatorType,
-                                  Integer id, HttpServletRequest httpRequest) {
+                                  @PathVariable("id") Integer id, HttpServletRequest httpRequest) {
         boolean deleted = consumerService.delete(id);
         if (deleted) {
             operationLogService.logDelete(operatorId, operatorName, operatorType,
@@ -145,8 +145,8 @@ public class ConsumerController {
      * @return 前台用户公开信息
      */
     @Operation(summary = "查询用户公开信息", description = "按ID查询账号与头像，供评论区展示他人身份；手机号、邮箱等私密资料不在此返回")
-    @GetMapping(value = "/selectByPrimaryKey")
-    public R<ConsumerPublicVo> selectByPrimaryKey(@Parameter(description = "用户ID", required = true, example = "1") Integer id) {
+    @GetMapping(value = "/{id}")
+    public R<ConsumerPublicVo> selectByPrimaryKey(@Parameter(description = "用户ID", required = true, example = "1") @PathVariable("id") Integer id) {
         Consumer consumer = consumerService.selectByPrimaryKey(id);
         if (consumer == null) {
             // 保持"查不到即空载荷"的原语义，不改成 error：评论区展示他人身份时
@@ -179,7 +179,7 @@ public class ConsumerController {
      * @return 前台用户
      */
     @Operation(summary = "查询所有用户", description = "查询所有前台用户列表")
-    @GetMapping(value = "/allConsumer")
+    @GetMapping
     @RequireUserType("admin")
     public R<List<Consumer>> allConsumer() {
         return R.ok(consumerService.allConsumer());
@@ -193,7 +193,7 @@ public class ConsumerController {
      * @return 分页结果
      */
     @Operation(summary = "分页查询用户", description = "分页查询所有前台用户")
-    @GetMapping(value = "/allConsumerByPage")
+    @GetMapping(value = "/page")
     @RequireUserType("admin")
     public R<PageInfo<Consumer>> allConsumerByPage(
             @Parameter(description = "页码", example = "1") @RequestParam(defaultValue = "1") int pageNum,
@@ -213,11 +213,11 @@ public class ConsumerController {
      * @return 上传结果
      */
     @RateLimit(key = "upload:avatar:", timeWindow = 60, maxRequests = 5, message = "头像上传过于频繁，请稍后再试")
-    @PostMapping(value = "/updateConsumerPic")
+    @PostMapping(value = "/{id}/avatar")
     @RequireUserType("consumer")
     public R<UploadConsumerPicVo> updateConsumerPic(
             @RequestParam("file") MultipartFile avatorFile,
-            @RequestParam("id") Integer id,
+            @PathVariable("id") Integer id,
             @RequestAttribute("userId") Integer currentUserId,
             @RequestAttribute("userType") String userType,
             @RequestAttribute("username") String username,
@@ -259,7 +259,7 @@ public class ConsumerController {
      * @param request  HttpServletRequest
      * @return 登录用户信息和Token
      */
-    @PostMapping(value = "/login")
+    @PostMapping(value = "/sessions")
     @RateLimit(key = "login:consumer:", timeWindow = 60, maxRequests = 5, message = "登录尝试次数过多，请60秒后再试")
     public R<ConsumerLoginVo> login(@RequestParam String username, @RequestParam String password, HttpServletRequest request) {
         if (StrUtil.isBlank(username) || StrUtil.isBlank(password)) {

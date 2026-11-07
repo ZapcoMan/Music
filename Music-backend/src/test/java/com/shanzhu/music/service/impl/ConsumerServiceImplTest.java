@@ -132,14 +132,18 @@ class ConsumerServiceImplTest extends BaseTest {
 
     /**
      * 测试查询用户
+     *
+     * 原先查的是硬编码 id=1，而测试库的 consumer 表是空的——它能通过全靠上一轮跑完
+     * 遗留在 Redis 里的 music:consumer:1。缓存对齐之后这条立刻暴露，改为查本类注册的账号。
      */
     @Test
     @Order(5)
     @DisplayName("测试查询用户")
     void testSelectByPrimaryKey() {
-        Consumer consumer = consumerService.selectByPrimaryKey(1);
+        assertNotNull(testUserId, "前置注册用户应已存在");
+        Consumer consumer = consumerService.selectByPrimaryKey(testUserId);
         assertNotNull(consumer, "查询结果不应为空");
-        System.out.println("查询到的用户: " + consumer.getUsername());
+        assertEquals("testuser2026", consumer.getUsername(), "按 id 查回的应是注册用户本人");
     }
 
 
@@ -187,14 +191,29 @@ class ConsumerServiceImplTest extends BaseTest {
 
     /**
      * 测试根据用户名查询
+     *
+     * 原先按 "testuser" 查，而库里从来没有这个账号——它能通过全靠缓存里上一轮的残留。
+     * 这里也不能复用 testuser2026：@Order(7) 的删除用例先于本条执行，那个人已经没了。
+     * 所以自建探针、自查自删，用例之间不再共享生命周期。
      */
     @Test
     @Order(8)
     @DisplayName("测试根据用户名查询")
     void testGetByUsername() {
-        Consumer consumer = consumerService.getByUsername("testuser");
-        assertNotNull(consumer, "查询结果不应为空");
-        assertEquals("testuser", consumer.getUsername(), "用户名应该匹配");
-        System.out.println("查询到的用户: " + consumer.getUsername());
+        String username = "lookup_probe_user";
+        Consumer probe = new Consumer();
+        probe.setUsername(username);
+        probe.setPassword("Lookup#2026");
+        probe.setSex((byte) 1);
+        probe.setAvator("");
+        consumerService.insert(probe);
+        try {
+            Consumer found = consumerService.getByUsername(username);
+            assertNotNull(found, "查询结果不应为空");
+            assertEquals(username, found.getUsername(), "用户名应该匹配");
+            assertEquals(probe.getId(), found.getId(), "按账号查回的应是刚注册的那一行");
+        } finally {
+            consumerService.delete(probe.getId());
+        }
     }
 }

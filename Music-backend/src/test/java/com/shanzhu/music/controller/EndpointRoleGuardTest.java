@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
@@ -34,14 +35,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class EndpointRoleGuardTest extends BaseTest {
 
     /**
-     * 免鉴权端点：由 WebMvcConfig 白名单排除在拦截器之外，因此不需要角色声明。
+     * 由 WebMvcConfig 的 excludePathPatterns 排除在拦截器之外的路径，因此不需要角色声明。
      * 必须逐条列全——往这个清单里加一项，等于开一个匿名入口。
      */
-    private static final Set<String> PUBLIC_ENDPOINTS = Set.of(
-            "/api/v1/admin/login/status",
-            "/api/v1/consumer/login",
-            "/api/v1/consumer/add",
-            "/manage");
+    private static final Set<String> EXCLUDED_PATHS = Set.of("/manage");
+
+    /**
+     * 由 JwtAuthenticationInterceptor#ANONYMOUS_ENTRIES 按 (方法, 路径) 放行的入口。
+     *
+     * 与上面那份的区别在于它有方法维度：POST /consumers/sessions 是登录（匿名可调），
+     * DELETE /consumers/sessions 是登出（必须带令牌并声明角色）。同一路径字面下
+     * 只有全部方法都在这份集合里，才算真正的匿名端点。
+     */
+    private static final Set<String> ANONYMOUS_ENTRIES = Set.of(
+            "POST /api/v1/admin/sessions",
+            "POST /api/v1/consumers/sessions",
+            "POST /api/v1/consumers/registrations");
 
     /**
      * 按 bean 名注入：Actuator 也会注册一个同类型的 controllerEndpointHandlerMapping，
@@ -65,7 +74,7 @@ class EndpointRoleGuardTest extends BaseTest {
                 continue;
             }
             String patterns = entry.getKey().getPatternValues().toString();
-            if (coversPublicEndpoint(entry.getKey())) {
+            if (isAnonymousEndpoint(entry.getKey())) {
                 continue;
             }
             RequireUserType declared = AnnotatedElementUtils.findMergedAnnotation(
@@ -87,7 +96,19 @@ class EndpointRoleGuardTest extends BaseTest {
                         + String.join("\n  - ", missing));
     }
 
-    private boolean coversPublicEndpoint(RequestMappingInfo info) {
-        return info.getPatternValues().stream().anyMatch(PUBLIC_ENDPOINTS::contains);
+    private boolean isAnonymousEndpoint(RequestMappingInfo info) {
+        Set<String> patterns = info.getPatternValues();
+        // 通道一：WebMvcConfig 的 excludePathPatterns 只看路径，整个端点都不进拦截器
+        if (EXCLUDED_PATHS.containsAll(patterns)) {
+            return true;
+        }
+        // 通道二：拦截器按 (方法, 路径) 放行。未限定方法意味着该 mapping 接受任意动词，
+        // 那样连同一字面上的匿名方法也一起被放过，不算真正的匿名端点
+        Set<RequestMethod> methods = info.getMethodsCondition().getMethods();
+        if (methods.isEmpty()) {
+            return false;
+        }
+        return patterns.stream().allMatch(pattern -> methods.stream()
+                .allMatch(method -> ANONYMOUS_ENTRIES.contains(method.name() + " " + pattern)));
     }
 }

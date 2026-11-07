@@ -66,9 +66,9 @@ class AdminWriteAuthMatrixTest extends BaseTest {
                 Arguments.of("POST", "/api/v1/tag/singer/update", false),
                 Arguments.of("POST", "/api/v1/tag/batchAdd", false),
                 // 用户治理：删除账号与两份全量名单
-                Arguments.of("DELETE", "/api/v1/consumer/delete", false),
-                Arguments.of("GET", "/api/v1/consumer/allConsumer", false),
-                Arguments.of("GET", "/api/v1/consumer/allConsumerByPage", false),
+                Arguments.of("DELETE", "/api/v1/consumers/1", false),
+                Arguments.of("GET", "/api/v1/consumers", false),
+                Arguments.of("GET", "/api/v1/consumers/page", false),
                 Arguments.of("GET", "/api/v1/collect/allCollect", false));
     }
 
@@ -99,6 +99,7 @@ class AdminWriteAuthMatrixTest extends BaseTest {
         return switch (method) {
             case "GET" -> MockMvcRequestBuilders.get(path);
             case "DELETE" -> MockMvcRequestBuilders.delete(path);
+            case "PATCH" -> MockMvcRequestBuilders.patch(path);
             case "POST" -> multipart
                     ? MockMvcRequestBuilders.multipart(path)
                     : MockMvcRequestBuilders.post(path);
@@ -119,8 +120,8 @@ class AdminWriteAuthMatrixTest extends BaseTest {
                 Arguments.of("DELETE", "/api/v1/collect/delete", false),
                 Arguments.of("POST", "/api/v1/comment/add", false),
                 Arguments.of("POST", "/api/v1/comment/like", false),
-                Arguments.of("POST", "/api/v1/consumer/update", false),
-                Arguments.of("POST", "/api/v1/consumer/updateConsumerPic", true),
+                Arguments.of("PATCH", "/api/v1/consumers/profile", false),
+                Arguments.of("POST", "/api/v1/consumers/1/avatar", true),
                 Arguments.of("POST", "/api/v1/rank/add", false),
                 Arguments.of("POST", "/api/v1/search-history/record", false),
                 Arguments.of("DELETE", "/api/v1/search-history/clear", false),

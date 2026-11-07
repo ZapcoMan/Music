@@ -36,7 +36,7 @@ export default {
     methods:{
         //上传地址
         uploadUrl(){
-            return `${this.$store.state.configure.API_HOST}/consumer/updateConsumerPic?id=${this.userId}`
+            return `${this.$store.state.configure.API_HOST}/consumers/${this.userId}/avatar`
         },
          //上传成功
         handleAvatorSuccess(res,file){

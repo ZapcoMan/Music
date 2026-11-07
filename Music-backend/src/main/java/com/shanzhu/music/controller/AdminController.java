@@ -15,12 +15,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import com.shanzhu.music.service.TokenBlacklistService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
@@ -48,7 +48,7 @@ public class AdminController {
      * @return 结果
      */
     @Operation(summary = "管理员登出", description = "使当前管理员令牌立即失效")
-    @PostMapping(value = "/api/v1/admin/logout")
+    @DeleteMapping(value = "/api/v1/admin/sessions")
     @RequireUserType("admin")
     public R<Void> logoutAdmin(HttpServletRequest request,
                          @RequestAttribute("userId") Integer userId,
@@ -74,7 +74,7 @@ public class AdminController {
      * @return 登录结果和Token
      */
     @Operation(summary = "管理员登录", description = "管理员使用账号密码登录,返回JWT Token(IP绑定)")
-    @RequestMapping(value = "/api/v1/admin/login/status", method = RequestMethod.POST)
+    @PostMapping(value = "/api/v1/admin/sessions")
     @RateLimit(key = "login:admin:", timeWindow = 60, maxRequests = 5, message = "登录尝试次数过多，请60秒后再试")
     public R<AdminLoginVo> loginStatus(
             // 不在 @Parameter 里给 example：仓库公开后 Swagger UI 也是公开的，

@@ -1,5 +1,5 @@
 import Axios from "axios";
-import {get,post,del} from "./http";
+import {get,post,del,patch} from "./http";
 
 //============歌手相关================
 //查询歌手
@@ -30,17 +30,17 @@ export const listSongDetail = (songListId) => get(`listSong/detail?songListId=${
 
 //============用户相关================
 //查询用户
-export const getAllConsumer =() => get(`consumer/allConsumer`);
+export const getAllConsumer =() => get(`consumers`);
 //注册
-export const SignUp =(params) => post(`/consumer/add`,params);
+export const SignUp =(params) => post(`/consumers/registrations`,params);
 //登录
-export const loginIn =(params) => post(`/consumer/login`,params);
+export const loginIn =(params) => post(`/consumers/sessions`,params);
 //根据用户id查询该用户的公开信息（账号/头像），用于评论区展示他人身份
-export const getUserOfId =(id) => get(`/consumer/selectByPrimaryKey?id=${id}`);
+export const getUserOfId =(id) => get(`/consumers/${id}`);
 //查询本人完整资料（含手机号、邮箱等私密字段），身份由令牌决定
-export const getMyProfile =() => get(`/consumer/profile`);
+export const getMyProfile =() => get(`/consumers/profile`);
 //更新用户信息
-export const updateUserMsg =(params) => post(`/consumer/update`,params);
+export const updateUserMsg =(params) => patch(`/consumers/profile`,params);
 
 
 //下载音乐

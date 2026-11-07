@@ -550,7 +550,7 @@ export default {
             };
         },
         uploadUrl(id) {
-            return `${this.$store.state.API_HOST}/consumer/updateConsumerPic?id=${id}`;
+            return `${this.$store.state.API_HOST}/consumers/${id}/avatar`;
         },
         //删除一名用户
         deleteRow() {

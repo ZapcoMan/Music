@@ -53,11 +53,14 @@ class TokenTransportTest extends BaseTest {
     @Test
     @DisplayName("登出接口同样不再接受参数形式令牌")
     void logoutRejectsParameterToken() throws Exception {
-        bare.perform(MockMvcRequestBuilders.post("/api/v1/consumer/logout")
+        // 登出现在是 DELETE /{consumers,admin}/sessions，与登录同字面但不同方法。
+        // 匿名放行按 (方法, 路径) 判定，所以这里必须用 delete：
+        // 若写成 post 就打的是登录接口本身，它按设计匿名可调，用例断 401 会当场失败
+        bare.perform(MockMvcRequestBuilders.delete("/api/v1/consumers/sessions")
                         .param("token", consumerToken()))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized());
 
-        bare.perform(MockMvcRequestBuilders.post("/api/v1/admin/logout")
+        bare.perform(MockMvcRequestBuilders.delete("/api/v1/admin/sessions")
                         .param("token", adminToken()))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized());
     }
