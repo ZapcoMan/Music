@@ -5,11 +5,14 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.entity.po.Singer;
 import com.shanzhu.music.mapper.SingerMapper;
+import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.service.SingerService;
+import com.shanzhu.music.service.SongService;
 import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 public class SingerServiceImpl implements SingerService {
 
     private final SingerMapper singerMapper;
+    private final SongService songService;
     private final RedisUtils redisUtils;
     
     // Redis缓存键前缀
@@ -70,13 +74,25 @@ public class SingerServiceImpl implements SingerService {
      * @return 删除结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean delete(Integer id) {
+        // song.singer_id 上没有外键，此前删歌手只删 singer 一行，
+        // 结果是留下一批指向不存在歌手的孤儿歌曲：列表页显示空白歌手名，
+        // 召回与统计也继续把它们算在内。
+        // 这里按项目既有的级联风格连带删除其歌曲 —— 歌曲自己的歌单关联、收藏与评论
+        // 由 SongService.delete 负责清理，singer_tag 由 V3 声明的外键 ON DELETE CASCADE 清理。
+        List<Song> songs = songService.songOfSingerId(id);
+        for (Song song : songs) {
+            songService.delete(song.getId());
+        }
+
         Boolean result = singerMapper.delete(id) > 0;
         if (result) {
             // 使用延时双删策略
             redisUtils.deleteWithDelay(ALL_SINGER_KEY);
             redisUtils.deleteWithDelay(SINGER_CACHE_KEY + id);
-            log.info("删除歌手，延时双删缓存");
+            log.info("删除歌手 id={}, 连带删除 {} 首歌曲及其歌单关联、收藏与评论，延时双删缓存",
+                    id, songs.size());
         }
         return result;
     }
