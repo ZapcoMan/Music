@@ -217,16 +217,20 @@ public class ConsumerServiceImpl implements ConsumerService {
     }
 
     /**
-     * 查看密码是否正确（BCrypt验证，带缓存）
+     * 查看密码是否正确（BCrypt验证）
      *
-     * @param username 用户名
+     * 这条必须读库，不能走 getByUsername 的缓存：Consumer.password 上有 @JsonIgnore，
+     * 而缓存值就是 Jackson 序列化的结果，所以缓存里的用户没有密码字段。命中缓存后
+     * PasswordUtils.matches 会拿 null 去比对，用户表现为"第一次能登录、之后就登不进去"。
+     * 凭据本来也不该停在共享缓存里。
+     *
+     * @param username 账号名
      * @param password 明文密码
      * @return 结果
      */
     @Override
     public Boolean verifyPassword(String username, String password) {
-        // 先查询用户获取加密后的密码（带缓存）
-        Consumer consumer = getByUsername(username);
+        Consumer consumer = consumerMapper.getByUsername(username);
         if (consumer == null) {
             return false;
         }

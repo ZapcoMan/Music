@@ -75,6 +75,34 @@ class ConsumerServiceImplTest extends BaseTest {
     }
 
     /**
+     * 测试缓存命中后的口令校验
+     *
+     * Consumer.password 上有 @JsonIgnore（防凭据外泄），但值序列化用的就是 Jackson，
+     * 于是整体缓存进 Redis 的那个对象里根本没有密码字段。verifyPassword 若走带缓存的
+     * getByUsername，第二次登录就是拿 null 去做 BCrypt —— 用户表现为"第一次能登、
+     * 之后再也登不进去"。上一版用例先试正确口令、再试错误口令，恰好把这条路径绕开了。
+     */
+    @Test
+    @Order(6)
+    @DisplayName("测试缓存命中后口令校验仍然通过")
+    void testVerifyPasswordAfterCacheWarm() {
+        Consumer probe = new Consumer();
+        probe.setUsername("cache_probe_user");
+        probe.setPassword("Cache#2026");
+        probe.setSex((byte) 1);
+        probe.setAvator("");
+        consumerService.insert(probe);
+        try {
+            assertTrue(consumerService.verifyPassword("cache_probe_user", "Cache#2026"),
+                    "首次校验（读库并回填缓存）应通过");
+            assertTrue(consumerService.verifyPassword("cache_probe_user", "Cache#2026"),
+                    "缓存命中后仍应通过：口令校验不能依赖缓存里的密码字段");
+        } finally {
+            consumerService.delete(probe.getId());
+        }
+    }
+
+    /**
      * 测试用户登录 - 错误密码
      */
     @Test

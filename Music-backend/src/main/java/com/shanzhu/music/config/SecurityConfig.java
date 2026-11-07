@@ -84,8 +84,10 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(allowedOrigins);
         
         // 允许的 HTTP 方法
+        // PATCH 必须在列：部分更新（改资料、改歌曲信息）用它表达，
+        // 漏掉的话浏览器预检直接失败，接口在本地 curl 全绿、在页面里全红
         configuration.setAllowedMethods(Arrays.asList(
-            "GET", "POST", "PUT", "DELETE", "OPTIONS"
+            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
         ));
         
         // 允许的请求头
