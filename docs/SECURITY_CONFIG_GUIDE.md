@@ -1,5 +1,13 @@
 # Spring Security 配置说明
 
+> ⚠️ 本文部分描述已过期，现状以 [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md) 与代码为准：
+> Spring Security 只提供 BCrypt，授权实际由 `JwtAuthenticationInterceptor` 承担；
+> 2026-11-07 起无 Token 不再放行、并新增 `@RequireUserType` 角色隔离与登出吊销；
+> CORS 不再是 `allowedOriginPatterns("*")`，改为 `security.cors.allowed-origins` 精确白名单，
+> 且只由 `SecurityConfig` 一处定义。文中"限流覆盖查询/提交/敏感操作"也与实际不符
+> （目前仅两个登录接口标注 `@RateLimit`）。
+
+
 ## 📋 问题背景
 
 ### 发现的问题

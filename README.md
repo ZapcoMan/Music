@@ -5,7 +5,7 @@
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.3-brightgreen)
 ![Vue](https://img.shields.io/badge/Vue-2.6.11-4FC08D)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-orange)
-![Tests](https://img.shields.io/badge/Tests-141%20passed-success)
+![Tests](https://img.shields.io/badge/Tests-141%20cases%2C%20not%20all%20verified-yellow)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue)
 ![License](https://img.shields.io/badge/License-Apache%202.0-red)
 
@@ -360,13 +360,28 @@ Authorization: eyJhbGciOiJIUzI1NiJ9...
 
 ### 响应格式
 
+统一返回体为 `com.shanzhu.music.common.R`，实际字段与取值如下
+（此前文档写的 `code: 1 成功 / 0 失败` 与 `msg` 字段名都与代码不符）：
+
 ```json
 {
-  "code": 1,           // 1:成功, 0:失败
-  "msg": "操作成功",    // 提示信息
-  "data": {}           // 返回数据
+  "success": true,        // 成功为 true；失败响应现在会显式返回 false
+  "code": 20000,          // 20000 成功，20001 失败（ResultCodeEnum）
+  "message": "操作成功",   // 字段名是 message，不是 msg
+  "data": {},             // 数据体
+  "dataMap": {}           // 双轨字段之一，R 仍保留，待收敛
 }
 ```
+
+注意两点现状：
+
+1. 并非所有接口都返回 `R`。仍有接口直接返回裸 POJO、裸 `List`、裸 `Boolean`
+   甚至 `ModelAndView`，前端需按接口区分处理。
+2. `code` 目前存在两种用法混置：`ResultCodeEnum` 的 20000/20001，
+   以及个别接口自定义的业务态码（如收藏接口的 `2` 表示"已收藏"、
+   鉴权与限流用 401/403/429）。判断成功应以 `success` 为准。
+
+本轮修复影响的完整口径变更见 [docs/FIX-LOG-2026-11.md](docs/FIX-LOG-2026-11.md)。
 
 ---
 

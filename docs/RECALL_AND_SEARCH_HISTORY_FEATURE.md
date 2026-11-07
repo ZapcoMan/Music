@@ -1,5 +1,13 @@
 # 标签召回与搜索历史召回功能实现说明
 
+> ⚠️ 本文的策略权重数值与代码不一致。真实权重（现已可通过 `recommendation.strategy-weights`
+> 配置调整）为：`collaborative_filtering 0.40`、`content_based 0.25`、`personalized 0.20`、
+> `tag_based 0.20`、`search_history 0.20`、`popular 0.15`。
+> 另需注意：标签召回虽然代码路径已通，但 `song_tag` 实际为 0 行
+> （V3 的自动迁移按 `song.introduction` 匹配标签名，而该字段存的是专辑名），
+> 因此在补齐标签数据来源前它仍不会产生候选。详见 [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)。
+
+
 ## 功能概述
 
 本次更新为音乐推荐系统添加了2路新的召回策略：
