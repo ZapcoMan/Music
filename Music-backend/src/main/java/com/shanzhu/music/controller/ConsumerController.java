@@ -10,6 +10,7 @@ import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.dto.ConsumerRequest;
 import com.shanzhu.music.entity.po.Consumer;
+import com.shanzhu.music.entity.vo.ConsumerLoginVo;
 import com.shanzhu.music.entity.vo.ConsumerPublicVo;
 import com.shanzhu.music.entity.vo.UploadConsumerPicVo;
 import com.shanzhu.music.service.ConsumerService;
@@ -30,9 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 前台用户相关 控制层
@@ -310,7 +309,7 @@ public class ConsumerController {
      */
     @PostMapping(value = "/login")
     @RateLimit(key = "login:consumer:", timeWindow = 60, maxRequests = 5, message = "登录尝试次数过多，请60秒后再试")
-    public R<Map<String, Object>> login(@RequestParam String username, @RequestParam String password, HttpServletRequest request) {
+    public R<ConsumerLoginVo> login(@RequestParam String username, @RequestParam String password, HttpServletRequest request) {
         if (StrUtil.isBlank(username) || StrUtil.isBlank(password)) {
             return R.error("用户名或者密码不能为空");
         }
@@ -335,10 +334,11 @@ public class ConsumerController {
         String token = jwtUtils.generateToken(consumer.getId(), username, "consumer", ip);
 
         //构建返回结果
-        Map<String, Object> result = new HashMap<>();
-        result.put("userMsg", consumer);
-        result.put("token", token);
-        result.put("expiresIn", jwtUtils.getExpirationSeconds()); // 与 jwt.expiration 同源，不再各写一份
+        ConsumerLoginVo result = new ConsumerLoginVo();
+        result.setUserMsg(consumer);
+        result.setToken(token);
+        // 与 jwt.expiration 同源，不再各写一份
+        result.setExpiresIn(jwtUtils.getExpirationSeconds());
 
         operationLogService.logLogin(consumer.getId(), username, "consumer", ip, true);
         log.info("用户登录成功 - userId={}, username={}, ip={}", consumer.getId(), username, ip);

@@ -3,6 +3,7 @@ package com.shanzhu.music.controller;
 import com.shanzhu.music.annotation.RateLimit;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Admin;
+import com.shanzhu.music.entity.vo.AdminLoginVo;
 import com.shanzhu.music.service.AdminService;
 import com.shanzhu.music.service.OperationLogService;
 import com.shanzhu.music.utils.IpUtils;
@@ -23,8 +24,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * 后台管理 控制层
@@ -76,7 +75,7 @@ public class AdminController {
     @Operation(summary = "管理员登录", description = "管理员使用账号密码登录,返回JWT Token(IP绑定)")
     @RequestMapping(value = "/admin/login/status", method = RequestMethod.POST)
     @RateLimit(key = "login:admin:", timeWindow = 60, maxRequests = 5, message = "登录尝试次数过多，请60秒后再试")
-    public R<Map<String, Object>> loginStatus(
+    public R<AdminLoginVo> loginStatus(
             @Parameter(description = "管理员账号", required = true, example = "admin") @RequestParam String name,
             @Parameter(description = "管理员密码", required = true, example = "123456") @RequestParam String password,
             HttpServletRequest request) {
@@ -102,10 +101,11 @@ public class AdminController {
         String token = jwtUtils.generateToken(admin.getId(), name, "admin", ip);
 
         //构建返回结果
-        Map<String, Object> result = new HashMap<>();
-        result.put("name", name);
-        result.put("token", token);
-        result.put("expiresIn", jwtUtils.getExpirationSeconds()); // 与 jwt.expiration 同源，不再各写一份
+        AdminLoginVo result = new AdminLoginVo();
+        result.setName(name);
+        result.setToken(token);
+        // 与 jwt.expiration 同源，不再各写一份
+        result.setExpiresIn(jwtUtils.getExpirationSeconds());
 
         operationLogService.logLogin(admin.getId(), name, "admin", ip, true);
         log.info("管理员登录成功 - adminId={}, username={}, ip={}", admin.getId(), name, ip);

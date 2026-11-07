@@ -14,5 +14,15 @@ public class ConsumerLoginVo {
      */
     private Consumer userMsg;
 
+    /**
+     * JWT Token，前端存入 localStorage 后由请求拦截器带成 Authorization 头
+     */
+    private String token;
+
+    /**
+     * Token 有效期（秒），由 jwt.expiration 派生
+     */
+    private long expiresIn;
+
 }
 
