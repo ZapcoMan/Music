@@ -21,10 +21,20 @@ public class OperationLogServiceImpl implements OperationLogService {
 
     private final OperationLogMapper operationLogMapper;
 
+    private static final String STATUS_SUCCESS = "SUCCESS";
+    private static final String STATUS_FAILED = "FAILED";
+
     /**
-     * 异步记录操作日志(不影响主业务流程)
+     * 认证模块名，登录/登出共用
      */
-    @Async
+    private static final String MODULE_AUTH = "认证模块";
+
+    /**
+     * 异步记录操作日志(不影响主业务流程)。
+     * 显式指定 auditExecutor：不写 Executor 名的话 Spring 按"唯一的 TaskExecutor bean"挑选，
+     * 一旦本应用再引入其它执行器，日志写入会静默回到调用线程执行。
+     */
+    @Async("auditExecutor")
     @Override
     public void logOperation(OperationLog operationLog) {
         try {
@@ -32,84 +42,38 @@ public class OperationLogServiceImpl implements OperationLogService {
             operationLogMapper.insert(operationLog);
             log.debug("操作日志记录成功 - userId={}, operation={}", operationLog.getUserId(), operationLog.getOperationType());
         } catch (Exception e) {
-            log.error("操作日志记录失败", e);
+            // 审计是旁路，写失败只降级告警，不能反过来影响业务请求
+            log.warn("操作日志记录失败 - operation={}, err={}", operationLog.getOperationType(), e.toString());
         }
     }
 
     @Override
     public void logLogin(Integer userId, String username, String userType, String ip, boolean success) {
-        OperationLog log = new OperationLog();
-        log.setUserId(userId);
-        log.setUsername(username);
-        log.setUserType(userType);
-        log.setOperationType("LOGIN");
-        log.setModule("认证模块");
-        log.setDescription(username + " 登录系统");
-        log.setIpAddress(ip);
-        log.setStatus(success ? "SUCCESS" : "FAILED");
-        
-        logOperation(log);
+        record("LOGIN", MODULE_AUTH, userId, username, userType, ip,
+                success ? STATUS_SUCCESS : STATUS_FAILED, username + " 登录系统");
     }
 
     @Override
     public void logLogout(Integer userId, String username, String userType, String ip) {
-        OperationLog log = new OperationLog();
-        log.setUserId(userId);
-        log.setUsername(username);
-        log.setUserType(userType);
-        log.setOperationType("LOGOUT");
-        log.setModule("认证模块");
-        log.setDescription(username + " 退出系统");
-        log.setIpAddress(ip);
-        log.setStatus("SUCCESS");
-        
-        logOperation(log);
+        record("LOGOUT", MODULE_AUTH, userId, username, userType, ip,
+                STATUS_SUCCESS, username + " 退出系统");
     }
 
     @Override
     public void logAdd(Integer userId, String username, String userType, String module, String description, String ip) {
-        OperationLog log = new OperationLog();
-        log.setUserId(userId);
-        log.setUsername(username);
-        log.setUserType(userType);
-        log.setOperationType("ADD");
-        log.setModule(module);
-        log.setDescription(description);
-        log.setIpAddress(ip);
-        log.setStatus("SUCCESS");
-        
-        logOperation(log);
+        record("ADD", module, userId, username, userType, ip, STATUS_SUCCESS, description);
     }
 
     @Override
     public void logUpdate(Integer userId, String username, String userType, String module, String description, String ip) {
-        OperationLog log = new OperationLog();
-        log.setUserId(userId);
-        log.setUsername(username);
-        log.setUserType(userType);
-        log.setOperationType("UPDATE");
-        log.setModule(module);
-        log.setDescription(description);
-        log.setIpAddress(ip);
-        log.setStatus("SUCCESS");
-        
-        logOperation(log);
+        record("UPDATE", module, userId, username, userType, ip, STATUS_SUCCESS, description);
     }
 
     @Override
     public void logDelete(Integer userId, String username, String userType, String module, String description, String ip) {
-        OperationLog log = new OperationLog();
-        log.setUserId(userId);
-        log.setUsername(username);
-        log.setUserType(userType);
-        log.setOperationType("DELETE");
-        log.setModule(module);
-        log.setDescription(description);
-        log.setIpAddress(ip);
-        log.setStatus("SUCCESS");
-        
-        logOperation(log);
+        record("DELETE", module, userId, username, userType, ip, STATUS_SUCCESS, description);
     }
+
 
     @Override
     public List<OperationLog> getAllLogs() {
@@ -125,5 +89,23 @@ public class OperationLogServiceImpl implements OperationLogService {
     public void cleanExpiredLogs(Integer days) {
         int count = operationLogMapper.deleteExpiredLogs(days);
         log.info("清理过期日志完成 - 删除{}条记录,保留{}天内的日志", count, days);
+    }
+
+    /**
+     * 五个 logXxx 此前各抄一份同样的赋值序列，只差操作类型与状态；
+     * 收敛到这一处，新增操作类型不必再复制第六份模板。
+     */
+    private void record(String operationType, String module, Integer userId, String username,
+                        String userType, String ip, String status, String description) {
+        OperationLog entry = new OperationLog();
+        entry.setUserId(userId);
+        entry.setUsername(username);
+        entry.setUserType(userType);
+        entry.setOperationType(operationType);
+        entry.setModule(module);
+        entry.setDescription(description);
+        entry.setIpAddress(ip);
+        entry.setStatus(status);
+        logOperation(entry);
     }
 }

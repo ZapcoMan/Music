@@ -13,6 +13,7 @@ import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.entity.vo.ConsumerPublicVo;
 import com.shanzhu.music.entity.vo.UploadConsumerPicVo;
 import com.shanzhu.music.service.ConsumerService;
+import com.shanzhu.music.service.OperationLogService;
 import com.shanzhu.music.service.TokenBlacklistService;
 import com.shanzhu.music.utils.IpUtils;
 import com.shanzhu.music.utils.JwtUtils;
@@ -51,6 +52,7 @@ public class ConsumerController {
     private final IpUtils ipUtils;
     private final TokenBlacklistService tokenBlacklistService;
     private final FileStorageService fileStorageService;
+    private final OperationLogService operationLogService;
 
     /**
      * 退出登录：吊销当前令牌，使其在有效期内立即不可用。
@@ -61,7 +63,10 @@ public class ConsumerController {
      */
     @Operation(summary = "用户登出", description = "使当前令牌立即失效")
     @PostMapping(value = "/logout")
-    public R logout(HttpServletRequest request) {
+    public R logout(HttpServletRequest request,
+                    @RequestAttribute("userId") Integer userId,
+                    @RequestAttribute("username") String username,
+                    @RequestAttribute("userType") String userType) {
         String token = request.getHeader("Authorization");
         if (token == null || token.isBlank()) {
             token = request.getParameter("token");
@@ -70,6 +75,7 @@ public class ConsumerController {
             return R.error("缺少令牌");
         }
         tokenBlacklistService.revoke(token);
+        operationLogService.logLogout(userId, username, userType, ipUtils.getIpAddress(request));
         return R.ok("已退出登录");
     }
 
@@ -81,7 +87,7 @@ public class ConsumerController {
      */
     @Operation(summary = "注册用户", description = "注册新的前台用户账号")
     @PostMapping(value = "/add")
-    public R addConsumer(@Valid @RequestBody ConsumerRequest request) {
+    public R addConsumer(@Valid @RequestBody ConsumerRequest request, HttpServletRequest httpRequest) {
         //已经存在用户名
         Consumer existConsumer = consumerService.getByUsername(request.getUsername());
         if (existConsumer != null) {
@@ -108,6 +114,8 @@ public class ConsumerController {
 
         //保存成功
         if (consumerService.insert(consumer)) {
+            operationLogService.logAdd(consumer.getId(), request.getUsername(), "consumer",
+                    "用户模块", "注册新用户", ipUtils.getIpAddress(httpRequest));
             return R.ok("添加成功");
         }
         return R.error("添加失败");
@@ -121,7 +129,10 @@ public class ConsumerController {
      */
     @PostMapping(value = "/update")
     public R updateConsumer(@RequestAttribute("userId") Integer currentUserId,
-                            @Valid @RequestBody ConsumerRequest request) {
+                            @RequestAttribute("username") String currentUsername,
+                            @RequestAttribute("userType") String currentUserType,
+                            @Valid @RequestBody ConsumerRequest request,
+                            HttpServletRequest httpRequest) {
         //把生日转换成Date格式
         DateTime birthDate = null;
         if (request.getBirth() != null && !request.getBirth().isEmpty()) {
@@ -149,6 +160,8 @@ public class ConsumerController {
 
         //保存成功
         if (consumerService.update(consumer)) {
+            operationLogService.logUpdate(currentUserId, currentUsername, currentUserType,
+                    "用户模块", "修改个人资料", ipUtils.getIpAddress(httpRequest));
             return R.ok("修改成功");
         }
         return R.error("修改失败");
@@ -162,8 +175,16 @@ public class ConsumerController {
      */
     @DeleteMapping(value = "/delete")
     @RequireUserType("admin")
-    public Boolean deleteConsumer(Integer id) {
-        return consumerService.delete(id);
+    public Boolean deleteConsumer(@RequestAttribute("userId") Integer operatorId,
+                                  @RequestAttribute("username") String operatorName,
+                                  @RequestAttribute("userType") String operatorType,
+                                  Integer id, HttpServletRequest httpRequest) {
+        boolean deleted = consumerService.delete(id);
+        if (deleted) {
+            operationLogService.logDelete(operatorId, operatorName, operatorType,
+                    "用户模块", "删除前台用户 id=" + id, ipUtils.getIpAddress(httpRequest));
+        }
+        return deleted;
     }
 
     /**
@@ -243,7 +264,9 @@ public class ConsumerController {
             @RequestParam("file") MultipartFile avatorFile,
             @RequestParam("id") Integer id,
             @RequestAttribute("userId") Integer currentUserId,
-            @RequestAttribute("userType") String userType
+            @RequestAttribute("userType") String userType,
+            @RequestAttribute("username") String username,
+            HttpServletRequest request
     ) throws IOException {
         // 管理端可代改他人头像，普通用户只能改自己的。
         // 校验放在落盘之前，否则越权请求也会先把文件写进磁盘
@@ -265,6 +288,8 @@ public class ConsumerController {
         uploadConsumerPicVo.setAvator(storeAvatorPath);
         //更新前端用户
         if (consumerService.update(consumer)) {
+            operationLogService.logUpdate(currentUserId, username, userType,
+                    "用户模块", "更新头像 targetUserId=" + id, ipUtils.getIpAddress(request));
             return R.ok("上传成功", uploadConsumerPicVo);
         }
 
@@ -292,6 +317,7 @@ public class ConsumerController {
         //验证用户名和密码
         if (!consumerService.verifyPassword(username, password)) {
             log.warn("用户登录失败 - username={}, ip={}", username, ip);
+            operationLogService.logLogin(null, username, "consumer", ip, false);
             return R.error("用户名或密码错误");
         }
 
@@ -310,6 +336,7 @@ public class ConsumerController {
         result.put("token", token);
         result.put("expiresIn", jwtUtils.getExpirationSeconds()); // 与 jwt.expiration 同源，不再各写一份
 
+        operationLogService.logLogin(consumer.getId(), username, "consumer", ip, true);
         log.info("用户登录成功 - userId={}, username={}, ip={}", consumer.getId(), username, ip);
         return R.ok("登录成功", result);
     }

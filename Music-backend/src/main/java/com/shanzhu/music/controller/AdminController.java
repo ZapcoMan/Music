@@ -4,6 +4,7 @@ import com.shanzhu.music.annotation.RateLimit;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Admin;
 import com.shanzhu.music.service.AdminService;
+import com.shanzhu.music.service.OperationLogService;
 import com.shanzhu.music.utils.IpUtils;
 import com.shanzhu.music.utils.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import com.shanzhu.music.service.TokenBlacklistService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +39,7 @@ public class AdminController {
     private final JwtUtils jwtUtils;
     private final IpUtils ipUtils;
     private final TokenBlacklistService tokenBlacklistService;
+    private final OperationLogService operationLogService;
 
     /**
      * 管理员退出登录：吊销当前令牌
@@ -46,7 +49,10 @@ public class AdminController {
      */
     @Operation(summary = "管理员登出", description = "使当前管理员令牌立即失效")
     @PostMapping(value = "/admin/logout")
-    public R logoutAdmin(HttpServletRequest request) {
+    public R logoutAdmin(HttpServletRequest request,
+                         @RequestAttribute("userId") Integer userId,
+                         @RequestAttribute("username") String username,
+                         @RequestAttribute("userType") String userType) {
         String token = request.getHeader("Authorization");
         if (token == null || token.isBlank()) {
             token = request.getParameter("token");
@@ -55,6 +61,7 @@ public class AdminController {
             return R.error("缺少令牌");
         }
         tokenBlacklistService.revoke(token);
+        operationLogService.logLogout(userId, username, userType, ipUtils.getIpAddress(request));
         return R.ok("已退出登录");
     }
 
@@ -81,6 +88,7 @@ public class AdminController {
         //验证账号密码
         if (!adminService.verifyPassword(name, password)) {
             log.warn("管理员登录失败 - username={}, ip={}", name, ip);
+            operationLogService.logLogin(null, name, "admin", ip, false);
             return R.error("用户名或密码错误");
         }
 
@@ -99,6 +107,7 @@ public class AdminController {
         result.put("token", token);
         result.put("expiresIn", jwtUtils.getExpirationSeconds()); // 与 jwt.expiration 同源，不再各写一份
 
+        operationLogService.logLogin(admin.getId(), name, "admin", ip, true);
         log.info("管理员登录成功 - adminId={}, username={}, ip={}", admin.getId(), name, ip);
         return R.ok("登录成功", result);
     }

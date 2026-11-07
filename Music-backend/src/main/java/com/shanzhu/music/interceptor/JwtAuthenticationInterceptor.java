@@ -97,6 +97,8 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
         // 将用户信息放入request属性,供Controller使用
         request.setAttribute("userId", userId);
         request.setAttribute("userType", userType);
+        // 审计日志需要记录操作者账号；此前只有 userId，接线方只能再去查库
+        request.setAttribute("username", jwtUtils.getUsernameFromToken(token));
         request.setAttribute("token", token);
 
         log.debug("JWT认证成功 - userId={}, userType={}, ip={}", userId, userType, currentIp);
