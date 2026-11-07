@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-v1.0.0-informational)
+![Version](https://img.shields.io/badge/Version-v1.1.0-informational)
 ![CI](https://github.com/ZapcoMan/Music/actions/workflows/ci.yml/badge.svg)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.3-brightgreen)
 ![Vue](https://img.shields.io/badge/Vue-2.6.11-4FC08D)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-orange)
-![Tests](https://img.shields.io/badge/Tests-142%20passed%2C%200%20skipped-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-146%20passed%2C%200%20skipped-brightgreen)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue)
 ![License](https://img.shields.io/badge/License-Apache%202.0-red)
 

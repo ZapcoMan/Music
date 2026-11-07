@@ -11,7 +11,7 @@ info:
   app:
     name: Music Website
     description: 基于 Spring Boot 3 + Vue 2 的音乐推荐系统
-    version: 1.0.0
+    version: 1.1.0
     author: ShanZhu
 
 # ==================== 推荐算法参数 ====================

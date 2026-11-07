@@ -51,7 +51,7 @@ springdoc:
 配置了API文档的基本信息:
 - 标题: 音乐网站 API 文档
 - 描述: 音乐网站后台管理系统 RESTful API 接口文档
-- 版本: 1.0.0
+- 版本: 取自 `info.app.version`（与 actuator `/info` 同一真源，发布时只需改 application.yml 与 pom、Dockerfile）
 - 联系人: ShanZhu
 - 许可证: Apache 2.0
 
