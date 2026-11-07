@@ -9,6 +9,7 @@ import com.shanzhu.music.mapper.CommentMapper;
 import com.shanzhu.music.mapper.ListSongMapper;
 import com.shanzhu.music.mapper.SongMapper;
 import com.shanzhu.music.service.SongService;
+import com.shanzhu.music.service.TagService;
 import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ public class SongServiceImpl implements SongService {
     private final CollectMapper collectMapper;
     private final CommentMapper commentMapper;
     private final RedisUtils redisUtils;
+    private final TagService tagService;
     
     // Redis缓存键前缀
     private static final String SONG_CACHE_KEY = CacheKeys.SONG;
@@ -45,8 +47,15 @@ public class SongServiceImpl implements SongService {
      * @return 结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean insert(Song song) {
+        // 标签以 song_tag 为真源：先规范化落到 song.tags，再重建中间表。
+        // 两轨必须一次写定，否则又开始背离 —— 此前两侧没有任何同步代码。
+        song.setTags(tagService.normalizeTags(song.getTags()));
         Boolean result = songMapper.insert(song) > 0;
+        if (result && song.getTags() != null) {
+            tagService.replaceSongTags(song.getId(), song.getTags());
+        }
         if (result) {
             // 使用延时双删策略
             redisUtils.deleteWithDelay(ALL_SONG_KEY);
@@ -63,8 +72,16 @@ public class SongServiceImpl implements SongService {
      * @return 结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean update(Song song) {
+        // tags 为 null 表示本次不改动标签：既不能覆写 song.tags，也不能清空中间表
+        if (song.getTags() != null) {
+            song.setTags(tagService.normalizeTags(song.getTags()));
+        }
         Boolean result = songMapper.update(song) > 0;
+        if (result && song.getTags() != null) {
+            tagService.replaceSongTags(song.getId(), song.getTags());
+        }
         if (result) {
             // 使用延时双删策略
             redisUtils.deleteWithDelay(ALL_SONG_KEY);
