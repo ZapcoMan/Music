@@ -6,6 +6,20 @@
 
 ---
 
+## 未发布
+
+v1.0.0 之后、尚未定版号的改动。
+
+- **CI**：新增 `.github/workflows/ci.yml`，push/PR 到 `main` 时跑与本地完全相同的
+  `mvn -B clean verify`（142 例 + JaCoCo 四项门禁），JDK 17 + Maven 缓存 + 20 分钟超时，
+  失败时上传 surefire 报告。Redis 以 step 内 `docker run redis:7 redis-server --requirepass admin`
+  提供（`services.options` 的写法会让 docker 收不到容器参数、首跑直接 exit 125），
+  就绪判定用 `redis-cli ping` 断言 `PONG` 而非只探端口。
+- **许可证**：补 Apache License 2.0 的 `LICENSE` 文件（官方原文逐字未改），
+  README 新增「许可证」章节，使已存在的许可徽章有出处。
+
+---
+
 ## v1.0.0 — 2026-11-07
 
 首个版本锚。相比上游原始代码，完成三批共 65 次逐簇修复，后端与前端首次同时构建通过、测试全绿。
