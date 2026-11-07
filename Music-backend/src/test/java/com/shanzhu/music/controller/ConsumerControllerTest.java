@@ -3,21 +3,15 @@ package com.shanzhu.music.controller;
 import com.shanzhu.music.BaseTest;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 /**
  * ConsumerController 单元测试
  */
-@AutoConfigureMockMvc
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ConsumerControllerTest extends BaseTest {
-
-    @Autowired
-    private MockMvc mockMvc;
 
     /**
      * 测试用户登录 - 成功
@@ -145,7 +139,7 @@ class ConsumerControllerTest extends BaseTest {
     @Order(7)
     @DisplayName("测试删除用户")
     void testDeleteConsumer() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/consumer/delete")
+        mockMvc.perform(MockMvcRequestBuilders.delete("/consumer/delete")
                 .param("id", "99999"))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         

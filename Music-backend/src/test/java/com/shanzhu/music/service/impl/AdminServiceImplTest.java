@@ -23,6 +23,7 @@ class AdminServiceImplTest extends BaseTest {
     @Test
     @Order(1)
     @DisplayName("测试管理员登录-正确密码")
+    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
     void testLoginWithCorrectPassword() {
         // BCrypt密码验证在测试环境中可能因缓存或加密方式不同而失败,跳过
     }
@@ -33,6 +34,7 @@ class AdminServiceImplTest extends BaseTest {
     @Test
     @Order(2)
     @DisplayName("测试管理员登录-错误密码")
+    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
     void testLoginWithWrongPassword() {
         // BCrypt密码验证在测试环境中可能因缓存或加密方式不同而失败,跳过
     }
@@ -57,6 +59,7 @@ class AdminServiceImplTest extends BaseTest {
     @Test
     @Order(4)
     @DisplayName("测试查询管理员")
+    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
     void testSelectByPrimaryKey() {
         // AdminService 中没有此方法
     }
@@ -67,6 +70,7 @@ class AdminServiceImplTest extends BaseTest {
     @Test
     @Order(5)
     @DisplayName("测试修改管理员密码")
+    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
     void testUpdate() {
         // AdminService 中没有此方法
     }
@@ -77,6 +81,7 @@ class AdminServiceImplTest extends BaseTest {
     @Test
     @Order(6)
     @DisplayName("测试添加管理员")
+    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
     void testInsert() {
         // AdminService 中没有此方法
     }
@@ -87,6 +92,7 @@ class AdminServiceImplTest extends BaseTest {
     @Test
     @Order(7)
     @DisplayName("测试删除管理员")
+    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
     void testDelete() {
         // AdminService 中没有此方法
     }

@@ -184,6 +184,7 @@ class SingerServiceImplTest extends BaseTest {
     @Test
     @Order(10)
     @DisplayName("测试添加空名称歌手")
+    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
     void testInsertWithNullName() {
         // name字段有NOT NULL约束,插入NULL会抛出DataIntegrityViolationException
         // 这是预期的数据库约束行为,在单元测试环境中跳过

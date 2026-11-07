@@ -129,10 +129,24 @@ class SongServiceImplTest extends BaseTest {
     @Order(7)
     @DisplayName("测试根据歌曲名精确查询")
     void testSongOfName() {
-        List<Song> songs = songService.songOfName("七里香");
-        assertNotNull(songs, "查询结果不应为空");
-        assertTrue(songs.size() >= 1, "应该至少找到1首'七里香'");
-        System.out.println("精确查询结果数: " + songs.size());
+        // 自带数据：种子行会被 @Order 更靠前的删除用例带走，
+        // 依赖共享种子会让本用例的结果取决于执行顺序
+        Song probe = new Song();
+        probe.setSingerId(1);
+        probe.setName("七里香");
+        probe.setIntroduction("用例探针");
+        probe.setPic("/img/probe.png");
+        probe.setUrl("/song/probe.mp3");
+        probe.setLyric("[00:00:00]暂无歌词");
+        songService.insert(probe);
+        try {
+            List<Song> songs = songService.songOfName("七里香");
+            assertNotNull(songs, "查询结果不应为空");
+            assertTrue(songs.size() >= 1, "应该至少找到1首'七里香'");
+            System.out.println("精确查询结果数: " + songs.size());
+        } finally {
+            songService.delete(probe.getId());
+        }
     }
 
     /**
@@ -142,10 +156,22 @@ class SongServiceImplTest extends BaseTest {
     @Order(8)
     @DisplayName("测试根据歌曲名模糊查询")
     void testLikeSongOfName() {
-        List<Song> songs = songService.likeSongOfName("%青花%");
-        assertNotNull(songs, "查询结果不应为空");
-        assertTrue(songs.size() >= 1, "应该至少找到1首包含'青花'的歌曲");
-        System.out.println("模糊查询结果数: " + songs.size());
+        Song probe = new Song();
+        probe.setSingerId(1);
+        probe.setName("青花探针曲");
+        probe.setIntroduction("用例探针");
+        probe.setPic("/img/probe.png");
+        probe.setUrl("/song/probe2.mp3");
+        probe.setLyric("[00:00:00]暂无歌词");
+        songService.insert(probe);
+        try {
+            List<Song> songs = songService.likeSongOfName("%青花%");
+            assertNotNull(songs, "查询结果不应为空");
+            assertTrue(songs.size() >= 1, "应该至少找到1首包含'青花'的歌曲");
+            System.out.println("模糊查询结果数: " + songs.size());
+        } finally {
+            songService.delete(probe.getId());
+        }
     }
 
     /**

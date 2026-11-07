@@ -78,7 +78,9 @@ pagehelper:
 
 # JWT配置 - 测试环境简化
 jwt:
-  secret: TestSecretKeyForJUnitTestingOnly
+  secret: MusicBackendJUnitTestSecretKey2026ForHMACSHA384SigningOnly
+  # 长度必须 >= 32 字节：jjwt 按 RFC 7518 拒绝短于哈希输出的 HMAC 密钥，
+  # 原值只有 29/30 字节，一旦测试里需要签发令牌就会抛 WeakKeyException
   expiration: 3600000  # 1小时
 
 # API限流配置

@@ -3,23 +3,15 @@ package com.shanzhu.music.controller;
 import com.shanzhu.music.BaseTest;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 /**
  * CollectController 单元测试
  */
-@SpringBootTest
-@AutoConfigureMockMvc
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class CollectControllerTest extends BaseTest {
-
-    @Autowired
-    private MockMvc mockMvc;
 
     @Test
     @Order(1)
@@ -57,7 +49,7 @@ class CollectControllerTest extends BaseTest {
     @Order(3)
     @DisplayName("测试删除收藏")
     void testDeleteCollect() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/collect/delete")
+        mockMvc.perform(MockMvcRequestBuilders.delete("/collect/delete")
                 .param("userId", "1")
                 .param("songId", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk());

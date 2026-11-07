@@ -3,23 +3,15 @@ package com.shanzhu.music.controller;
 import com.shanzhu.music.BaseTest;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 /**
  * RankController 单元测试
  */
-@SpringBootTest
-@AutoConfigureMockMvc
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class RankControllerTest extends BaseTest {
-
-    @Autowired
-    private MockMvc mockMvc;
 
     @Test
     @Order(1)
@@ -36,6 +28,7 @@ class RankControllerTest extends BaseTest {
     @Test
     @Order(2)
     @DisplayName("测试查询歌单评分")
+    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
     void testRankOfSongListId() {
         // 该接口在没有评分数据时可能返回null导致500错误,在单元测试环境中跳过
     }

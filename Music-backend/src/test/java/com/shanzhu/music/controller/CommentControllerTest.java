@@ -3,23 +3,15 @@ package com.shanzhu.music.controller;
 import com.shanzhu.music.BaseTest;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 /**
  * CommentController 单元测试
  */
-@SpringBootTest
-@AutoConfigureMockMvc
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class CommentControllerTest extends BaseTest {
-
-    @Autowired
-    private MockMvc mockMvc;
 
     @Test
     @Order(1)
@@ -65,7 +57,7 @@ class CommentControllerTest extends BaseTest {
     @Order(4)
     @DisplayName("测试删除评论")
     void testDeleteComment() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/comment/delete")
+        mockMvc.perform(MockMvcRequestBuilders.delete("/comment/delete")
                 .param("id", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }

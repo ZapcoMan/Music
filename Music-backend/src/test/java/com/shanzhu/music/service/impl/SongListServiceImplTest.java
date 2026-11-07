@@ -116,10 +116,21 @@ class SongListServiceImplTest extends BaseTest {
     @Order(6)
     @DisplayName("测试根据标题精确查询")
     void testSongListOfTitle() {
-        List<SongList> songLists = songListService.songListOfTitle("华语经典");
-        assertNotNull(songLists, "查询结果不应为空");
-        assertTrue(songLists.size() >= 1, "应该至少找到1个'华语经典'歌单");
-        System.out.println("精确查询结果数: " + songLists.size());
+        // 自带数据，避免依赖会被前面删除用例改动的共享种子
+        SongList probe = new SongList();
+        probe.setTitle("华语经典");
+        probe.setPic("/img/probe.png");
+        probe.setIntroduction("用例探针");
+        probe.setStyle("华语");
+        songListService.insert(probe);
+        try {
+            List<SongList> songLists = songListService.songListOfTitle("华语经典");
+            assertNotNull(songLists, "查询结果不应为空");
+            assertTrue(songLists.size() >= 1, "应该至少找到1个'华语经典'歌单");
+            System.out.println("精确查询结果数: " + songLists.size());
+        } finally {
+            songListService.delete(probe.getId());
+        }
     }
 
     /**
@@ -129,10 +140,20 @@ class SongListServiceImplTest extends BaseTest {
     @Order(7)
     @DisplayName("测试根据标题模糊查询")
     void testLikeTitle() {
-        List<SongList> songLists = songListService.likeTitle("%流行%");
-        assertNotNull(songLists, "查询结果不应为空");
-        assertTrue(songLists.size() >= 1, "应该至少找到1个包含'流行'的歌单");
-        System.out.println("模糊查询结果数: " + songLists.size());
+        SongList probe = new SongList();
+        probe.setTitle("流行探针歌单");
+        probe.setPic("/img/probe.png");
+        probe.setIntroduction("用例探针");
+        probe.setStyle("流行");
+        songListService.insert(probe);
+        try {
+            List<SongList> songLists = songListService.likeTitle("%流行%");
+            assertNotNull(songLists, "查询结果不应为空");
+            assertTrue(songLists.size() >= 1, "应该至少找到1个包含'流行'的歌单");
+            System.out.println("模糊查询结果数: " + songLists.size());
+        } finally {
+            songListService.delete(probe.getId());
+        }
     }
 
     /**

@@ -3,24 +3,16 @@ package com.shanzhu.music.controller;
 import com.shanzhu.music.BaseTest;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 /**
  * SongController 单元测试
  */
-@SpringBootTest
-@AutoConfigureMockMvc
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class SongControllerTest extends BaseTest {
-
-    @Autowired
-    private MockMvc mockMvc;
 
     @Test
     @Order(1)
@@ -70,7 +62,7 @@ class SongControllerTest extends BaseTest {
     @Order(4)
     @DisplayName("测试删除歌曲")
     void testDeleteSong() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/song/delete")
+        mockMvc.perform(MockMvcRequestBuilders.delete("/song/delete")
                 .param("id", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
@@ -78,6 +70,7 @@ class SongControllerTest extends BaseTest {
     @Test
     @Order(5)
     @DisplayName("测试更新歌曲图片")
+    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
     void testUpdateSongPic() {
         // 文件上传测试需要真实文件系统支持,在单元测试环境中跳过
     }
@@ -85,6 +78,7 @@ class SongControllerTest extends BaseTest {
     @Test
     @Order(6)
     @DisplayName("测试更新歌曲文件")
+    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
     void testUpdateSongUrl() {
         // 文件上传测试需要真实文件系统支持,在单元测试环境中跳过
     }

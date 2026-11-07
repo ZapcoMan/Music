@@ -52,6 +52,7 @@ class ConsumerServiceImplTest extends BaseTest {
     @Test
     @Order(2)
     @DisplayName("测试用户登录-正确密码")
+    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
     void testLoginWithCorrectPassword() {
         // BCrypt密码验证在测试环境中可能因缓存或加密方式不同而失败,跳过
     }
@@ -102,6 +103,7 @@ class ConsumerServiceImplTest extends BaseTest {
     @Test
     @Order(6)
     @DisplayName("测试修改用户信息")
+    @Disabled("空壳用例：方法体内没有任何断言，此前仍被计为通过。需补齐断言后再启用。")
     void testUpdate() {
         // 更新后查询返回null,可能是Redis缓存问题,在单元测试环境中跳过
     }
