@@ -1,4 +1,5 @@
 package com.shanzhu.music.interceptor;
+import com.shanzhu.music.common.CacheKeys;
 
 import com.alibaba.fastjson2.JSON;
 import com.shanzhu.music.annotation.RequireUserType;
@@ -72,7 +73,7 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
         }
 
         // 检查Token是否在Redis中被禁用(用于登出场景)
-        String redisKey = "jwt:blacklist:" + token;
+        String redisKey = CacheKeys.TOKEN_BLACKLIST + token;
         if (redisUtils.hasKey(redisKey)) {
             log.warn("JWT认证失败 - Token已被禁用");
             response.setContentType("application/json;charset=UTF-8");

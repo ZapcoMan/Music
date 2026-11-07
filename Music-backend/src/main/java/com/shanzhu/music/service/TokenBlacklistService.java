@@ -1,4 +1,5 @@
 package com.shanzhu.music.service;
+import com.shanzhu.music.common.CacheKeys;
 
 import com.shanzhu.music.utils.JwtUtils;
 import com.shanzhu.music.utils.RedisUtils;
@@ -23,7 +24,7 @@ public class TokenBlacklistService {
     /**
      * 黑名单键前缀，须与 JwtAuthenticationInterceptor 中读取的键保持一致
      */
-    private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
+    private static final String BLACKLIST_PREFIX = CacheKeys.TOKEN_BLACKLIST;
 
     private final JwtUtils jwtUtils;
     private final RedisUtils redisUtils;

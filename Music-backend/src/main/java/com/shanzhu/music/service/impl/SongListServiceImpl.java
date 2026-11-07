@@ -1,4 +1,5 @@
 package com.shanzhu.music.service.impl;
+import com.shanzhu.music.common.CacheKeys;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
@@ -41,7 +42,7 @@ public class SongListServiceImpl implements SongListService {
     private final RecommendationCache recommendationCache;
     
     // Redis缓存键前缀
-    private static final String SONG_LIST_CACHE_KEY = "music:songlist:";
+    private static final String SONG_LIST_CACHE_KEY = CacheKeys.SONG_LIST;
     private static final String ALL_SONG_LIST_KEY = SONG_LIST_CACHE_KEY + "all";
     private static final long CACHE_EXPIRE_HOURS = 24; // 缓存过期时间24小时
 

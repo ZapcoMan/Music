@@ -1,4 +1,5 @@
 package com.shanzhu.music.service.impl;
+import com.shanzhu.music.common.CacheKeys;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
@@ -25,7 +26,7 @@ public class SingerServiceImpl implements SingerService {
     private final RedisUtils redisUtils;
     
     // Redis缓存键前缀
-    private static final String SINGER_CACHE_KEY = "music:singer:";
+    private static final String SINGER_CACHE_KEY = CacheKeys.SINGER;
     private static final String ALL_SINGER_KEY = SINGER_CACHE_KEY + "all";
     private static final long CACHE_EXPIRE_HOURS = 24; // 缓存过期时间24小时
 

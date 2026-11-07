@@ -1,4 +1,5 @@
 package com.shanzhu.music.service.impl;
+import com.shanzhu.music.common.CacheKeys;
 
 import com.shanzhu.music.entity.po.Collect;
 import com.shanzhu.music.mapper.CollectMapper;
@@ -26,7 +27,7 @@ public class CollectServiceImpl implements CollectService {
     private final RecommendationCache recommendationCache;
     
     // Redis缓存键前缀
-    private static final String COLLECT_CACHE_KEY = "music:collect:";
+    private static final String COLLECT_CACHE_KEY = CacheKeys.COLLECT;
     private static final long CACHE_EXPIRE_HOURS = 12; // 缓存过期时间12小时
 
     /**

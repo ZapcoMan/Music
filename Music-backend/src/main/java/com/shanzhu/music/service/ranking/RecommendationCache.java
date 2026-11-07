@@ -1,4 +1,5 @@
 package com.shanzhu.music.service.ranking;
+import com.shanzhu.music.common.CacheKeys;
 
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.utils.RedisUtils;
@@ -24,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class RecommendationCache {
 
-    private static final String KEY_PREFIX = "music:recommendation:user:";
+    private static final String KEY_PREFIX = CacheKeys.RECOMMENDATION;
 
     /** 有结果时的基准 TTL（分钟） */
     private static final long TTL_BASE_MINUTES = 6 * 60;

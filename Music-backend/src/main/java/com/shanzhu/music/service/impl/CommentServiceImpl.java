@@ -1,4 +1,5 @@
 package com.shanzhu.music.service.impl;
+import com.shanzhu.music.common.CacheKeys;
 
 import com.hankcs.hanlp.HanLP;
 import com.shanzhu.music.entity.po.Comment;
@@ -26,7 +27,7 @@ public class CommentServiceImpl implements CommentService {
     private final RedisUtils redisUtils;
     
     // Redis缓存键前缀
-    private static final String COMMENT_CACHE_KEY = "music:comment:";
+    private static final String COMMENT_CACHE_KEY = CacheKeys.COMMENT;
     private static final long CACHE_EXPIRE_HOURS = 2; // 评论缓存2小时（评论变化较频繁）
 
     /**

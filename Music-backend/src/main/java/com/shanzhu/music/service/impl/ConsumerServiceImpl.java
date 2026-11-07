@@ -1,4 +1,5 @@
 package com.shanzhu.music.service.impl;
+import com.shanzhu.music.common.CacheKeys;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
@@ -33,7 +34,7 @@ public class ConsumerServiceImpl implements ConsumerService {
     private final RedisUtils redisUtils;
     
     // Redis缓存键前缀
-    private static final String CONSUMER_CACHE_KEY = "music:consumer:";
+    private static final String CONSUMER_CACHE_KEY = CacheKeys.CONSUMER;
     private static final long CACHE_EXPIRE_HOURS = 24; // 缓存过期时间24小时
 
     /**

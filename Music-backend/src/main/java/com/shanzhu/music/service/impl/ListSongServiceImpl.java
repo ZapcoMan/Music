@@ -1,4 +1,5 @@
 package com.shanzhu.music.service.impl;
+import com.shanzhu.music.common.CacheKeys;
 
 import com.shanzhu.music.entity.po.ListSong;
 import com.shanzhu.music.mapper.ListSongMapper;
@@ -23,7 +24,7 @@ public class ListSongServiceImpl implements ListSongService {
     private final RedisUtils redisUtils;
     
     // Redis缓存键前缀
-    private static final String LIST_SONG_CACHE_KEY = "music:list_song:";
+    private static final String LIST_SONG_CACHE_KEY = CacheKeys.LIST_SONG;
     private static final long CACHE_EXPIRE_HOURS = 24; // 缓存过期时间24小时
 
     /**
