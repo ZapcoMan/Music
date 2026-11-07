@@ -646,12 +646,34 @@ server:
 
 ---
 
+## 📄 许可证
+
+本项目基于 [Apache License 2.0](LICENSE) 授权，完整条款见仓库根目录的 `LICENSE` 文件。
+
+```
+Copyright 2024-2026 ZapcoMan
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
+---
+
 <div align="center">
 
 **⭐ 如果这个项目对你有帮助，请给一个 Star!**
 
 Made with ❤️ by ShanZhu
 
-*最后更新时间：2026-05-07*
+*最后更新时间：2026-11-07*
 
 </div>
