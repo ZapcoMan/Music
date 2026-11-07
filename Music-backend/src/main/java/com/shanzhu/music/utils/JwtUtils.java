@@ -161,6 +161,19 @@ public class JwtUtils {
     }
 
     /**
+     * 计算令牌剩余有效期（秒）。令牌无效或已过期时返回 0。
+     * 登出时用它把黑名单条目的存活时间与令牌自身对齐，避免黑名单永驻内存。
+     */
+    public long getRemainingSeconds(String token) {
+        Claims claims = getClaimsFromToken(token);
+        if (claims == null || claims.getExpiration() == null) {
+            return 0L;
+        }
+        long remaining = (claims.getExpiration().getTime() - System.currentTimeMillis()) / 1000L;
+        return Math.max(0L, remaining);
+    }
+
+    /**
      * 刷新Token
      *
      * @param token 原Token

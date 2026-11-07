@@ -62,19 +62,24 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         // 构建限流key: rate_limit:ip:uri
         String key = rateLimit.key() + ip + ":" + request.getRequestURI();
 
-        // 获取当前访问次数
-        Integer currentCount = (Integer) redisTemplate.opsForValue().get(key);
-
+        // 计数与判定必须原子。原实现是 get -> 判空 -> set(1, ttl)，
+        // 并发请求会同时读到 null 并各自把计数写回 1，限流窗口被直接绕过；
+        // 且 currentCount 强转 Integer，而 increment 返回 Long，存在类型漂移风险。
+        Long currentCount = redisTemplate.opsForValue().increment(key);
         if (currentCount == null) {
-            // 第一次访问,设置初始值为1,并设置过期时间
-            redisTemplate.opsForValue().set(key, 1, rateLimit.timeWindow(), TimeUnit.SECONDS);
-            log.debug("API限流 - 首次访问: IP={}, URI={}, 窗口={}秒", ip, request.getRequestURI(), rateLimit.timeWindow());
+            // Redis 异常时不阻断业务
             return true;
         }
 
-        if (currentCount >= rateLimit.maxRequests()) {
-            // 超过限流次数,返回错误
-            log.warn("API限流 - 访问超限: IP={}, URI={}, 当前次数={}/{}", 
+        if (currentCount == 1L) {
+            // 仅窗口内首次请求设置过期，保证计数与时间窗口同生命周期
+            redisTemplate.expire(key, rateLimit.timeWindow(), TimeUnit.SECONDS);
+            log.debug("API限流 - 开启窗口: IP={}, URI={}, 窗口={}秒",
+                    ip, request.getRequestURI(), rateLimit.timeWindow());
+        }
+
+        if (currentCount > rateLimit.maxRequests()) {
+            log.warn("API限流 - 访问超限: IP={}, URI={}, 当前次数={}/{}",
                     ip, request.getRequestURI(), currentCount, rateLimit.maxRequests());
 
             response.setContentType("application/json;charset=UTF-8");
@@ -83,10 +88,8 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // 访问次数+1
-        redisTemplate.opsForValue().increment(key);
-        log.debug("API限流 - 正常访问: IP={}, URI={}, 当前次数={}/{}", 
-                ip, request.getRequestURI(), currentCount + 1, rateLimit.maxRequests());
+        log.debug("API限流 - 正常访问: IP={}, URI={}, 当前次数={}/{}",
+                ip, request.getRequestURI(), currentCount, rateLimit.maxRequests());
 
         return true;
     }

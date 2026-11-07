@@ -112,6 +112,13 @@ rate-limit:
   enabled: true  # 生产环境开启限流
 
 # Actuator监控配置 - 生产环境限制端点
+# CORS 允许的前端来源（逗号分隔，禁止通配符）
+# 与 DB/Redis/JWT 不同，这里保留"仅本机"的安全默认值：既不会引入通配风险，
+# 也不会让尚未配置该变量的现网部署在我这次改动后直接启动失败
+security:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8080,http://localhost:8081}
+
 management:
   endpoints:
     web:

@@ -21,22 +21,15 @@ public class WebMvcConfig implements WebMvcConfigurer {
     private final RequestResponseLoggingInterceptor requestResponseLoggingInterceptor;
 
     /**
-     * 增加跨域支持
+     * 跨域配置统一由 SecurityConfig 的 CorsConfigurationSource 提供。
+     * 这里此前也定义了一份 allowedOriginPatterns("*")，两处配置各自演进且都允许任意来源，
+     * 重复定义会让实际生效的一方难以判断，故删除。
      *
      * @param registry CorsRegistry
      */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOriginPatterns("*")
-//                        "http://localhost:8080",   // MusicUser-frontend
-//                        "http://localhost:8081",   // MusicAdmin-frontend
-//                        "http://localhost:9172"    // MusicAdmin-frontend (alternative port)
-
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(true)
-                .maxAge(3600);  // 预检请求缓存1小时
+        // no-op：见 SecurityConfig#corsConfigurationSource
     }
 
     /**

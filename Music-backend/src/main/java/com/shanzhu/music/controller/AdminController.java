@@ -14,6 +14,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
+import com.shanzhu.music.service.TokenBlacklistService;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -36,6 +38,27 @@ public class AdminController {
     private final AdminMapper adminMapper;
     private final JwtUtils jwtUtils;
     private final IpUtils ipUtils;
+    private final TokenBlacklistService tokenBlacklistService;
+
+    /**
+     * 管理员退出登录：吊销当前令牌
+     *
+     * @param request HttpServletRequest
+     * @return 结果
+     */
+    @Operation(summary = "管理员登出", description = "使当前管理员令牌立即失效")
+    @PostMapping(value = "/admin/logout")
+    public R logoutAdmin(HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        if (token == null || token.isBlank()) {
+            token = request.getParameter("token");
+        }
+        if (token == null || token.isBlank()) {
+            return R.error("缺少令牌");
+        }
+        tokenBlacklistService.revoke(token);
+        return R.ok("已退出登录");
+    }
 
     /**
      * 管理员登录(JWT + IP绑定)

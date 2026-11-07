@@ -13,6 +13,7 @@ import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.entity.vo.ConsumerLoginVo;
 import com.shanzhu.music.entity.vo.UploadConsumerPicVo;
 import com.shanzhu.music.service.ConsumerService;
+import com.shanzhu.music.service.TokenBlacklistService;
 import com.shanzhu.music.utils.IpUtils;
 import com.shanzhu.music.utils.JwtUtils;
 import com.shanzhu.music.utils.PathUtils;
@@ -48,6 +49,28 @@ public class ConsumerController {
     private final ConsumerService consumerService;
     private final JwtUtils jwtUtils;
     private final IpUtils ipUtils;
+    private final TokenBlacklistService tokenBlacklistService;
+
+    /**
+     * 退出登录：吊销当前令牌，使其在有效期内立即不可用。
+     * 此前只由前端删除本地 token，泄漏出去的令牌在服务端仍然有效。
+     *
+     * @param request HttpServletRequest
+     * @return 结果
+     */
+    @Operation(summary = "用户登出", description = "使当前令牌立即失效")
+    @PostMapping(value = "/logout")
+    public R logout(HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        if (token == null || token.isBlank()) {
+            token = request.getParameter("token");
+        }
+        if (token == null || token.isBlank()) {
+            return R.error("缺少令牌");
+        }
+        tokenBlacklistService.revoke(token);
+        return R.ok("已退出登录");
+    }
 
     /**
      * 添加前台用户
