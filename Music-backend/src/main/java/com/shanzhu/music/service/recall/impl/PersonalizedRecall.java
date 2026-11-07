@@ -58,7 +58,7 @@ public class PersonalizedRecall implements RecallStrategy {
             for (Song seedSong : seedSongs) {
                 // 同歌手的其他歌曲
                 if (seedSong.getSingerId() != null) {
-                    List<Song> sameSingerSongs = songMapper.songOfSingerId(seedSong.getSingerId());
+                    List<Song> sameSingerSongs = songMapper.songOfSingerIdForRecall(seedSong.getSingerId());
                     if (sameSingerSongs != null) {
                         for (Song song : sameSingerSongs) {
                             if (!collectedSongIds.contains(song.getId())) {

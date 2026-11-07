@@ -58,7 +58,8 @@
 
     <!-- 根据多个标签ID查询相关歌曲（用于多标签召回） -->
     <select id="selectSongsByTagIds" resultType="com.shanzhu.music.entity.po.Song">
-        SELECT s.*, COUNT(DISTINCT st.tag_id) as match_count
+        SELECT s.id, s.singer_id, s.name, s.introduction, s.create_time,
+               s.update_time, s.pic, s.url, COUNT(DISTINCT st.tag_id) as match_count
         FROM song s
         JOIN song_tag st ON s.id = st.song_id
         WHERE st.tag_id IN

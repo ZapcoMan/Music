@@ -67,7 +67,7 @@ public class ContentBasedRecall implements RecallStrategy {
             Map<Integer, Integer> songRelevanceScore = new HashMap<>();
             
             for (Integer singerId : preferredSingerIds) {
-                List<Song> singerSongs = songMapper.songOfSingerId(singerId);
+                List<Song> singerSongs = songMapper.songOfSingerIdForRecall(singerId);
                 
                 if (singerSongs != null && !singerSongs.isEmpty()) {
                     for (Song song : singerSongs) {

@@ -75,6 +75,22 @@ public interface SongMapper {
      */
     List<Song> songOfSingerId(Integer singerId);
 
+    /**
+     * 召回专用：按歌手取候选歌曲，不返回 lyric 正文
+     *
+     * @param singerId 歌手id
+     * @return 歌曲列表
+     */
+    List<Song> songOfSingerIdForRecall(Integer singerId);
+
+    /**
+     * 召回专用：按歌名模糊取候选歌曲，不返回 lyric 正文
+     *
+     * @param name 歌名模糊串
+     * @return 歌曲列表
+     */
+    List<Song> likeSongOfNameForRecall(String name);
+
 
 
     List<Song> getSongsByUserIdNotInOtherUser(@Param("userId") int userId, @Param("otherUserId") int otherUserId);

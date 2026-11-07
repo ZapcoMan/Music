@@ -62,7 +62,7 @@ public class SearchHistoryRecall implements RecallStrategy {
             
             for (String keyword : recentKeywords) {
                 // 使用模糊查询匹配歌曲名称
-                List<Song> matchedSongs = songMapper.likeSongOfName("%" + keyword + "%");
+                List<Song> matchedSongs = songMapper.likeSongOfNameForRecall("%" + keyword + "%");
                 
                 if (matchedSongs != null && !matchedSongs.isEmpty()) {
                     for (Song song : matchedSongs) {
