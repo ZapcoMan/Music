@@ -24,9 +24,14 @@ public class SongFeature {
     private Integer userCollectCount;
     
     /**
-     * 用户平均评分
+     * 用户平均评分（1-10 分制）
      */
     private Double userAvgRating;
+
+    /**
+     * 用户评分次数：置信度信号，次数越少均值越不可信
+     */
+    private Integer userRatingCount;
     
     // ========== 歌曲特征 ==========
     /**
@@ -45,9 +50,14 @@ public class SongFeature {
     private Integer songCollectCount;
     
     /**
-     * 歌曲平均评分
+     * 歌曲平均评分（1-10 分制）
      */
     private Double songAvgRating;
+
+    /**
+     * 歌曲被评分次数：置信度信号
+     */
+    private Integer songRatingCount;
     
     /**
      * 歌曲发布时间距今天数

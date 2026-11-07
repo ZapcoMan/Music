@@ -4,6 +4,8 @@ import com.shanzhu.music.entity.po.Rank;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Map;
+
 /**
  * 评价 持久层
  */
@@ -35,18 +37,18 @@ public interface RankMapper {
     Integer selectRankNum(Integer songListId);
 
     /**
-     * 查询用户的平均评分
+     * 查询用户的评分统计
      *
      * @param userId 用户id
-     * @return 平均评分
+     * @return avgRating 平均评分（1-10 分制，无评分时为 5.0）、ratingCount 评分次数
      */
-    Double selectAvgRatingByUserId(@Param("userId") Integer userId);
+    Map<String, Object> selectUserRatingStats(@Param("userId") Integer userId);
 
     /**
-     * 查询歌曲的平均评分（通过歌单关联）
+     * 查询歌曲的评分统计（通过歌单关联）
      *
      * @param songId 歌曲id
-     * @return 平均评分
+     * @return avgRating 平均评分（1-10 分制，无评分时为 5.0）、ratingCount 评分次数
      */
-    Double selectAvgRatingBySongId(@Param("songId") Integer songId);
+    Map<String, Object> selectSongRatingStats(@Param("songId") Integer songId);
 }

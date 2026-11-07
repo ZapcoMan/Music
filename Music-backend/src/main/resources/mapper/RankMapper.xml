@@ -54,16 +54,20 @@
         where song_list_id = #{songListId}
     </select>
 
-    <!-- 查询用户的平均评分 -->
-    <select id="selectAvgRatingByUserId" resultType="java.lang.Double" parameterType="java.lang.Integer">
-        SELECT COALESCE(AVG(score), 4.0)
+    <!-- 用户评分统计：均值 + 评分次数（置信度）。
+         ranks.score 为 1-10 分制，无评分时以中点 5.0 作中性兜底；
+         旧值 4.0 是按 5 分制写就的，会把无评分用户压到低于有评分用户，方向相反。 -->
+    <select id="selectUserRatingStats" resultType="java.util.HashMap" parameterType="java.lang.Integer">
+        SELECT COALESCE(AVG(score), 5.0) AS avgRating,
+               COUNT(score)              AS ratingCount
         FROM ranks
         WHERE consumer_id = #{userId}
     </select>
 
-    <!-- 查询歌曲的平均评分（通过歌单关联） -->
-    <select id="selectAvgRatingBySongId" resultType="java.lang.Double" parameterType="java.lang.Integer">
-        SELECT COALESCE(AVG(r.score), 4.0)
+    <!-- 歌曲评分统计：均值 + 评分次数（通过歌单关联） -->
+    <select id="selectSongRatingStats" resultType="java.util.HashMap" parameterType="java.lang.Integer">
+        SELECT COALESCE(AVG(r.score), 5.0) AS avgRating,
+               COUNT(r.score)              AS ratingCount
         FROM ranks r
         JOIN list_song ls ON r.song_list_id = ls.song_list_id
         WHERE ls.song_id = #{songId}

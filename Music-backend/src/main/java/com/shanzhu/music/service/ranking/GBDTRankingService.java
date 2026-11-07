@@ -29,15 +29,23 @@ public class GBDTRankingService {
     
     // 特征权重（可通过离线训练得到）
     private static final Map<String, Double> FEATURE_WEIGHTS = new HashMap<>();
+
+    /**
+     * ranks.score 为 1-10 分制。归一化上界必须与真实量纲一致，
+     * 否则 score>=5 的样本会被裁剪饱和到 1.0，该特征彻底失去区分度
+     */
+    private static final double RATING_MAX = 10.0;
     
     static {
         // 用户特征权重
         FEATURE_WEIGHTS.put("userCollectCount", 0.05);
         FEATURE_WEIGHTS.put("userAvgRating", 0.1);
+        FEATURE_WEIGHTS.put("userRatingCount", 0.03);   // 置信度：评分次数越少，均值越不可信
         
         // 歌曲特征权重
         FEATURE_WEIGHTS.put("songCollectCount", 0.25);  // 热度最重要
         FEATURE_WEIGHTS.put("songAvgRating", 0.2);
+        FEATURE_WEIGHTS.put("songRatingCount", 0.05);   // 置信度
         FEATURE_WEIGHTS.put("songAgeDays", -0.02);      // 新歌优先（负权重）
         
         // 交叉特征权重
@@ -94,11 +102,13 @@ public class GBDTRankingService {
         
         // 用户特征
         linearScore += FEATURE_WEIGHTS.get("userCollectCount") * normalize(feature.getUserCollectCount(), 0, 100);
-        linearScore += FEATURE_WEIGHTS.get("userAvgRating") * normalize(feature.getUserAvgRating(), 0, 5);
+        linearScore += FEATURE_WEIGHTS.get("userAvgRating") * normalize(feature.getUserAvgRating(), 0, RATING_MAX);
+        linearScore += FEATURE_WEIGHTS.get("userRatingCount") * normalize(feature.getUserRatingCount(), 0, 100);
         
         // 歌曲特征
         linearScore += FEATURE_WEIGHTS.get("songCollectCount") * normalize(feature.getSongCollectCount(), 0, 1000);
-        linearScore += FEATURE_WEIGHTS.get("songAvgRating") * normalize(feature.getSongAvgRating(), 0, 5);
+        linearScore += FEATURE_WEIGHTS.get("songAvgRating") * normalize(feature.getSongAvgRating(), 0, RATING_MAX);
+        linearScore += FEATURE_WEIGHTS.get("songRatingCount") * normalize(feature.getSongRatingCount(), 0, 1000);
         linearScore += FEATURE_WEIGHTS.get("songAgeDays") * normalize(feature.getSongAgeDays(), 0, 3650);
         
         // 交叉特征
@@ -142,7 +152,7 @@ public class GBDTRankingService {
         }
         
         // 交叉3: 歌曲评分 × 召回策略权重（高质量歌曲在好策略中更重要）
-        double songQuality = normalize(feature.getSongAvgRating(), 0, 5);
+        double songQuality = normalize(feature.getSongAvgRating(), 0, RATING_MAX);
         double strategyWeight = normalize(feature.getRecallStrategyWeight(), 0, 1);
         crossScore += 0.1 * songQuality * strategyWeight;
         
