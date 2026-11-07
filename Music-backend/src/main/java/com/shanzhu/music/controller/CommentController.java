@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,7 +30,6 @@ public class CommentController {
     /**
      * 添加评论
      *
-     * @param userId     用户id
      * @param type       评论类型（0歌曲1歌单）
      * @param songId     歌曲id
      * @param songListId 歌单id
@@ -38,13 +38,14 @@ public class CommentController {
      */
     @RateLimit(key = "comment:add:", timeWindow = 60, maxRequests = 10, message = "评论发表过于频繁，请稍后再试")
     @PostMapping(value = "/add")
-    public R addComment(Integer userId, Byte type, Integer songId, Integer songListId, String content) {
+    public R addComment(@RequestAttribute("userId") Integer userId,
+                        Byte type, Integer songId, Integer songListId, String content) {
         // type 是 Byte，前端漏传时与 0 比较会触发拆箱 NPE
         if (type == null) {
             return R.error("评论类型不能为空");
         }
 
-        //保存到评论的对象中
+        // 身份只取令牌：原先 userId 由请求参数带入，任何人传别人的 id 就能替别人发评论
         Comment comment = new Comment();
         comment.setUserId(userId);
         comment.setType(type);
@@ -67,7 +68,6 @@ public class CommentController {
      * 修改评论
      *
      * @param id         主键
-     * @param userId     用户id
      * @param type       评论类型（0歌曲1歌单）
      * @param songId     歌曲id
      * @param songListId 歌单列表id
@@ -76,11 +76,23 @@ public class CommentController {
      */
     @RateLimit(key = "comment:update:", timeWindow = 60, maxRequests = 20, message = "评论修改过于频繁，请稍后再试")
     @PostMapping(value = "/update")
-    public R updateComment(Integer id, Integer userId, Byte type, Integer songId, Integer songListId, String content) {
+    public R updateComment(@RequestAttribute("userId") Integer userId,
+                           @RequestAttribute("userType") String userType,
+                           Integer id, Byte type, Integer songId, Integer songListId, String content) {
+        Comment origin = commentService.selectByPrimaryKey(id);
+        if (origin == null) {
+            return R.error("评论不存在");
+        }
+        // 归属校验：非本人且非管理员不得改写，
+        // 原先把 userId 当成普通参数，提交别人的 id 就能把评论"改到"别人名下
+        if (!userId.equals(origin.getUserId()) && !"admin".equals(userType)) {
+            log.warn("评论修改被拒 - 令牌用户={}, 评论作者={}, commentId={}", userId, origin.getUserId(), id);
+            return R.error("无权修改他人评论");
+        }
         //保存到评论的对象中
         Comment comment = new Comment();
         comment.setId(id);
-        comment.setUserId(userId);
+        comment.setUserId(origin.getUserId());
         comment.setType(type);
         comment.setSongId(songId);
         comment.setSongListId(songListId);
@@ -102,7 +114,17 @@ public class CommentController {
      */
     @RateLimit(key = "comment:delete:", timeWindow = 60, maxRequests = 20, message = "评论删除过于频繁，请稍后再试")
     @DeleteMapping(value = "/delete")
-    public Boolean deleteComment(Integer id) {
+    public Boolean deleteComment(@RequestAttribute("userId") Integer userId,
+                                 @RequestAttribute("userType") String userType,
+                                 Integer id) {
+        Comment origin = commentService.selectByPrimaryKey(id);
+        if (origin == null) {
+            return false;
+        }
+        if (!userId.equals(origin.getUserId()) && !"admin".equals(userType)) {
+            log.warn("评论删除被拒 - 令牌用户={}, 评论作者={}, commentId={}", userId, origin.getUserId(), id);
+            return false;
+        }
         return commentService.delete(id);
     }
 
@@ -153,16 +175,22 @@ public class CommentController {
      * 给某个评论点赞
      *
      * @param id 评论id
-     * @param up 点赞数
      * @return 结果
      */
     @RateLimit(key = "comment:like:", timeWindow = 60, maxRequests = 30, message = "点赞过于频繁，请稍后再试")
     @PostMapping(value = "/like")
-    public R like(Integer id, Integer up) {
+    public R like(Integer id) {
+        Comment origin = commentService.selectByPrimaryKey(id);
+        if (origin == null) {
+            return R.error("评论不存在");
+        }
+        // up 原先直接取请求参数，客户端传多少就涨多少（一次请求即可刷到任意数值）。
+        // 现按当前值自增，前端仍传 up 字段但服务端不再采纳。
+        int current = origin.getUp() == null ? 0 : origin.getUp();
         //保存到评论的对象中
         Comment comment = new Comment();
         comment.setId(id);
-        comment.setUp(up);
+        comment.setUp(current + 1);
 
         //更新成功
         if (commentService.update(comment)) {
