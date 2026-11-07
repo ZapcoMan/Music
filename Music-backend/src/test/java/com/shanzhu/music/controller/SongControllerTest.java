@@ -16,6 +16,12 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class SongControllerTest extends BaseTest {
 
+    /**
+     * 仅用于取一首确实存在的歌曲 id，见 anExistingSongId()
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.shanzhu.music.service.SongService songService;
+
     @Test
     @Order(1)
     @DisplayName("测试添加歌曲")
@@ -35,7 +41,9 @@ class SongControllerTest extends BaseTest {
                 .param("introduction", "这是一首测试歌曲")
                 .param("pic", "/img/songPic/test.jpg")
                 .param("lyric", "[00:00.00]测试歌词"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.avator").exists());
     }
 
     @Test
@@ -44,7 +52,9 @@ class SongControllerTest extends BaseTest {
     void testSongOfSingerId() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/song/manage/singer/detail")
                 .param("singerId", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
     }
 
     @Test
@@ -57,7 +67,8 @@ class SongControllerTest extends BaseTest {
                 .param("name", "修改后的歌曲名")
                 .param("introduction", "修改后的简介")
                 .param("lyric", "修改后的歌词"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true));
     }
 
     @Test
@@ -66,7 +77,9 @@ class SongControllerTest extends BaseTest {
     void testDeleteSong() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.delete("/song/manage/delete")
                 .param("id", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").exists());
     }
 
 
@@ -106,8 +119,24 @@ class SongControllerTest extends BaseTest {
     @DisplayName("测试查询歌曲详情")
     void testDetail() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/song/manage/detail")
-                .param("songId", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .param("songId", String.valueOf(anExistingSongId())))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                // 本用例原先写死 songId=1 并只断 200，而 @Order(4) 的删除用例已经把 id=1
+                // 删掉了——它其实一直在查一首不存在的歌，却从没红过。
+                // 现在改为取一首确实存在的歌曲，并断言载荷是对象、id 与请求一致，
+                // 这样 detail 的返回形状才真的被测到。
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isMap())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.id")
+                        .value(anExistingSongId()));
+    }
+
+    /**
+     * 取当前库里仍存在的一首歌曲 id，避免用例依赖固定种子行的存活状态。
+     */
+    private Integer anExistingSongId() {
+        java.util.List<com.shanzhu.music.entity.po.Song> songs = songService.allSong();
+        org.junit.jupiter.api.Assertions.assertFalse(songs.isEmpty(), "测试前提：曲库中应有歌曲");
+        return songs.get(0).getId();
     }
 
     @Test
@@ -116,7 +145,8 @@ class SongControllerTest extends BaseTest {
     void testSongOfSongName() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/song/manage/songOfSongName")
                 .param("songName", "泡沫"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
     }
 
     @Test
@@ -125,7 +155,8 @@ class SongControllerTest extends BaseTest {
     void testLikeSongOfName() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/song/manage/likeSongOfName")
                 .param("songName", "泡沫"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
     }
 
     @Test
@@ -133,7 +164,8 @@ class SongControllerTest extends BaseTest {
     @DisplayName("测试查询所有歌曲")
     void testAllSong() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/song/manage/allSong"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
     }
 
     @Test
@@ -143,7 +175,9 @@ class SongControllerTest extends BaseTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/song/manage/allSongByPage")
                 .param("pageNum", "1")
                 .param("pageSize", "10"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.list").isArray())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.total").isNumber());
     }
 
     /**
