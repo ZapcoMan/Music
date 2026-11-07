@@ -88,7 +88,8 @@ class SingerControllerTest extends BaseTest {
     void testSelectByPrimaryKey() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/singer/selectByPrimaryKey")
                 .param("id", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
         
         System.out.println("查询歌手详情接口测试通过");
     }

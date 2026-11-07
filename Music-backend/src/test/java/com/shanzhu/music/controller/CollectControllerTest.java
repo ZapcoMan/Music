@@ -28,7 +28,8 @@ class CollectControllerTest extends BaseTest {
                 .param("userId", "1")
                 .param("type", "0")
                 .param("songId", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -48,7 +49,8 @@ class CollectControllerTest extends BaseTest {
                 .param("userId", "2")
                 .param("type", "0")
                 .param("songId", "2"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -58,7 +60,8 @@ class CollectControllerTest extends BaseTest {
         consumerMvc.perform(MockMvcRequestBuilders.delete("/collect/delete")
                 .param("userId", "1")
                 .param("songId", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -66,7 +69,8 @@ class CollectControllerTest extends BaseTest {
     @DisplayName("测试查询所有收藏")
     void testAllCollect() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/collect/allCollect"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -75,7 +79,8 @@ class CollectControllerTest extends BaseTest {
     void testCollectOfUserId() throws Exception {
         consumerMvc.perform(MockMvcRequestBuilders.get("/collect/collectOfUserId")
                 .param("userId", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -106,7 +111,8 @@ class CollectControllerTest extends BaseTest {
 
         consumerMvc.perform(MockMvcRequestBuilders.delete("/collect/delete")
                 .param("songListId", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
 
         collectService.collectSongListOfUserId(35);
         org.junit.jupiter.api.Assertions.assertFalse(

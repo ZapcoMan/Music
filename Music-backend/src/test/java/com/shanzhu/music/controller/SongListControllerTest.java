@@ -47,7 +47,8 @@ class SongListControllerTest extends BaseTest {
                 .param("pic", "/img/songListPic/test.jpg")
                 .param("introduction", "这是一个测试歌单")
                 .param("style", "流行"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
 
         Assertions.assertNotNull(probeId(), "新增的歌单应能按标题查回，后续用例只操作这一行");
     }
@@ -64,7 +65,8 @@ class SongListControllerTest extends BaseTest {
                 .param("title", PROBE_TITLE)
                 .param("introduction", "修改后的简介")
                 .param("style", "摇滚"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -75,7 +77,8 @@ class SongListControllerTest extends BaseTest {
         assertNotNull(id);
         mockMvc.perform(MockMvcRequestBuilders.delete("/songList/delete")
                 .param("id", String.valueOf(id)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
 
         Assertions.assertNull(songListService.selectByPrimaryKey(id),
                 "删除后这一行不应再存在");
@@ -90,7 +93,8 @@ class SongListControllerTest extends BaseTest {
     void testSelectByPrimaryKey() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/songList/selectByPrimaryKey")
                 .param("id", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -98,7 +102,8 @@ class SongListControllerTest extends BaseTest {
     @DisplayName("测试查询所有歌单")
     void testAllSongList() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/songList/allSongList"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -107,7 +112,8 @@ class SongListControllerTest extends BaseTest {
     void testSongListOfName() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/songList/songListOfTitle")
                 .param("title", "经典"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -116,7 +122,8 @@ class SongListControllerTest extends BaseTest {
     void testLikeTitle() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/songList/likeTitle")
                 .param("title", "经典"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -125,7 +132,8 @@ class SongListControllerTest extends BaseTest {
     void testLikeStyle() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/songList/likeStyle")
                 .param("style", "流行"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
 
@@ -164,6 +172,7 @@ class SongListControllerTest extends BaseTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/songList/allSongListByPage")
                 .param("pageNum", "1")
                 .param("pageSize", "10"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 }

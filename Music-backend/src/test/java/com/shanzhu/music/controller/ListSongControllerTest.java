@@ -21,7 +21,8 @@ class ListSongControllerTest extends BaseTest {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("songId", "1")
                 .param("songListId", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -30,7 +31,8 @@ class ListSongControllerTest extends BaseTest {
     void testDetail() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/listSong/detail")
                 .param("songListId", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -40,6 +42,7 @@ class ListSongControllerTest extends BaseTest {
         mockMvc.perform(MockMvcRequestBuilders.delete("/listSong/delete")
                 .param("songId", "1")
                 .param("songListId", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 }

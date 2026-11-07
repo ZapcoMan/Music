@@ -26,7 +26,8 @@ class RankControllerTest extends BaseTest {
                 .param("songListId", "1")
                 .param("consumerId", "1")
                 .param("score", "5"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
 

@@ -25,7 +25,8 @@ class ConsumerControllerTest extends BaseTest {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("username", "testuser")
                 .param("password", "123456"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
         
         System.out.println("用户登录成功接口测试通过");
     }
@@ -41,7 +42,8 @@ class ConsumerControllerTest extends BaseTest {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("username", "testuser")
                 .param("password", "wrongpassword"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
         
         System.out.println("用户登录失败接口测试通过");
     }
@@ -68,7 +70,8 @@ class ConsumerControllerTest extends BaseTest {
         mockMvc.perform(MockMvcRequestBuilders.post("/consumer/add")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
         
         System.out.println("用户注册接口测试通过");
     }
@@ -83,7 +86,8 @@ class ConsumerControllerTest extends BaseTest {
         // ConsumerController 中的接口是 /consumer/selectByPrimaryKey
         mockMvc.perform(MockMvcRequestBuilders.get("/consumer/selectByPrimaryKey")
                 .param("id", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
         
         System.out.println("查询用户详情接口测试通过");
     }
@@ -110,7 +114,8 @@ class ConsumerControllerTest extends BaseTest {
         consumerMvc.perform(MockMvcRequestBuilders.post("/consumer/update")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
         
         System.out.println("修改用户信息接口测试通过");
     }
@@ -141,7 +146,8 @@ class ConsumerControllerTest extends BaseTest {
     void testDeleteConsumer() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.delete("/consumer/delete")
                 .param("id", "99999"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
         
         System.out.println("删除用户接口测试通过");
     }

@@ -28,7 +28,8 @@ class CommentControllerTest extends BaseTest {
                 .param("type", "0")
                 .param("songId", "1")
                 .param("content", "这首歌很好听"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -41,7 +42,8 @@ class CommentControllerTest extends BaseTest {
                 .param("type", "1")
                 .param("songListId", "1")
                 .param("content", "这个歌单不错"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -55,7 +57,8 @@ class CommentControllerTest extends BaseTest {
                 .param("type", "0")
                 .param("songId", "1")
                 .param("content", "修改后的评论内容"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -64,7 +67,8 @@ class CommentControllerTest extends BaseTest {
     void testDeleteComment() throws Exception {
         consumerMvc.perform(MockMvcRequestBuilders.delete("/comment/delete")
                 .param("id", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -73,7 +77,8 @@ class CommentControllerTest extends BaseTest {
     void testSelectByPrimaryKey() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/comment/selectByPrimaryKey")
                 .param("id", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -81,7 +86,8 @@ class CommentControllerTest extends BaseTest {
     @DisplayName("测试查询所有评论")
     void testAllComment() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/comment/allComment"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -90,7 +96,8 @@ class CommentControllerTest extends BaseTest {
     void testCommentOfSongId() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/comment/commentOfSongId")
                 .param("songId", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -99,7 +106,8 @@ class CommentControllerTest extends BaseTest {
     void testCommentOfSongListId() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/comment/commentOfSongListId")
                 .param("songListId", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -110,7 +118,8 @@ class CommentControllerTest extends BaseTest {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("id", "1")
                 .param("up", "10"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
@@ -119,7 +128,8 @@ class CommentControllerTest extends BaseTest {
     void testGetFrequentWords() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/comment/frequent-words")
                 .param("songId", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
 
     @Test
