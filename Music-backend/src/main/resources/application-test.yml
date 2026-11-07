@@ -78,6 +78,8 @@ pagehelper:
 
 # JWT配置 - 测试环境简化
 jwt:
+  # 仅测试用签名密钥：本地 mvn test 与 CI 都用它自签自验，不对应任何环境的真实凭据，
+  # 因此可以明文公开。命名已表达这一点，保持现值不改，避免 dev/prod 的口径被误当作参考。
   secret: MusicBackendJUnitTestSecretKey2026ForHMACSHA384SigningOnly
   # 长度必须 >= 32 字节：jjwt 按 RFC 7518 拒绝短于哈希输出的 HMAC 密钥，
   # 原值只有 29/30 字节，一旦测试里需要签发令牌就会抛 WeakKeyException

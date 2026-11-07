@@ -16,10 +16,13 @@ spring:
       additional-paths: src/main/java
 
   # 数据库配置 - 本地MySQL
+  # 本地默认值保留以便直接起服务，但一律可被环境变量覆盖：
+  # 此前这里是写死的 root/root，与 prod 的 ${DB_PASSWORD} 形成两套口径，
+  # 一旦误用 dev profile 部署就会静默带着弱口令上线。
   datasource:
     url: jdbc:mysql://localhost:3306/db_music?zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8
-    username: root
-    password: root
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.alibaba.druid.pool.DruidDataSource
     druid:
@@ -42,10 +45,10 @@ spring:
         url-pattern: /*
         exclusions: "*.js,*.gif,*.jpg,*.bmp,*.png,*.css,*.ico,/druid/*"
       stat-view-servlet:
-        enabled: true
+        enabled: true               # 仅本地开发开启；对外部署请用 prod（该开关为 false）
         url-pattern: /druid/*
-        login-username: admin
-        login-password: admin
+        login-username: ${DRUID_LOGIN_USERNAME:admin}
+        login-password: ${DRUID_LOGIN_PASSWORD:admin}
   
   # Json配置
   jackson:
@@ -57,7 +60,7 @@ spring:
     redis:
       host: localhost
       port: 6379
-      password: admin
+      password: ${REDIS_PASSWORD:admin}
       database: 0
       timeout: 3000ms
       lettuce:
@@ -104,7 +107,14 @@ pagehelper:
 
 # JWT配置
 jwt:
-  secret: MusicWebsiteSecretKey2026ForJWTTokenGenerationAndValidation
+  # 本地开发专用占位串，刻意写成一眼是占位的形态，不再是"看起来像真实密钥"的明文。
+  # 此前此处是真实密钥形态的明文且已进公开仓库与 git 历史：对任何能读源码的人
+  # 那串密钥永久有效，可用它离线自签任意角色（含 admin）的合法令牌。
+  # 因此真正的止血动作是轮换——prod 侧换 JWT_SECRET 环境变量即可让旧串作废，
+  # 本轮代码改动不能替代那次轮换。
+  # prod 不提供默认值：漏配 JWT_SECRET 应启动失败，见 application-prod.yml 与 JwtUtils。
+  # 长度 56 字符（448bit）是为满足 HMAC-SHA384 对密钥强度的下限，占位串过短会被 jjwt 拒绝。
+  secret: ${JWT_SECRET:dev-only-placeholder-not-a-real-key-change-me-now-please}
   expiration: 86400000  # 24小时
 
 # API限流配置

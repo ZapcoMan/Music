@@ -44,8 +44,12 @@ spring:
       stat-view-servlet:
         enabled: false              # 生产环境关闭Druid监控页面
         url-pattern: /druid/*
-        login-username: admin
-        login-password: admin
+        # 此前这里是写死的 admin/admin。enabled:false 时它是死配置，但一旦有人翻成 true
+        # 就等于对外开一个弱口令控制台；而不配置凭据时 Druid StatViewServlet 更是直接免认证。
+        # 所以不给任何"看起来可用"的默认值：要开监控，必须显式注入环境变量。
+        # 留空而非无默认值，是为了让关闭状态下部署不必额外配这两个变量。
+        login-username: ${DRUID_LOGIN_USERNAME:}
+        login-password: ${DRUID_LOGIN_PASSWORD:}
   
   # Json配置
   jackson:
