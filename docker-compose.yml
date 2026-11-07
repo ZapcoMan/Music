@@ -7,11 +7,14 @@ services:
     container_name: music-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      # 口令一律来自 .env，缺失时 compose 直接拒绝启动，而不是悄悄用弱口令起库
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 中设置 MYSQL_ROOT_PASSWORD（需与 DB_PASSWORD 一致）}
       MYSQL_DATABASE: db_music
       TZ: Asia/Shanghai
-    ports:
-      - "3306:3306"
+    # 不再把 3306 暴露到宿主机所有网卡：后端通过 compose 内部网络访问 mysql:3306。
+    # 确需本机调试时临时启用（只绑回环且换端口，避免与本机 MySQL 冲突）：
+    # ports:
+    #   - "127.0.0.1:13306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./db_music.sql:/docker-entrypoint-initdb.d/db_music.sql
@@ -22,7 +25,8 @@ services:
     networks:
       - music-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      # 用容器内环境变量取口令，compose 配置文件里不留明文
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p\"$$MYSQL_ROOT_PASSWORD\""]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,15 +36,14 @@ services:
     image: redis:7-alpine
     container_name: music-redis
     restart: always
-    command: redis-server --requirepass admin
-    ports:
-      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:?请在 .env 中设置 REDIS_PASSWORD} --protected-mode yes
+    # 同上，不再对外暴露 6379
     volumes:
       - redis-data:/data
     networks:
       - music-network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "admin", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -54,12 +57,13 @@ services:
     restart: always
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/db_music?zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:?请在 .env 中设置 DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      SPRING_DATA_REDIS_PASSWORD: admin
-      JWT_SECRET: MusicWebsiteSecretKey2026ForJWTTokenGenerationAndValidation
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      # 与 application-prod.yml 的必填占位对应；缺失即启动失败
+      JWT_SECRET: ${JWT_SECRET:?请在 .env 中设置 JWT_SECRET}
       TZ: Asia/Shanghai
     ports:
       - "9171:9171"

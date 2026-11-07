@@ -7,11 +7,13 @@ services:
     container_name: music-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      # 去掉 :-root 兜底：缺变量时让 compose 直接失败，
+      # 而不是用弱口令把库起在生产环境上
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?生产环境必须在 .env 中设置 MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: db_music
       TZ: Asia/Shanghai
-    ports:
-      - "3306:3306"
+    # 生产环境不对外暴露 3306；如需 DBA 本机接入，改用
+    # "127.0.0.1:13306:3306" 并配合 SSH 隧道
     volumes:
       - mysql-data:/var/lib/mysql
       - ./db_music.sql:/docker-entrypoint-initdb.d/db_music.sql
@@ -23,7 +25,9 @@ services:
     networks:
       - music-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      # 原写法 mysqladmin ping -h localhost 不带凭据，在开启认证的 MySQL 8 上
+      # 会返回 Access denied 并使健康检查长期失败，backend 因此永远等不到依赖就绪
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p\"$$MYSQL_ROOT_PASSWORD\""]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -38,15 +42,16 @@ services:
     image: redis:7-alpine
     container_name: music-redis
     restart: always
-    command: redis-server --requirepass ${REDIS_PASSWORD:-admin} --maxmemory 256mb --maxmemory-policy allkeys-lru
-    ports:
-      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:?生产环境必须在 .env 中设置 REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru --protected-mode yes
+    # 生产环境不对外暴露 6379
     volumes:
       - redis-data:/data
     networks:
       - music-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      # 原写法 redis-cli ping 不带 -a，返回 NOAUTH 但退出码仍为 0，
+      # 健康检查会"假通过"；改为带口令并校验 PONG
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -66,12 +71,17 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/db_music?zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:?生产环境必须在 .env 中设置 DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?生产环境必须在 .env 中设置 DB_PASSWORD}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-admin}
-      JWT_SECRET: ${JWT_SECRET:-MusicWebsiteSecretKey2026ForJWTTokenGenerationAndValidation}
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?生产环境必须在 .env 中设置 JWT_SECRET（至少 32 字节随机串）}
+      # 跨域来源必须显式指定；默认值仅本机，公网部署不改即为坏配置。
+      # 变量名对应配置键 security.cors.allowed-origins（Spring 宽松绑定），
+      # 写成 SPRING_ 前缀会静默不生效
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?生产环境必须在 .env 中设置 CORS_ALLOWED_ORIGINS}
+      SECURITY_CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       SERVER_PORT: 9171
       TZ: Asia/Shanghai
       # JVM 优化参数
