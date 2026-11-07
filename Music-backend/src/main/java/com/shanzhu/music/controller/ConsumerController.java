@@ -42,6 +42,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/consumer")
+@RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 @Tag(name = "前台用户管理", description = "前台用户注册、登录、信息查询等接口")
 public class ConsumerController {

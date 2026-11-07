@@ -18,6 +18,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/listSong")
+@RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 public class ListSongController {
 

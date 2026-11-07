@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.annotation.AnnotatedElementUtils;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
@@ -20,31 +19,29 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 写接口角色声明的守卫。
+ * 业务端点角色声明的守卫。
  *
- * 拦截器的 fail-closed 只能在运行时拒绝"没声明角色的写接口"；这个测试让同一件事在开发期
+ * 拦截器的 fail-closed 只能在运行时拒绝"没声明角色的端点"；这个测试让同一件事在开发期
  * 就变红，不必等到有人真的调那个接口。
  *
- * 之所以需要它：本轮补 @RequireUserType 时，22 处标注里有 21 处长期没有任何用例覆盖，
+ * 之所以需要它：本轮补 @RequireUserType 时发现，已有标注里绝大多数长期没有任何用例覆盖，
  * 漏标注的后果不是报错而是静默放行——这正是 /song 那个洞能存在许久的机制性原因。
- * 有了这条守卫，新增写接口忘标角色会立刻让本用例失败。
+ * 有了这条守卫，新增端点忘标角色会立刻让本用例失败。
+ *
+ * 覆盖范围与拦截器同口径：读写都查。只查写接口的话，漏标的读接口照样能把
+ * 别人的数据返回给已登录的任意角色，而守卫和运行时都沉默。
  */
-class WriteEndpointRoleGuardTest extends BaseTest {
+class EndpointRoleGuardTest extends BaseTest {
 
     /**
-     * 会改变服务端状态的动词，与 JwtAuthenticationInterceptor 的口径保持一致。
+     * 免鉴权端点：由 WebMvcConfig 白名单排除在拦截器之外，因此不需要角色声明。
+     * 必须逐条列全——往这个清单里加一项，等于开一个匿名入口。
      */
-    private static final Set<RequestMethod> WRITE_METHODS =
-            Set.of(RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE);
-
-    /**
-     * 免登录写接口：由 WebMvcConfig 白名单排除在拦截器之外，因此天然不需要角色声明。
-     * 这里必须显式列出，否则守卫会把它们报成违规；也顺便提醒：往里加接口等于开一个匿名写入口。
-     */
-    private static final Set<String> LOGIN_FREE_WRITE_ENDPOINTS = Set.of(
+    private static final Set<String> PUBLIC_ENDPOINTS = Set.of(
             "/admin/login/status",
             "/consumer/login",
-            "/consumer/add");
+            "/consumer/add",
+            "/manage");
 
     /**
      * 按 bean 名注入：Actuator 也会注册一个同类型的 controllerEndpointHandlerMapping，
@@ -55,8 +52,8 @@ class WriteEndpointRoleGuardTest extends BaseTest {
     private RequestMappingHandlerMapping handlerMapping;
 
     @Test
-    @DisplayName("所有写接口必须显式声明可访问角色")
-    void everyWriteEndpointDeclaresRequiredUserRole() {
+    @DisplayName("所有业务端点必须显式声明可访问角色")
+    void everyEndpointDeclaresRequiredUserRole() {
         List<String> missing = new ArrayList<>();
 
         for (Map.Entry<RequestMappingInfo, HandlerMethod> entry
@@ -67,11 +64,8 @@ class WriteEndpointRoleGuardTest extends BaseTest {
             if (!handler.getBeanType().getName().startsWith("com.shanzhu.music.")) {
                 continue;
             }
-            if (!isWriteEndpoint(entry.getKey())) {
-                continue;
-            }
             String patterns = entry.getKey().getPatternValues().toString();
-            if (coversLoginFreeEndpoint(entry.getKey())) {
+            if (coversPublicEndpoint(entry.getKey())) {
                 continue;
             }
             RequireUserType declared = AnnotatedElementUtils.findMergedAnnotation(
@@ -87,21 +81,13 @@ class WriteEndpointRoleGuardTest extends BaseTest {
         }
 
         assertTrue(missing.isEmpty(),
-                () -> "以下写接口未声明 @RequireUserType，运行时会被 fail-closed 直接 403，"
-                        + "请补上角色域（管理接口标 admin、用户自助接口标 consumer）：\n  - "
+                () -> "以下端点未声明 @RequireUserType，运行时会被 fail-closed 直接 403，"
+                        + "请补上角色域（管理接口标 admin、用户自助接口标 consumer、"
+                        + "两类令牌都要能用的标 {consumer, admin}）：\n  - "
                         + String.join("\n  - ", missing));
     }
 
-    /**
-     * 未限定动词的 @RequestMapping 也算写接口：它同时接受 POST/DELETE，
-     * 若放过就等于留了一个漏标注的口子。
-     */
-    private boolean isWriteEndpoint(RequestMappingInfo info) {
-        Set<RequestMethod> methods = info.getMethodsCondition().getMethods();
-        return methods.isEmpty() || methods.stream().anyMatch(WRITE_METHODS::contains);
-    }
-
-    private boolean coversLoginFreeEndpoint(RequestMappingInfo info) {
-        return info.getPatternValues().stream().anyMatch(LOGIN_FREE_WRITE_ENDPOINTS::contains);
+    private boolean coversPublicEndpoint(RequestMappingInfo info) {
+        return info.getPatternValues().stream().anyMatch(PUBLIC_ENDPOINTS::contains);
     }
 }

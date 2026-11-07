@@ -14,6 +14,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/search-history")
+@RequireUserType("consumer")
 @RequiredArgsConstructor
 public class SearchHistoryController {
 

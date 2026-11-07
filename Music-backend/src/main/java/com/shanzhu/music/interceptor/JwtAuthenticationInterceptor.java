@@ -18,7 +18,6 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.Arrays;
-import java.util.Set;
 
 /**
  * JWT认证拦截器
@@ -27,11 +26,6 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationInterceptor implements HandlerInterceptor {
-
-    /**
-     * 会改变服务端状态的动词。OPTIONS 是 CORS 预检，不算写操作。
-     */
-    private static final Set<String> WRITE_METHODS = Set.of("POST", "PUT", "PATCH", "DELETE");
 
     private final JwtUtils jwtUtils;
     private final RedisUtils redisUtils;
@@ -89,19 +83,17 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
             return reject(response, HttpServletResponse.SC_FORBIDDEN, "无权访问该接口");
         }
 
-        // fail-closed：写接口必须显式声明角色域，没写注解就拒绝。
+        // fail-closed：**任何**业务端点都必须显式声明角色域，没写注解就拒绝。
         //
-        // 此前的语义是"未标注只要求登录、不限角色"，于是漏写注解的后果不是报错而是静默放行。
-        // 本轮补 22 处 admin 标注时发现其中 21 处长期没有任何用例验证过——正是这个机制的产物：
-        // 漏标注不会让测试变红，只会在生产被人拿来变红。改成拒绝之后，新增写接口忘标角色
-        // 第一次调用就会暴露。
+        // 此前只约束写接口，读接口保持"已登录即可、不限角色"。但那仍是靠开发者记得标注：
+        // 漏一个多参数查询接口，就是又一条 /comment/allComment 那样的跨用户数据读取路径。
+        // 白名单反转之后，"公开"这件事必须由 WebMvcConfig 的路径排除显式表达（登录、注册、
+        // 静态资源），而不是靠"没人标注所以放行"。
         //
-        // 只作用于真实 Controller 方法：静态资源、404 兜底等 handler 不是 HandlerMethod，
-        // 若一并拒绝，favicon 之类的请求会平白多出 403。
-        if (required == null
-                && handler instanceof HandlerMethod
-                && WRITE_METHODS.contains(request.getMethod())) {
-            log.error("鉴权拒绝 - 写接口未声明角色域, method={}, uri={} —— 请为该接口补 @RequireUserType",
+        // 只作用于真实 Controller 方法：静态资源与 404 兜底的 handler 不是 HandlerMethod，
+        // 一并拒绝会让 favicon 之类请求平白多出 403。
+        if (required == null && handler instanceof HandlerMethod) {
+            log.error("鉴权拒绝 - 接口未声明角色域, method={}, uri={} —— 请为该接口补 @RequireUserType",
                     request.getMethod(), request.getRequestURI());
             return reject(response, HttpServletResponse.SC_FORBIDDEN, "该接口未声明可访问角色，已按默认拒绝处理");
         }

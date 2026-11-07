@@ -25,6 +25,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/collect")
+@RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 public class CollectController {
 

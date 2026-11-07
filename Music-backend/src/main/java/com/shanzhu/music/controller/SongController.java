@@ -26,6 +26,9 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/song/manage")
+// 类级角色域兜底：本类未单独标注的方法（详情、列表、搜索等读接口）一律要求已登录，
+// 具体到方法的 @RequireUserType("admin") 优先级更高，不会被这里放宽。
+@RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 public class SongController {
 
