@@ -125,6 +125,15 @@
         where id=#{id}
     </delete>
 
+    <!--
+      按歌手批量删除歌曲。song_tag 有 fk_song_tag_song ON DELETE CASCADE（V3），
+      标签中间表由数据库连带清理，不需要应用层再补一条 DELETE。
+    -->
+    <delete id="deleteBySingerId" parameterType="java.lang.Integer">
+        delete from song
+        where singer_id = #{singerId}
+    </delete>
+
     <select id="selectByPrimaryKey" resultMap="ResultMapWithBLOBs" parameterType="java.lang.Integer">
         select
         <include refid="Blob_Column_List"/>

@@ -95,12 +95,10 @@ public class SingerServiceImpl implements SingerService {
         // song.singer_id 上没有外键，此前删歌手只删 singer 一行，
         // 结果是留下一批指向不存在歌手的孤儿歌曲：列表页显示空白歌手名，
         // 召回与统计也继续把它们算在内。
-        // 这里按项目既有的级联风格连带删除其歌曲 —— 歌曲自己的歌单关联、收藏与评论
-        // 由 SongService.delete 负责清理，singer_tag 由 V3 声明的外键 ON DELETE CASCADE 清理。
-        List<Song> songs = songService.songOfSingerId(id);
-        for (Song song : songs) {
-            songService.delete(song.getId());
-        }
+        // 级联清理改为一次批量调用（原来是 for 循环逐首 songService.delete，
+        // N 首歌产生 5N 条 SQL 且全在同一事务内）。song_tag 与 singer_tag 各有
+        // ON DELETE CASCADE，标签中间表由数据库负责，应用层不重复处理。
+        int removedSongs = songService.deleteBySingerId(id);
 
         Boolean result = singerMapper.delete(id) > 0;
         if (result) {
@@ -108,7 +106,7 @@ public class SingerServiceImpl implements SingerService {
             redisUtils.deleteWithDelay(ALL_SINGER_KEY);
             redisUtils.deleteWithDelay(SINGER_CACHE_KEY + id);
             log.info("删除歌手 id={}, 连带删除 {} 首歌曲及其歌单关联、收藏与评论，延时双删缓存",
-                    id, songs.size());
+                    id, removedSongs);
         }
         return result;
     }

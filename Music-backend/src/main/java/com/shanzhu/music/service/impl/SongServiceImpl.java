@@ -122,6 +122,41 @@ public class SongServiceImpl implements SongService {
     }
 
     /**
+     * 按歌手批量删除其全部歌曲及引用（删除歌手的级联入口）。
+     *
+     * 取代此前 SingerServiceImpl 里的 for 循环逐首 delete(id)：每首歌要走
+     * select + song + list_song + collect + comment 共 5 条 SQL 再加三次缓存排期，
+     * 一位有 N 首歌的歌手就是 5N 条 SQL 全部压在一个事务里，事务时长随曲库规模线性增长。
+     * 现在级联改由按 singer_id 的子查询完成，SQL 条数固定 5 条（1 查 + 3 清引用 + 1 删主体），
+     * 与歌曲数量无关。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Integer deleteBySingerId(Integer singerId) {
+        // 先取清单再删：一是缓存要逐个失效歌曲详情键，二是返回受影响数量供日志核对
+        List<Song> songs = songMapper.songOfSingerId(singerId);
+        if (songs.isEmpty()) {
+            return 0;
+        }
+
+        // 顺序不能颠倒：三条清引用的语句都靠 select id from song 取集合，
+        // 先把 song 删掉的话子查询即为空，引用会永久残留成孤儿
+        listSongMapper.deleteBySingerId(singerId);
+        collectMapper.deleteBySingerId(singerId);
+        commentMapper.deleteBySingerId(singerId);
+        songMapper.deleteBySingerId(singerId);
+
+        redisUtils.deleteWithDelay(ALL_SONG_KEY);
+        redisUtils.deleteWithDelay(SONG_BY_SINGER_KEY + singerId);
+        for (Song song : songs) {
+            redisUtils.deleteWithDelay(SONG_CACHE_KEY + song.getId());
+        }
+        log.info("按歌手 {} 批量删除 {} 首歌曲及其歌单关联、收藏与评论", singerId, songs.size());
+
+        return songs.size();
+    }
+
+    /**
      * 失效歌手维度的歌曲缓存。
      * Controller 组装的 Song 常常不带 singerId，直接拼接会得到
      * music:song:singer:null，真正的歌手维度缓存从未被清理，只能等 24 小时自然过期；

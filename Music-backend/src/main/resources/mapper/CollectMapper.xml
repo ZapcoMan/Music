@@ -85,6 +85,17 @@
           and type = 0
     </delete>
 
+    <!--
+      按歌手批量清理歌曲收藏。type = 0 必须保留：collect 表同时存歌曲收藏与歌单收藏，
+      漏掉它会连带删掉用户对歌单的收藏，那是与本次操作无关的数据。
+    -->
+    <delete id="deleteBySingerId" parameterType="java.lang.Integer">
+        delete
+        from collect
+        where song_id in (select id from song where singer_id = #{singerId})
+          and type = 0
+    </delete>
+
     <!-- 删除用户时级联清理其收藏 -->
     <delete id="deleteByUserId" parameterType="java.lang.Integer">
         delete

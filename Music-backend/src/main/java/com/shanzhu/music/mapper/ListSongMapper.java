@@ -62,6 +62,11 @@ public interface ListSongMapper {
     Integer deleteBySongId(@Param("songId") Integer songId);
 
     /**
+     * 按歌手批量清理歌单关联：删除整位歌手时避免逐首歌建键删除（N+1）
+     */
+    Integer deleteBySingerId(@Param("singerId") Integer singerId);
+
+    /**
      * 根据主键查询歌单里面歌曲
      *
      * @param id 歌曲id

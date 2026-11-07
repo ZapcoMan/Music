@@ -46,6 +46,11 @@ public interface CollectMapper {
     Integer deleteBySongId(@Param("songId") Integer songId);
 
     /**
+     * 按歌手批量清理收藏记录（N+1 消除）
+     */
+    Integer deleteBySingerId(@Param("singerId") Integer singerId);
+
+    /**
      * 删除某用户的全部收藏（删除用户时级联清理）
      *
      * @param userId 用户id

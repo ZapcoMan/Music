@@ -106,6 +106,12 @@
         where song_id=#{songId} and type=0
     </delete>
 
+    <!-- 按歌手批量清理歌曲评论；type=0 同样不可省，歌单评论另有 type=1 -->
+    <delete id="deleteBySingerId" parameterType="java.lang.Integer">
+        delete from comment
+        where song_id in (select id from song where singer_id = #{singerId}) and type=0
+    </delete>
+
     <!-- 删除歌单时级联清理其评论（type=1 歌单评论） -->
     <delete id="deleteBySongListId" parameterType="java.lang.Integer">
         delete from comment

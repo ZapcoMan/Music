@@ -35,6 +35,14 @@ public interface SongService {
     Boolean delete(Integer id);
 
     /**
+     * 按歌手批量删除其全部歌曲及所有引用（供删除歌手做级联）
+     *
+     * @param singerId 歌手id
+     * @return 被删除的歌曲数量
+     */
+    Integer deleteBySingerId(Integer singerId);
+
+    /**
      * 根据歌曲id查询歌曲对象
      *
      * @param id 歌曲id

@@ -37,6 +37,14 @@ public interface SongMapper {
     Integer delete(Integer id);
 
     /**
+     * 按歌手批量删除歌曲（删除歌手时的级联清理）
+     *
+     * 与逐首 delete 的区别不只是条数：song_tag 靠 ON DELETE CASCADE 由数据库连带清理，
+     * 子查询写法让它一次完成，而不是每首歌触发一轮。
+     */
+    Integer deleteBySingerId(@Param("singerId") Integer singerId);
+
+    /**
      * 根据歌曲id查询歌曲对象
      *
      * @param id 歌曲id

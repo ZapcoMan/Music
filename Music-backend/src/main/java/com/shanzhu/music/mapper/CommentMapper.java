@@ -45,6 +45,11 @@ public interface CommentMapper {
     Integer deleteBySongId(@Param("songId") Integer songId);
 
     /**
+     * 按歌手批量清理歌曲评论（N+1 消除）
+     */
+    Integer deleteBySingerId(@Param("singerId") Integer singerId);
+
+    /**
      * 删除某歌单下的全部评论（删除歌单时级联清理）
      *
      * @param songListId 歌单id
