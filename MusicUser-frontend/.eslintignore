@@ -3,4 +3,6 @@
 /dist/
 /*.js
 /test/unit/coverage/
-/*
+# 末行原本是 /*，会把 src/ 全部排除，lint 因此永远报告 0 问题；
+# 上面几条已精确覆盖构建产物与非源码目录，无需再用通配排除全部
+src/assets/

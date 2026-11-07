@@ -11,8 +11,8 @@
             </div>
             <div class="history-tags">
                 <el-tag 
-                    v-for="(keyword, index) in historyKeywords" 
-                    :key="index"
+                    v-for="keyword in historyKeywords" 
+                    :key="keyword"
                     class="history-tag"
                     @click="handleSearchByKeyword(keyword)">
                     {{ keyword }}

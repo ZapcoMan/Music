@@ -6,7 +6,7 @@
         <div class="the-aside" v-if="showAside">
             <h2 class="title">播放列表</h2>
             <ul class="menus">
-                <li v-for="(item,index) in listOfSongs" :key="index" :class="{'is-play': id==item.id}"
+                <li v-for="item in listOfSongs" :key="item.id" :class="{'is-play': id==item.id}"
                 @click="toplay(item.id,item.url,item.pic,item.index,item.name,item.lyric)">
                     {{replaceFName(item.name)}}
                 </li>
@@ -31,10 +31,16 @@ export default {
         ])
     },
     mounted(){
-        let _this = this;
-        document.addEventListener('click',function(){
-            _this.$store.commit('setShowAside',false)
-        },true);
+        // 点击页面任意处收起侧栏。此前用的是匿名函数且从不解除监听：
+        // 组件销毁后闭包里的 _this 仍指向已销毁实例，每次进入该页都会多挂一个
+        this.closeAside = () => {
+            this.$store.commit('setShowAside', false);
+        };
+        document.addEventListener('click', this.closeAside, true);
+    },
+    beforeDestroy(){
+        // capture 参数必须与注册时一致，否则移除不生效
+        document.removeEventListener('click', this.closeAside, true);
     },
     methods:{
         //获取名字前半部分--歌手名

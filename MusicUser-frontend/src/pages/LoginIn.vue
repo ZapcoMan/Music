@@ -54,6 +54,13 @@ export default {
     mounted() {
         this.changeIndex('登录');
     },
+    beforeDestroy() {
+        // 清掉"两秒后跳首页"的定时器：这期间用户若主动离开本页，
+        // 未清理的回调仍会执行，把人莫名拽回首页
+        if (this.redirectTimer) {
+            clearTimeout(this.redirectTimer);
+        }
+    },
     methods:{
         handleLoginIn(){
             let _this = this;
@@ -74,7 +81,7 @@ export default {
                         _this.$store.commit('setUserId',res.data.userMsg.id);
                         _this.$store.commit('setUsername',res.data.userMsg.username);
                         _this.$store.commit('setAvator',res.data.userMsg.avator);
-                        setTimeout(function(){
+                        _this.redirectTimer = setTimeout(function(){
                             _this.changeIndex('首页');
                             _this.$router.push({path: '/'});
                         },2000);

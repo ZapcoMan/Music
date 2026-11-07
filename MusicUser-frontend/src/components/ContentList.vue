@@ -4,7 +4,7 @@
 <template>
     <div class="content-list">
         <ul class="section-content">
-            <li class="content-item" v-for="(item,index) in contentList" :key="index">
+            <li class="content-item" v-for="item in contentList" :key="item.id">
                 <div class="kuo" @click="goAlbum(item,item.name)">
                     <img class="item-img" :src="attachImageUrl(item.pic)">
                     <div class="mask">

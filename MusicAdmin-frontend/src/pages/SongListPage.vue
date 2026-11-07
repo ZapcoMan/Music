@@ -34,7 +34,7 @@
             <el-table-column label="操作" width="520" align="center">
                 <template slot-scope="scope">
                     <el-button style="font-size: 14px;" size="small" type="warning" @click="songEdit(scope.row.id)"><i class="iconfont " style="font-size: 15px"></i> 歌曲管理</el-button>
-                    <el-button style="font-size: 14px;" size="small"  @click="getComment(data[scope.$index].id)"><i class="iconfont icon-talk-button" style="font-size: 15px"></i> 评论</el-button>
+                    <el-button style="font-size: 14px;" size="small" @click="getComment(data[scope.$index].id)"><i class="iconfont icon-talk-button" style="font-size: 15px"></i> 评论</el-button>
                     <el-button style="font-size: 14px;" size="small" type="success" @click="handleEdit(scope.row)"><i class="iconfont icon-edit-button" style="font-size: 15px"></i> 编辑</el-button>
                     <el-button style="font-size: 14px;" size="small" type="danger" @click="handleDelete(scope.row.id)"><i class="iconfont icon-delete-button" style="font-size: 14px"></i> 删除</el-button>
                 </template>

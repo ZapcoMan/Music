@@ -37,7 +37,7 @@
       </el-tag>
     </div>
     <p>精彩评论：共{{ commentList.length }}条评论</p>
-    <ul class="popular" v-for="(item, index) in commentList" :key="index">
+    <ul class="popular" v-for="(item, index) in commentList" :key="item.id">
       <li>
         <div class="popular-img">
           <img :src="attachImageUrl(userPic[index])"/>
@@ -90,7 +90,10 @@
         commentList: [], // 存放评论列表
         userPic: [], // 用户的头像
         userName: [], // 用户的昵称
-        featuredComment: ['11', '很好', '很棒']
+        // 精选评论由 getfeaturedComment 接口在 mounted 里填充，这里只留空初始值。
+        // 此前初值是 ['11','很好','很棒'] 三个示例串，接口返回前会先闪出这三个假标签，
+        // 看着像后端数据其实是硬编码——空数组才是正确的初始状态
+        featuredComment: []
       };
     },
     mounted() {

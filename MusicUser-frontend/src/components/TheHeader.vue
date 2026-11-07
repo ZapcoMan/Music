@@ -28,7 +28,7 @@
             <img :src='attachImageUrl(avator)'>
         </div>
         <ul class="menu">
-            <li v-for="(item,index) in menuList" :key="index" @click="goMenuList(item.path)">{{item.name}}</li>
+            <li v-for="item in menuList" :key="item.path" @click="goMenuList(item.path)">{{item.name}}</li>
         </ul>
     </div>
   </div>
@@ -61,16 +61,40 @@ export default {
       this.menuList = menuList;
   },
   mounted(){
-      document.querySelector('#user').addEventListener('click',function(e){
-          document.querySelector('.menu').classList.add("show");
-          e.stopPropagation()           //关键在于阻止冒泡
-      },false);
-      document.querySelector('.menu').addEventListener('click',function(e){
-          e.stopPropagation()           //点击菜单内部时，阻止时间冒泡，这样，点击内部时，菜单不会关闭
-      },false);
-      document.addEventListener('click',function(){
-        document.querySelector('.menu').classList.remove('show');
-      },false);
+      // 此前三个监听全是匿名函数、且整个组件没有 beforeDestroy：路由切换后监听器
+      // 随已销毁的实例残留下来，反复进出会不断叠加。
+      // 另外 querySelector 没做空值保护，#user 不在当前 DOM 时这里直接抛 TypeError，
+      // 把 mounted 后续逻辑一起带崩。
+      const user = document.querySelector('#user');
+      const menu = document.querySelector('.menu');
+      if (!user || !menu) {
+          return;
+      }
+      this.showMenu = (e) => {
+          menu.classList.add("show");
+          e.stopPropagation();           //关键在于阻止冒泡
+      };
+      this.stopMenuBubble = (e) => {
+          e.stopPropagation();           //点击菜单内部时，阻止冒泡，这样点击内部时菜单不会关闭
+      };
+      this.hideMenu = () => {
+          menu.classList.remove('show');
+      };
+      user.addEventListener('click', this.showMenu, false);
+      menu.addEventListener('click', this.stopMenuBubble, false);
+      document.addEventListener('click', this.hideMenu, false);
+  },
+  beforeDestroy(){
+      const user = document.querySelector('#user');
+      const menu = document.querySelector('.menu');
+      if (user) {
+          user.removeEventListener('click', this.showMenu, false);
+      }
+      if (menu) {
+          menu.removeEventListener('click', this.stopMenuBubble, false);
+          menu.classList.remove('show');
+      }
+      document.removeEventListener('click', this.hideMenu, false);
   },
 
   methods: {

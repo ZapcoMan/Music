@@ -15,7 +15,7 @@
 <script>
 import {mapGetters} from 'vuex';
 export default {
-    name: 'song-audio',
+    name: 'SongAudio',
     computed: {
         ...mapGetters([
             'id',

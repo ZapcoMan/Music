@@ -6,7 +6,7 @@
         <div class="leftCol">
             <div class="settingsMainHeader">设置</div>
             <ul class="setting-aside">
-                <li v-for="(item,index) in settingList" :key="index" :class="{activeColor: activeName==item.name}"
+                <li v-for="item in settingList" :key="item.name" :class="{activeColor: activeName==item.name}"
                     @click="handleClick(item)">
                     {{item.name}}
                 </li>

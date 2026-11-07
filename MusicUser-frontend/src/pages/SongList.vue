@@ -4,7 +4,7 @@
 <template>
     <div class="song-list">
         <ul class="song-list-header">
-            <li v-for="(item,index) in songStyle" :key="index" @click="handleChangeView(item.name)"
+            <li v-for="item in songStyle" :key="item.name" @click="handleChangeView(item.name)"
                 :class="{active:item.name==activeName}">
                 {{item.name}}
             </li>
@@ -22,7 +22,6 @@
 <script>
 import ContentList from '../components/ContentList';
 import {getAllSongList,getSongListOfLikeStyle} from '../api/index';
-import {mixin} from "../mixins";
 import {songStyle} from '../assets/data/songList';
 
 export default {

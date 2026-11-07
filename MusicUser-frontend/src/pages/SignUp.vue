@@ -77,6 +77,12 @@ export default {
         this.rules = rules;
         this.cities = cities;
     },
+    beforeDestroy() {
+        // 同 LoginIn：注册后 2 秒跳转的定时器要在离开本页时清掉
+        if (this.redirectTimer) {
+            clearTimeout(this.redirectTimer);
+        }
+    },
     methods:{
         SignUp(){
             let _this = this;
@@ -96,7 +102,7 @@ export default {
                 .then(res => {
                     if(res.code == 20000 || res.success === true){
                         _this.notify(res.message || '注册成功','success');
-                        setTimeout(function(){
+                        _this.redirectTimer = setTimeout(function(){
                             _this.$router.push({path: '/'});
                         },2000);
                     }else{

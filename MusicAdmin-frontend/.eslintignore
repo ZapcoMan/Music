@@ -1,1 +1,8 @@
-/*
+# 此前本文件只有一行 `/*`，等于把所有源码都排除在外：
+# npm run lint 永远输出 0 问题，看着像代码干净，实际一行都没检查过。
+# 现在只忽略构建产物与非源码资源，src/ 全部纳入检查
+build/
+config/
+dist/
+node_modules/
+src/assets/

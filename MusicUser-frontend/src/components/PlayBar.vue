@@ -127,7 +127,7 @@ import {
   download,
   setCollect,
   getCollectOfUserId,
-  songOfSongId, delCollectOfUserId,
+  delCollectOfUserId,
 } from "../api/index";
 
 export default {

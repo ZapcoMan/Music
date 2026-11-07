@@ -4,7 +4,7 @@
 <template>
   <div class="home">
     <swiper/>
-    <div class="section" v-for="(item, index) in songsList" :key="index">
+    <div class="section" v-for="item in songsList" :key="item.name">
       <div class="section-title"><i :class="item.icon" style="font-size: 34px;"></i>
         <b style="font-size: 32px;">
           {{ item.name }}
@@ -15,7 +15,7 @@
 
 <!--    <div v-if="loginIn">-->
 <!--      &lt;!&ndash; 如果 condition 为真，渲染这个 div &ndash;&gt;-->
-<!--      <div class="section" v-for="(item, index) in recommendedsongsList" :key="index">-->
+<!--      <div class="section" v-for="item in recommendedsongsList" :key="item.name">-->
 <!--        <div class="section-title"><i :class="item.icon" style="font-size: 34px;"></i>-->
 <!--          <b style="font-size: 32px;">-->
 <!--            {{ item.name }}-->
@@ -26,7 +26,7 @@
 <!--    </div>-->
     <div v-if="loginIn">
       <!-- 如果 condition 为真，渲染这个 div -->
-      <div class="section" v-for="(item, index) in recommendedsongsList" :key="index">
+      <div class="section" v-for="item in recommendedsongsList" :key="item.name">
         <div class="section-title"><i :class="item.icon" style="font-size: 34px;"></i>
           <b style="font-size: 32px;">
             {{ item.name }}

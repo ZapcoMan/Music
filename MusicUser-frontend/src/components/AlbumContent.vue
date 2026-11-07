@@ -16,7 +16,7 @@
                    <span class="item-intro">专辑</span>
                </div>
            </li>
-           <li v-for="(item,index) in songList" :key="index">
+           <li v-for="(item,index) in songList" :key="item.id">
                <div class="song-item" @click="toplay(item.id,item.url,item.pic,index,item.name,item.lyric)">
                    <span class="item-index">
                        {{index + 1}}
