@@ -192,5 +192,7 @@
 </script>
 <style lang="scss" scoped>
   @import "../assets/css/comment.scss";
-  @import url("//unpkg.com/element-ui@2.15.14/lib/theme-chalk/index.css");
+  /* element-ui 样式已由 main.js 从 node_modules 引入；
+     这里再从 unpkg 拉一份 2.15.14 会与本地 ^2.15.6 版本不一致，
+     同一组件出现两套 CSS，改样式时看不出哪份生效 */
 </style>

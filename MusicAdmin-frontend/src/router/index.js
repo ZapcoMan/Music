@@ -3,7 +3,7 @@ import Router from 'vue-router'
 
 Vue.use(Router)
 
-export default new Router({
+const router = new Router({
   routes: [
     {
       path: '/',
@@ -54,3 +54,22 @@ export default new Router({
 
   ]
 })
+
+// 管理端此前没有任何导航守卫：直接输入 /Home 就能进入后台页面壳，
+// 数据请求才因无令牌被后端拒绝 —— 结果是白屏而不是一句"请先登录"。
+// 后端已有强制鉴权，这里补的是前端侧的引导，不是安全边界。
+const PUBLIC_PATHS = ['/'];
+
+router.beforeEach((to, from, next) => {
+  if (PUBLIC_PATHS.indexOf(to.path) !== -1) {
+    next();
+    return;
+  }
+  if (localStorage.getItem('adminToken')) {
+    next();
+  } else {
+    next('/');
+  }
+});
+
+export default router;

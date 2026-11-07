@@ -118,6 +118,28 @@ export default {
 
   },
   methods: {
+    // 原本四处 catch 是逐字复制的同一套逻辑：改一处就会漏掉其余三处。
+    // 其中那个把 TypeError 消息当字符串比较再换成 Network Error 的判断也一并收拢，
+    // 至少现在只有一份需要解释。
+    showRequestError(e) {
+      let message;
+      if (e && e.data !== undefined) {
+        message = e.data;
+      } else if (
+        String(e) ===
+        "TypeError: Cannot read properties of undefined (reading 'status')"
+      ) {
+        message = "Network Error";
+      } else {
+        message = e;
+      }
+      this.$message({
+        showClose: true,
+        message: message,
+        type: "error",
+        duration: 5000,
+      });
+    },
     getSongList() {
       //获取前十条歌单
       getAllSongList()
@@ -129,29 +151,7 @@ export default {
             this.songsList[0].list = res.data.slice(0, 10);
           }
         })
-        .catch((e) => {
-          if (e.data == undefined) {
-            if (
-              e ==
-              "TypeError: Cannot read properties of undefined (reading 'status')"
-            ) {
-              e = "Network Error";
-            }
-            this.$message({
-              showClose: true,
-              message: e,
-              type: "error",
-              duration: 5000,
-            });
-          } else {
-            this.$message({
-              showClose: true,
-              message: e.data,
-              type: "error",
-              duration: 5000,
-            });
-          }
-        });
+        .catch((e) => this.showRequestError(e));
     },
     getSinger() {
       //获取前十名歌手
@@ -164,29 +164,7 @@ export default {
             this.songsList[1].list = res.data.slice(0, 10);
           }
         })
-        .catch((e) => {
-          if (e.data == undefined) {
-            if (
-              e ==
-              "TypeError: Cannot read properties of undefined (reading 'status')"
-            ) {
-              e = "Network Error";
-            }
-            this.$message({
-              showClose: true,
-              message: e,
-              type: "error",
-              duration: 5000,
-            });
-          } else {
-            this.$message({
-              showClose: true,
-              message: e.data,
-              type: "error",
-              duration: 5000,
-            });
-          }
-        });
+        .catch((e) => this.showRequestError(e));
     },
     getRecommendedsongsList() {
      const userId = JSON.parse(window.sessionStorage.getItem('userId'))
@@ -207,29 +185,7 @@ export default {
             });
           }
         })
-        .catch((e) => {
-          if (e.data == undefined) {
-            if (
-              e ==
-              "TypeError: Cannot read properties of undefined (reading 'status')"
-            ) {
-              e = "Network Error";
-            }
-            this.$message({
-              showClose: true,
-              message: e,
-              type: "error",
-              duration: 5000,
-            });
-          } else {
-            this.$message({
-              showClose: true,
-              message: e.data,
-              type: "error",
-              duration: 5000,
-            });
-          }
-        });
+        .catch((e) => this.showRequestError(e));
     },
     // 播放歌曲
     playSong(song) {
