@@ -99,7 +99,7 @@ public class AdminController {
         Map<String, Object> result = new HashMap<>();
         result.put("name", name);
         result.put("token", token);
-        result.put("expiresIn", 86400); // Token过期时间(秒)
+        result.put("expiresIn", jwtUtils.getExpirationSeconds()); // 与 jwt.expiration 同源，不再各写一份
 
         log.info("管理员登录成功 - adminId={}, username={}, ip={}", admin.getId(), name, ip);
         return R.ok("登录成功", result);

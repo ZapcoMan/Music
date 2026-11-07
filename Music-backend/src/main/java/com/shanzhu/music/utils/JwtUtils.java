@@ -41,6 +41,15 @@ public class JwtUtils {
     }
 
     /**
+     * 令牌有效期（秒），供登录接口出参使用。
+     * 此前 AdminController 与 ConsumerController 各自硬编码 86400，与 jwt.expiration
+     * 是两个来源——改了配置后前端拿到的过期时间不会跟着变。
+     */
+    public long getExpirationSeconds() {
+        return expiration / 1000;
+    }
+
+    /**
      * 生成JWT Token
      *
      * @param userId   用户ID

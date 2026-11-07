@@ -308,7 +308,7 @@ public class ConsumerController {
         Map<String, Object> result = new HashMap<>();
         result.put("userMsg", consumer);
         result.put("token", token);
-        result.put("expiresIn", 86400); // Token过期时间(秒)
+        result.put("expiresIn", jwtUtils.getExpirationSeconds()); // 与 jwt.expiration 同源，不再各写一份
 
         log.info("用户登录成功 - userId={}, username={}, ip={}", consumer.getId(), username, ip);
         return R.ok("登录成功", result);
