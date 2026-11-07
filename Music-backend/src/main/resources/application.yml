@@ -13,3 +13,49 @@ info:
     description: 基于 Spring Boot 3 + Vue 2 的音乐推荐系统
     version: 1.0.0
     author: ShanZhu
+
+# ==================== 推荐算法参数 ====================
+# 与环境无关，故放在主配置；不配置时使用代码内的默认值（见 RecommendationProperties）
+recommendation:
+  # ranks.score 的实际量纲（1-10 分制）；归一化上界必须与此一致，否则评分特征会饱和
+  rating-max: 10.0
+  # 无评分历史时的中性兜底评分（取量纲中点，不能当低偏好处理）
+  neutral-rating: 5.0
+  # FM 交叉项与偏置
+  fm-coefficient: 0.3
+  bias: 0.5
+  # 六路召回权重（此前与文档取值不一致，现以这里为唯一出处）
+  # 注意：Map 的键不参与 relaxed binding，必须与 RecallStrategy#getStrategyName 逐字一致
+  strategy-weights:
+    collaborative_filtering: 0.40
+    content_based: 0.25
+    personalized: 0.20
+    tag_based: 0.20
+    search_history: 0.20
+    popular: 0.15
+  # 排序特征权重（键须与代码中 featureWeight 的参数名逐字一致）
+  feature-weights:
+    userCollectCount: 0.05
+    userAvgRating: 0.10
+    userRatingCount: 0.03
+    songCollectCount: 0.25
+    songAvgRating: 0.20
+    songRatingCount: 0.05
+    userLikedSinger: 0.15
+    userSingerCollectCount: 0.10
+    recallStrategyWeight: 0.10
+    recallRank: -0.05
+  # FM 二阶交叉系数（键须与代码中 fmCrossWeight 的参数名逐字一致）
+  fm-cross-weights:
+    activityXPopularity: 0.15
+    singerPreference: 0.20
+    qualityXStrategy: 0.10
+    newSongXActivity: 0.05
+  # 新歌扶持（加性增益，在 sigmoid 之前生效）
+  new-song:
+    threshold-days: 30
+    strong-days: 7
+    medium-days: 14
+    strong-bonus: 0.15
+    medium-bonus: 0.10
+    light-bonus: 0.05

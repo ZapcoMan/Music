@@ -1,5 +1,6 @@
 package com.shanzhu.music.service.ranking;
 
+import com.shanzhu.music.config.RecommendationProperties;
 import com.shanzhu.music.entity.dto.SongFeature;
 import com.shanzhu.music.entity.po.Collect;
 import com.shanzhu.music.entity.po.Rank;
@@ -30,12 +31,7 @@ public class FeatureEngineeringService {
     private final CollectMapper collectMapper;
     private final RankMapper rankMapper;
     private final SongMapper songMapper;
-
-    /**
-     * ranks.score 为 1-10 分制。无评分时以中点作中性兜底，
-     * 避免"没有评分历史"被误判成"偏好强度很低"
-     */
-    private static final double NEUTRAL_RATING = 5.0;
+    private final RecommendationProperties properties;
 
     /**
      * 为召回的歌曲列表提取特征
@@ -288,10 +284,10 @@ public class FeatureEngineeringService {
      */
     private double readDouble(Map<String, Object> stats, String key) {
         if (stats == null) {
-            return NEUTRAL_RATING;
+            return properties.getNeutralRating();
         }
         Object value = stats.get(key);
-        return value instanceof Number ? ((Number) value).doubleValue() : NEUTRAL_RATING;
+        return value instanceof Number ? ((Number) value).doubleValue() : properties.getNeutralRating();
     }
 
     /**
@@ -312,7 +308,7 @@ public class FeatureEngineeringService {
      */
     private static class UserStats {
         int collectCount = 0;
-        double avgRating = NEUTRAL_RATING;
+        double avgRating;
         int ratingCount = 0;
     }
     
@@ -321,7 +317,7 @@ public class FeatureEngineeringService {
      */
     private static class SongStats {
         int collectCount = 0;
-        double avgRating = NEUTRAL_RATING;
+        double avgRating;
         int ratingCount = 0;
     }
     

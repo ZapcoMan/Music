@@ -1,62 +1,28 @@
 package com.shanzhu.music.service.ranking;
 
+import com.shanzhu.music.config.RecommendationProperties;
 import com.shanzhu.music.entity.dto.SongFeature;
 import com.shanzhu.music.entity.po.Song;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 
 /**
- * GBDT排序服务（简化版）
- * 使用加权线性模型模拟GBDT的打分逻辑
- * 
- * 实际生产中应该：
- * 1. 使用XGBoost/LightGBM训练GBDT模型
- * 2. 或使用TensorFlow/PyTorch实现DeepFM
- * 3. 定期离线训练，在线预测
+ * 精排服务
+ *
+ * 命名沿用 GBDT，但当前实现是"加权线性 + FM 二阶交叉 + sigmoid"，不含树模型与训练过程。
+ * 权重、量纲上界、交叉系数、偏置统一由 RecommendationProperties 提供，调整参数无需重新编译
+ * （真实 GBDT 需要离线训练与模型文件，路线见 docs 中的说明）。
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class GBDTRankingService {
-    
+
     private final NewSongBoostService newSongBoostService;
-    
-
-    public GBDTRankingService(NewSongBoostService newSongBoostService) {
-        this.newSongBoostService = newSongBoostService;
-    }
-    
-    // 特征权重（可通过离线训练得到）
-    private static final Map<String, Double> FEATURE_WEIGHTS = new HashMap<>();
-
-    /**
-     * ranks.score 为 1-10 分制。归一化上界必须与真实量纲一致，
-     * 否则 score>=5 的样本会被裁剪饱和到 1.0，该特征彻底失去区分度
-     */
-    private static final double RATING_MAX = 10.0;
-    
-    static {
-        // 用户特征权重
-        FEATURE_WEIGHTS.put("userCollectCount", 0.05);
-        FEATURE_WEIGHTS.put("userAvgRating", 0.1);
-        FEATURE_WEIGHTS.put("userRatingCount", 0.03);   // 置信度：评分次数越少，均值越不可信
-        
-        // 歌曲特征权重
-        FEATURE_WEIGHTS.put("songCollectCount", 0.25);  // 热度最重要
-        FEATURE_WEIGHTS.put("songAvgRating", 0.2);
-        FEATURE_WEIGHTS.put("songRatingCount", 0.05);   // 置信度
-        // 不再对 songAgeDays 设负权重：新歌提权统一由 NewSongBoostService
-        // 在 sigmoid 之前以加性增益实现，避免两处重复计分
-        
-        // 交叉特征权重
-        FEATURE_WEIGHTS.put("userLikedSinger", 0.15);
-        FEATURE_WEIGHTS.put("userSingerCollectCount", 0.1);
-        
-        // 召回特征权重
-        FEATURE_WEIGHTS.put("recallStrategyWeight", 0.1);
-        FEATURE_WEIGHTS.put("recallRank", -0.05);       // 召回排名越靠前越好
-    }
+    private final RecommendationProperties properties;
     
     /**
      * 对带特征的歌曲进行排序
@@ -95,34 +61,38 @@ public class GBDTRankingService {
      * 公式: score = linear_part + fm_cross_part + bias
      */
     private double calculateScore(SongFeature feature) {
+        double ratingMax = properties.getRatingMax();
+
         // ========== 1. 线性部分 ==========
         double linearScore = 0.0;
         
         // 用户特征
-        linearScore += FEATURE_WEIGHTS.get("userCollectCount") * normalize(feature.getUserCollectCount(), 0, 100);
-        linearScore += FEATURE_WEIGHTS.get("userAvgRating") * normalize(feature.getUserAvgRating(), 0, RATING_MAX);
-        linearScore += FEATURE_WEIGHTS.get("userRatingCount") * normalize(feature.getUserRatingCount(), 0, 100);
+        linearScore += properties.featureWeight("userCollectCount") * normalize(feature.getUserCollectCount(), 0, 100);
+        linearScore += properties.featureWeight("userAvgRating") * normalize(feature.getUserAvgRating(), 0, ratingMax);
+        linearScore += properties.featureWeight("userRatingCount") * normalize(feature.getUserRatingCount(), 0, 100);
         
         // 歌曲特征
-        linearScore += FEATURE_WEIGHTS.get("songCollectCount") * normalize(feature.getSongCollectCount(), 0, 1000);
-        linearScore += FEATURE_WEIGHTS.get("songAvgRating") * normalize(feature.getSongAvgRating(), 0, RATING_MAX);
-        linearScore += FEATURE_WEIGHTS.get("songRatingCount") * normalize(feature.getSongRatingCount(), 0, 1000);
+        linearScore += properties.featureWeight("songCollectCount") * normalize(feature.getSongCollectCount(), 0, 1000);
+        linearScore += properties.featureWeight("songAvgRating") * normalize(feature.getSongAvgRating(), 0, ratingMax);
+        linearScore += properties.featureWeight("songRatingCount") * normalize(feature.getSongRatingCount(), 0, 1000);
         
         // 交叉特征
-        linearScore += FEATURE_WEIGHTS.get("userLikedSinger") * (feature.getUserLikedSinger() ? 1.0 : 0.0);
-        linearScore += FEATURE_WEIGHTS.get("userSingerCollectCount") * normalize(feature.getUserSingerCollectCount(), 0, 10);
+        linearScore += properties.featureWeight("userLikedSinger") * (Boolean.TRUE.equals(feature.getUserLikedSinger()) ? 1.0 : 0.0);
+        linearScore += properties.featureWeight("userSingerCollectCount") * normalize(feature.getUserSingerCollectCount(), 0, 10);
         
         // 召回特征
-        linearScore += FEATURE_WEIGHTS.get("recallStrategyWeight") * normalize(feature.getRecallStrategyWeight(), 0, 1);
-        linearScore += FEATURE_WEIGHTS.get("recallRank") * normalize(feature.getRecallRank(), 1, 100);
+        linearScore += properties.featureWeight("recallStrategyWeight") * normalize(feature.getRecallStrategyWeight(), 0, 1);
+        linearScore += properties.featureWeight("recallRank") * normalize(feature.getRecallRank(), 1, 100);
         
         // ========== 2. FM二阶特征交叉部分 ==========
         double fmScore = calculateFMCross(feature);
         
         // ========== 3. 组合得分 ==========
-        double bias = 0.5;
         double newSongBonus = newSongBoostService.calculateBonus(feature.getSongAgeDays());
-        double finalScore = linearScore + 0.3 * fmScore + bias + newSongBonus; // FM部分权重0.3
+        double finalScore = linearScore
+                + properties.getFmCoefficient() * fmScore
+                + properties.getBias()
+                + newSongBonus;
         
         // Sigmoid激活函数，将得分映射到(0, 1)区间
         return sigmoid(finalScore);
@@ -141,22 +111,23 @@ public class GBDTRankingService {
         // 交叉1: 用户收藏数 × 歌曲热度（活跃用户更可能喜欢热门歌曲）
         double userActivity = normalize(feature.getUserCollectCount(), 0, 100);
         double songPopularity = normalize(feature.getSongCollectCount(), 0, 1000);
-        crossScore += 0.15 * userActivity * songPopularity;
+        crossScore += properties.fmCrossWeight("activityXPopularity") * userActivity * songPopularity;
         
         // 交叉2: 用户是否喜欢歌手 × 同歌手收藏数（强化偏好）
-        if (feature.getUserLikedSinger()) {
+        if (Boolean.TRUE.equals(feature.getUserLikedSinger())) {
             double singerPreference = normalize(feature.getUserSingerCollectCount(), 0, 10);
-            crossScore += 0.2 * singerPreference;
+            crossScore += properties.fmCrossWeight("singerPreference") * singerPreference;
         }
         
         // 交叉3: 歌曲评分 × 召回策略权重（高质量歌曲在好策略中更重要）
-        double songQuality = normalize(feature.getSongAvgRating(), 0, RATING_MAX);
+        double songQuality = normalize(feature.getSongAvgRating(), 0, properties.getRatingMax());
         double strategyWeight = normalize(feature.getRecallStrategyWeight(), 0, 1);
-        crossScore += 0.1 * songQuality * strategyWeight;
+        crossScore += properties.fmCrossWeight("qualityXStrategy") * songQuality * strategyWeight;
         
         // 交叉4: 新歌 × 用户活跃度（活跃用户更愿意尝试新歌）
-        double isNewSong = feature.getSongAgeDays() != null && feature.getSongAgeDays() <= 30 ? 1.0 : 0.0;
-        crossScore += 0.05 * isNewSong * userActivity;
+        double isNewSong = feature.getSongAgeDays() != null
+                && feature.getSongAgeDays() <= properties.getNewSong().getThresholdDays() ? 1.0 : 0.0;
+        crossScore += properties.fmCrossWeight("newSongXActivity") * isNewSong * userActivity;
         
         return crossScore;
     }

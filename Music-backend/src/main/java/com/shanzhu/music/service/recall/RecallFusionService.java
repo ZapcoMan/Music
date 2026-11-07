@@ -1,5 +1,6 @@
 package com.shanzhu.music.service.recall;
 
+import com.shanzhu.music.config.RecommendationProperties;
 import com.shanzhu.music.entity.dto.RecallResult;
 import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.entity.po.Song;
@@ -25,6 +26,7 @@ public class RecallFusionService {
     private final List<RecallStrategy> recallStrategies;
     private final CollectMapper collectMapper;
     private final ConsumerMapper consumerMapper;
+    private final RecommendationProperties properties;
 
     /**
      * 冷启动兜底策略名
@@ -35,21 +37,29 @@ public class RecallFusionService {
      * 固定策略遍历顺序：先按权重降序，权重相同再按名称字典序。
      * recallStrategies 由 Spring 注入为 List，其顺序依赖 bean 注册次序，
      * 而融合产出的 strategy/rank 会作为特征进入打分，因此顺序必须确定。
+     * 排序使用配置覆盖后的权重，与融合实际采用的权重保持一致。
      */
     private List<RecallStrategy> orderedStrategies() {
         return recallStrategies.stream()
-            .sorted(Comparator.comparingDouble(RecallStrategy::getWeight).reversed()
+            .sorted(Comparator.comparingDouble(this::effectiveWeight).reversed()
                     .thenComparing(RecallStrategy::getStrategyName))
             .toList();
     }
 
     /**
-     * 取指定策略的权重，避免冷启动分支把数值写死
+     * 生效权重 = 配置值，未配置时回落到策略自带默认值
+     */
+    private double effectiveWeight(RecallStrategy strategy) {
+        return properties.strategyWeight(strategy.getStrategyName(), strategy.getWeight());
+    }
+
+    /**
+     * 按策略名取生效权重，避免冷启动分支把数值写死
      */
     private double weightOf(List<RecallStrategy> orderedStrategies, String strategyName) {
         return orderedStrategies.stream()
             .filter(s -> strategyName.equals(s.getStrategyName()))
-            .mapToDouble(RecallStrategy::getWeight)
+            .mapToDouble(this::effectiveWeight)
             .findFirst()
             .orElse(0.0);
     }
@@ -85,11 +95,14 @@ public class RecallFusionService {
         List<RecallResult> recallResults = new ArrayList<>();
         for (RecallStrategy strategy : orderedStrategies) {
             try {
-                recallResults.add(strategy.recall(userId));
+                RecallResult result = strategy.recall(userId);
+                // 用配置权重覆盖策略自带默认值，使融合得分与召回特征同源
+                result.setWeight(effectiveWeight(strategy));
+                recallResults.add(result);
             } catch (Exception e) {
                 log.error("召回策略 {} 执行异常", strategy.getStrategyName(), e);
                 recallResults.add(RecallResult.failed(
-                    strategy.getStrategyName(), strategy.getWeight(), e.getMessage()));
+                    strategy.getStrategyName(), effectiveWeight(strategy), e.getMessage()));
             }
         }
 

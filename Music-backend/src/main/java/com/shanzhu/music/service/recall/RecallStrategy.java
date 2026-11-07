@@ -23,7 +23,9 @@ public interface RecallStrategy {
     String getStrategyName();
     
     /**
-     * 获取策略权重
+     * 获取策略权重。
+     * 该返回值只是策略自带的默认值，实际参与融合的权重会被
+     * recommendation.strategy-weights 配置覆盖（见 RecallFusionService）。
      *
      * @return 权重值
      */
