@@ -136,6 +136,10 @@
         select
         <include refid="Blob_Column_List"/>
         from song
+        <!-- 安全上限：全量接口此前无 LIMIT，表一旦增长，单次请求与整份缓存会一起失控。
+             真正的分页入口是 allSongByPage（PageHelper），这里只是防无界增长的保险丝。
+             当前各表规模远低于该上限，不会截断任何现有数据。 -->
+        LIMIT 1000
     </select>
 
     <select id="songOfName" resultMap="ResultMapWithBLOBs" parameterType="java.lang.String">
