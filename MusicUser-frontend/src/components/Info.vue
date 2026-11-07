@@ -91,7 +91,9 @@ export default {
             getUserOfId(userId)
                 .then(res =>{
                     this.registerForm.username = res.username;
-                    this.registerForm.password = res.password;
+                    // 不再回填 res.password：那是 BCrypt 哈希，
+                    // 填进表单后再提交会把哈希当作用户新密码二次加密写库，
+                    // 结果就是该账号再也登录不上。密码框保持为空表示"不修改密码"。
                     this.registerForm.sex = res.sex;
                     this.registerForm.phoneNum = res.phoneNum;
                     this.registerForm.email = res.email;
@@ -111,7 +113,11 @@ export default {
             let params = new URLSearchParams();
             params.append('id',this.userId);
             params.append('username',this.registerForm.username);
-            params.append('password',this.registerForm.password);
+            // 留空即不发送该字段，后端 password 为 null 时保持原密码不变；
+            // 发送空串会被当作"把密码改成空"
+            if (this.registerForm.password) {
+                params.append('password',this.registerForm.password);
+            }
             params.append('sex',this.registerForm.sex);
             params.append('phoneNum',this.registerForm.phoneNum);
             params.append('email',this.registerForm.email);

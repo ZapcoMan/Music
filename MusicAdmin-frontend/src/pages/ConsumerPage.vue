@@ -490,7 +490,9 @@ export default {
             this.form = {
                 id: row.id,
                 username: row.username,
-                password: row.password,
+                // 不把 BCrypt 哈希预填进密码框：管理员保存资料时会把哈希当新密码
+                // 二次加密写库，该账号随即无法登录。留空表示"不修改密码"。
+                password: '',
                 sex: row.sex,
                 phoneNum: row.phoneNum,
                 email: row.email,
@@ -513,7 +515,10 @@ export default {
                     let params = new URLSearchParams();
                     params.append("id", this.form.id);
                     params.append("username", this.form.username);
-                    params.append("password", this.form.password);
+                    // 留空即不发送，后端保持原密码；发送空串会被当作改成空密码
+                    if (this.form.password) {
+                        params.append("password", this.form.password);
+                    }
                     params.append("sex", this.form.sex);
                     params.append("phoneNum", this.form.phoneNum);
                     params.append("email", this.form.email);

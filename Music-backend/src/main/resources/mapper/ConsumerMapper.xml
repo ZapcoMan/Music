@@ -98,7 +98,9 @@
             <if test="username != null">
                 username = #{username},
             </if>
-            <if test="password != null">
+            <!-- 只判 null 是不够的：前端"留空表示不修改密码"会传空串，
+                 按原条件空串仍会更新，等于把密码清成空、用户再也登不上 -->
+            <if test="password != null and password != ''">
                 password = #{password},
             </if>
             <if test="sex != null">
