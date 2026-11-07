@@ -64,6 +64,8 @@ mybatis:
   type-aliases-package: com.shanzhu.music.entity
   mapper-locations: classpath:mapper/*.xml
   configuration:
+    # 与 dev/prod 保持一致，避免测试环境掩盖下划线列映射问题
+    map-underscore-to-camel-case: true
     # 测试环境开启SQL日志
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
 

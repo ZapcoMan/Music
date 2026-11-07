@@ -89,6 +89,9 @@ mybatis:
   type-aliases-package: com.shanzhu.music.entity
   mapper-locations: classpath:mapper/*.xml
   configuration:
+    # 下划线列名映射到驼峰属性。未开启时所有 resultType 查询里的
+    # singer_id / create_time 等列都无法映射（实测返回 null）
+    map-underscore-to-camel-case: true
     # 开发环境开启SQL日志
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
 
