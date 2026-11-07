@@ -10,8 +10,11 @@ CREATE TABLE IF NOT EXISTS `search_history` (
     INDEX `idx_create_time` (`create_time`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户搜索历史';
 
--- 为song表添加tags字段（如果不存在）
-ALTER TABLE `song` ADD COLUMN IF NOT EXISTS `tags` VARCHAR(500) DEFAULT NULL COMMENT '歌曲标签（逗号分隔，如：流行,抒情,伤感）' AFTER `introduction`;
+-- 为song表添加tags字段
+-- 注意：不使用 ADD COLUMN IF NOT EXISTS。该写法是 MariaDB 扩展，MySQL 不支持，
+-- 会让本迁移在 MySQL 上直接抛 ERROR 1064 并中断后续所有迁移。
+-- 重复执行的安全性由 Flyway 的版本化机制保证，无需在此做存在性判断。
+ALTER TABLE `song` ADD COLUMN `tags` VARCHAR(500) DEFAULT NULL COMMENT '歌曲标签（逗号分隔，如：流行,抒情,伤感）' AFTER `introduction`;
 
--- 为singer表添加tags字段（如果不存在）  
-ALTER TABLE `singer` ADD COLUMN IF NOT EXISTS `tags` VARCHAR(500) DEFAULT NULL COMMENT '歌手标签（逗号分隔，如：男歌手,流行,实力派）' AFTER `location`;
+-- 为singer表添加tags字段（同上，MySQL 兼容写法）
+ALTER TABLE `singer` ADD COLUMN `tags` VARCHAR(500) DEFAULT NULL COMMENT '歌手标签（逗号分隔，如：男歌手,流行,实力派）' AFTER `location`;
