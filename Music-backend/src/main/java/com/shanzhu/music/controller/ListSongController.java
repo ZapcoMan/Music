@@ -32,7 +32,7 @@ public class ListSongController {
      */
     @PostMapping(value = "/add")
     @RequireUserType("admin")
-    public R addListSong(Integer songId, Integer songListId) {
+    public R<Void> addListSong(Integer songId, Integer songListId) {
         //获取前端传来的参数
         ListSong listSong = new ListSong();
         listSong.setSongId(songId);
@@ -52,8 +52,8 @@ public class ListSongController {
      * @return 歌曲列表
      */
     @GetMapping(value = "/detail")
-    public List<ListSong> detail(Integer songListId) {
-        return listSongService.listSongOfSongListId(songListId);
+    public R<List<ListSong>> detail(Integer songListId) {
+        return R.ok(listSongService.listSongOfSongListId(songListId));
     }
 
     /**
@@ -65,8 +65,8 @@ public class ListSongController {
      */
     @DeleteMapping(value = "/delete")
     @RequireUserType("admin")
-    public Boolean delete(Integer songId, Integer songListId) {
-        return listSongService.deleteBySongIdAndSongListId(songId, songListId);
+    public R<Boolean> delete(Integer songId, Integer songListId) {
+        return R.ok(listSongService.deleteBySongIdAndSongListId(songId, songListId));
     }
 
 }

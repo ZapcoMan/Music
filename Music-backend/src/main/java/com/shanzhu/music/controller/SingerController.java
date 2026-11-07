@@ -40,7 +40,7 @@ public class SingerController {
      */
     @PostMapping(value = "/add")
     @RequireUserType("admin")
-    public R addSinger(@Valid @RequestBody SingerRequest request) {
+    public R<Void> addSinger(@Valid @RequestBody SingerRequest request) {
         //把生日转换成Date格式
         DateTime birthDate = null;
         if (request.getBirth() != null && !request.getBirth().isEmpty()) {
@@ -71,7 +71,7 @@ public class SingerController {
      */
     @PostMapping(value = "/update")
     @RequireUserType("admin")
-    public R updateSinger(@Valid @RequestBody SingerRequest request) {
+    public R<Void> updateSinger(@Valid @RequestBody SingerRequest request) {
         //把生日转换成Date格式
         DateTime birthDate = null;
         if (request.getBirth() != null && !request.getBirth().isEmpty()) {
@@ -102,8 +102,8 @@ public class SingerController {
      */
     @DeleteMapping(value = "/delete")
     @RequireUserType("admin")
-    public Boolean deleteSinger(Integer id) {
-        return singerService.delete(id);
+    public R<Boolean> deleteSinger(Integer id) {
+        return R.ok(singerService.delete(id));
     }
 
     /**
@@ -113,8 +113,8 @@ public class SingerController {
      * @return 歌手
      */
     @GetMapping(value = "/selectByPrimaryKey")
-    public Singer selectByPrimaryKey(Integer id) {
-        return singerService.selectByPrimaryKey(id);
+    public R<Singer> selectByPrimaryKey(Integer id) {
+        return R.ok(singerService.selectByPrimaryKey(id));
     }
 
     /**
@@ -123,8 +123,8 @@ public class SingerController {
      * @return 歌手列表
      */
     @GetMapping(value = "/allSinger")
-    public List<Singer> allSinger() {
-        return singerService.allSinger();
+    public R<List<Singer>> allSinger() {
+        return R.ok(singerService.allSinger());
     }
     
     /**
@@ -150,8 +150,8 @@ public class SingerController {
      * @return 歌手列表
      */
     @GetMapping(value = "/singerOfName")
-    public List<Singer> singerOfName(String name) {
-        return singerService.singerOfName("%" + name + "%");
+    public R<List<Singer>> singerOfName(String name) {
+        return R.ok(singerService.singerOfName("%" + name + "%"));
     }
 
     /**
@@ -161,8 +161,8 @@ public class SingerController {
      * @return 歌手列表
      */
     @GetMapping(value = "/singerOfSex")
-    public List<Singer> singerOfSex(Integer sex) {
-        return singerService.singerOfSex(sex);
+    public R<List<Singer>> singerOfSex(Integer sex) {
+        return R.ok(singerService.singerOfSex(sex));
     }
 
     /**

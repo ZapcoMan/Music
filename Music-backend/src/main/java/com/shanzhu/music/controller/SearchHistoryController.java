@@ -1,5 +1,6 @@
 package com.shanzhu.music.controller;
 
+import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.SearchHistory;
 import com.shanzhu.music.service.SearchHistoryService;
@@ -27,6 +28,7 @@ public class SearchHistoryController {
      * @return 结果
      */
     @PostMapping("/record")
+    @RequireUserType("consumer")
     public R<Boolean> recordSearch(
             @RequestAttribute("userId") Integer userId,
             @RequestParam String keywords,
@@ -78,6 +80,7 @@ public class SearchHistoryController {
      * @return 结果
      */
     @DeleteMapping("/clear")
+    @RequireUserType("consumer")
     public R<Boolean> clearHistory(@RequestAttribute("userId") Integer userId) {
         Boolean result = searchHistoryService.clearHistory(userId);
         if (result) {
@@ -94,6 +97,7 @@ public class SearchHistoryController {
      * @return 结果
      */
     @DeleteMapping("/clean-old")
+    @RequireUserType("consumer")
     public R<Boolean> cleanOldHistory(
             @RequestAttribute("userId") Integer userId,
             @RequestParam(required = false, defaultValue = "30") Integer days

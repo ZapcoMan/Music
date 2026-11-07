@@ -60,7 +60,8 @@ export default {
             if(this.loginIn){
                 getCollectOfUserId(this.userId)
                     .then(res =>{
-                        for(let item of res){
+                        // 收藏数组现随 R 一起返回
+                        for(let item of res.data || []){
                             if(item.songId == id){
                                 this.$store.commit('setIsActive',true);
                                 break;

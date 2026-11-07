@@ -1,6 +1,7 @@
 package com.shanzhu.music.controller;
 
 import com.shanzhu.music.annotation.RateLimit;
+import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Comment;
 import com.shanzhu.music.service.CommentService;
@@ -38,8 +39,9 @@ public class CommentController {
      */
     @RateLimit(key = "comment:add:", timeWindow = 60, maxRequests = 10, message = "评论发表过于频繁，请稍后再试")
     @PostMapping(value = "/add")
-    public R addComment(@RequestAttribute("userId") Integer userId,
-                        Byte type, Integer songId, Integer songListId, String content) {
+    @RequireUserType("consumer")
+    public R<Void> addComment(@RequestAttribute("userId") Integer userId,
+                              Byte type, Integer songId, Integer songListId, String content) {
         // type 是 Byte，前端漏传时与 0 比较会触发拆箱 NPE
         if (type == null) {
             return R.error("评论类型不能为空");
@@ -76,7 +78,8 @@ public class CommentController {
      */
     @RateLimit(key = "comment:update:", timeWindow = 60, maxRequests = 20, message = "评论修改过于频繁，请稍后再试")
     @PostMapping(value = "/update")
-    public R updateComment(@RequestAttribute("userId") Integer userId,
+    @RequireUserType({"consumer", "admin"})
+    public R<Void> updateComment(@RequestAttribute("userId") Integer userId,
                            @RequestAttribute("userType") String userType,
                            Integer id, Byte type, Integer songId, Integer songListId, String content) {
         Comment origin = commentService.selectByPrimaryKey(id);
@@ -114,18 +117,21 @@ public class CommentController {
      */
     @RateLimit(key = "comment:delete:", timeWindow = 60, maxRequests = 20, message = "评论删除过于频繁，请稍后再试")
     @DeleteMapping(value = "/delete")
-    public Boolean deleteComment(@RequestAttribute("userId") Integer userId,
+    @RequireUserType({"consumer", "admin"})
+    public R<Boolean> deleteComment(@RequestAttribute("userId") Integer userId,
                                  @RequestAttribute("userType") String userType,
                                  Integer id) {
         Comment origin = commentService.selectByPrimaryKey(id);
         if (origin == null) {
-            return false;
+            return R.error("评论不存在");
         }
         if (!userId.equals(origin.getUserId()) && !"admin".equals(userType)) {
             log.warn("评论删除被拒 - 令牌用户={}, 评论作者={}, commentId={}", userId, origin.getUserId(), id);
-            return false;
+            return R.error("无权删除他人评论");
         }
-        return commentService.delete(id);
+        // 原先"不存在""无权""删除失败"三种情况全塌成同一个 false，调用方无从分辨；
+        // 借统一返回结构之机拆开，成功路径仍返回 data=true
+        return R.ok("删除成功", commentService.delete(id));
     }
 
     /**
@@ -135,8 +141,8 @@ public class CommentController {
      * @return 评论
      */
     @GetMapping(value = "/selectByPrimaryKey")
-    public Comment selectByPrimaryKey(Integer id) {
-        return commentService.selectByPrimaryKey(id);
+    public R<Comment> selectByPrimaryKey(Integer id) {
+        return R.ok(commentService.selectByPrimaryKey(id));
     }
 
     /**
@@ -145,8 +151,11 @@ public class CommentController {
      * @return 所有评论
      */
     @GetMapping(value = "/allComment")
-    public List<Comment> allComment() {
-        return commentService.allComment();
+    // 这条此前只要求"已登录"，任何消费者令牌都能一次拉走全站评论。评论关联用户昵称等内容，
+    // 属于跨用户数据读取，不只是性能问题，故补 admin 限定。
+    @RequireUserType("admin")
+    public R<List<Comment>> allComment() {
+        return R.ok(commentService.allComment());
     }
 
     /**
@@ -156,8 +165,8 @@ public class CommentController {
      * @return 评论列表
      */
     @GetMapping(value = "/commentOfSongId")
-    public List<Comment> commentOfSongId(Integer songId) {
-        return commentService.commentOfSongId(songId);
+    public R<List<Comment>> commentOfSongId(Integer songId) {
+        return R.ok(commentService.commentOfSongId(songId));
     }
 
     /**
@@ -167,8 +176,8 @@ public class CommentController {
      * @return 评论列表
      */
     @GetMapping(value = "/commentOfSongListId")
-    public List<Comment> commentOfSongListId(Integer songListId) {
-        return commentService.commentOfSongListId(songListId);
+    public R<List<Comment>> commentOfSongListId(Integer songListId) {
+        return R.ok(commentService.commentOfSongListId(songListId));
     }
 
     /**
@@ -179,7 +188,8 @@ public class CommentController {
      */
     @RateLimit(key = "comment:like:", timeWindow = 60, maxRequests = 30, message = "点赞过于频繁，请稍后再试")
     @PostMapping(value = "/like")
-    public R like(Integer id) {
+    @RequireUserType("consumer")
+    public R<Void> like(Integer id) {
         Comment origin = commentService.selectByPrimaryKey(id);
         if (origin == null) {
             return R.error("评论不存在");
@@ -200,7 +210,7 @@ public class CommentController {
         return R.error("点赞失败");
     }
     @GetMapping("/frequent-words")
-    public R getFrequentWords(String songId) {
+    public R<List<String>> getFrequentWords(String songId) {
 
         log.info("id = " + songId);
         return R.ok("",commentService.getFrequentWords(songId));

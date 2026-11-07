@@ -117,7 +117,8 @@ export default {
             this.tempData = [];
             this.tableData = [];
             getCollectOfUserId(this.$route.query.id).then((res) => {
-                for (let item of res) {
+                // 收藏记录数组现随 R 一起返回
+                for (let item of res.data || []) {
                     this.getSong(item.songId);
                 }
             });
@@ -126,8 +127,9 @@ export default {
         getSong(id) {
             songOfSongId(id)
                 .then((res) => {
-                    this.tempData.push(res);
-                    this.tableData.push(res);
+                    // 歌曲对象在 res.data；直接 push(res) 会把整个响应体塞进表格行
+                    this.tempData.push(res.data);
+                    this.tableData.push(res.data);
                 })
                 .catch((err) => {
                     console.log(err);

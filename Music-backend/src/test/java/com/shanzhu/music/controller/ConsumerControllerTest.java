@@ -107,7 +107,7 @@ class ConsumerControllerTest extends BaseTest {
                 "\"avator\":\"/userImages/test.jpg\"" +
                 "}";
         
-        mockMvc.perform(MockMvcRequestBuilders.post("/consumer/update")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/consumer/update")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
                 .andExpect(MockMvcResultMatchers.status().isOk());

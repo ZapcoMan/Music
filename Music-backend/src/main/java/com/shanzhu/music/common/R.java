@@ -3,11 +3,13 @@ package com.shanzhu.music.common;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
- * 封装返回结果的类，使用 Lombok 注解减少 boilerplate 代码
+ * 统一返回结果。
+ *
+ * 两类改动值得说明。其一是删掉了此前与 data 并存的 dataMap 载体：它在后端没有任何一处
+ * 赋值、前端也没有任何一处读取，只是把两种返回风格焊在同一个类上，让"这个接口到底返回哪
+ * 个字段"变成口头约定。其二是所有静态工厂补齐泛型参数，不再返回 raw R——raw 类型会让调用
+ * 处退化成无检查的赋值，编译器再也看不出接口声明与实际返回是否一致。
  */
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL) // 只序列化非 null 的字段
@@ -19,72 +21,49 @@ public class R<T> {
     // 状态信息
     private String message;
 
-    // 存放数据的 Object
+    // 载荷
     private T data;
-
-    // 存放数据的 Map
-    private Map<String, Object> dataMap = new HashMap<>();
 
     // 构造器私有，防止外部实例化
     private R() {}
 
     // 通用返回成功的方法
-    public static R ok() {
-        R r = new R();
-        r.setSuccess(ResultCodeEnum.SUCCESS.getSuccess());
-        r.setCode(ResultCodeEnum.SUCCESS.getCode());
-        r.setMessage(ResultCodeEnum.SUCCESS.getMessage());
-        return r;
+    public static <T> R<T> ok() {
+        return of(ResultCodeEnum.SUCCESS, ResultCodeEnum.SUCCESS.getMessage(), null);
     }
 
     // 通用返回成功并携带消息的方法
-    public static R ok(String message) {
-        R r = new R();
-        r.setSuccess(ResultCodeEnum.SUCCESS.getSuccess());
-        r.setCode(ResultCodeEnum.SUCCESS.getCode());
-        r.setMessage(message);
-        return r;
+    public static <T> R<T> ok(String message) {
+        return of(ResultCodeEnum.SUCCESS, message, null);
     }
 
     // 通用返回成功并携带数据的方法
     public static <T> R<T> ok(T data) {
-        R<T> r = new R<>();
-        r.setSuccess(ResultCodeEnum.SUCCESS.getSuccess());
-        r.setCode(ResultCodeEnum.SUCCESS.getCode());
-        r.setMessage(ResultCodeEnum.SUCCESS.getMessage());
-        r.setData(data);
-        return r;
+        return of(ResultCodeEnum.SUCCESS, ResultCodeEnum.SUCCESS.getMessage(), data);
     }
 
     // 通用返回成功并携带消息和数据的方法
     public static <T> R<T> ok(String message, T data) {
-        R<T> r = new R<>();
-        r.setSuccess(ResultCodeEnum.SUCCESS.getSuccess());
-        r.setCode(ResultCodeEnum.SUCCESS.getCode());
-        r.setMessage(message);
-        r.setData(data);
-        return r;
+        return of(ResultCodeEnum.SUCCESS, message, data);
     }
 
+    /**
+     * 与 ok(data) 同义的历史工厂。
+     * 此前它漏了 setSuccess，而 success 字段带 NON_NULL 序列化策略，
+     * 于是响应体里根本没有 success 这个键——前端 res.success === true 恒为假。
+     * 同一个坑在 error(Integer, String) 上已经修过并留了注释，这里当时没一起改。
+     */
     public static <T> R<T> success(T data) {
-        R<T> result = new R<>();
-        result.setCode(ResultCodeEnum.SUCCESS.getCode());
-        result.setData(data);
-        result.setMessage("请求成功");
-        return result;
+        return of(ResultCodeEnum.SUCCESS, "请求成功", data);
     }
 
     // 通用返回失败的方法，用于未知错误
-    public static R error() {
-        R r = new R();
-        r.setSuccess(ResultCodeEnum.UNKNOWN_ERROR.getSuccess());
-        r.setCode(ResultCodeEnum.UNKNOWN_ERROR.getCode());
-        r.setMessage(ResultCodeEnum.UNKNOWN_ERROR.getMessage());
-        return r;
+    public static <T> R<T> error() {
+        return of(ResultCodeEnum.UNKNOWN_ERROR, ResultCodeEnum.UNKNOWN_ERROR.getMessage(), null);
     }
 
-    public static R error(Integer code, String msg) {
-        R result = new R();
+    public static <T> R<T> error(Integer code, String msg) {
+        R<T> result = new R<>();
         // 必须显式置 success=false：否则该字段序列化为 null，
         // 前端 res.success === true 的判定永远为假，成功与失败无法区分
         result.setSuccess(false);
@@ -93,66 +72,21 @@ public class R<T> {
         return result;
     }
 
-    public static R error(String msg) {
-        R result = new R();
-        result.setSuccess(false);
-        result.setCode(ResultCodeEnum.UNKNOWN_ERROR.getCode());
-        result.setMessage(msg);
-        return result;
+    public static <T> R<T> error(String msg) {
+        return error(ResultCodeEnum.UNKNOWN_ERROR.getCode(), msg);
     }
 
-    // 设置结果的方法，接受一个结果枚举作为参数
-    public static R setResult(ResultCodeEnum result) {
-        R r = new R();
+    // 通用返回失败的方法，接受一个结果枚举作为参数
+    public static <T> R<T> setResult(ResultCodeEnum result) {
+        return of(result, result.getMessage(), null);
+    }
+
+    private static <T> R<T> of(ResultCodeEnum result, String message, T data) {
+        R<T> r = new R<>();
         r.setSuccess(result.getSuccess());
         r.setCode(result.getCode());
-        r.setMessage(result.getMessage());
+        r.setMessage(message);
+        r.setData(data);
         return r;
     }
-
-    /**
-     * ------------使用链式编程，返回类本身-----------
-     **/
-
-    // 自定义返回数据的方法，接受一个 Map 作为参数
-    public R<T> data(Map<String, Object> map) {
-        this.setData(null); // 清空 data
-        this.setDataMap(map);
-        return this;
-    }
-
-    // 通用设置data的方法，接受一个键值对作为参数
-    public R<T> data(String key, Object value) {
-        this.setData(null); // 清空 data
-        this.dataMap.put(key, value);
-        return this;
-    }
-
-    // 自定义状态信息的方法
-    public R<T> message(String message) {
-        this.setMessage(message);
-        return this;
-    }
-
-    // 自定义状态码的方法
-    public R<T> code(Integer code) {
-        this.setCode(code);
-        return this;
-    }
-
-    // 自定义返回结果的方法
-    public R<T> success(Boolean success) {
-        this.setSuccess(success);
-        return this;
-    }
-
-    // 自定义序列化：只返回 data 或 dataMap，不同时返回
-//    public Map<String, Object> getJsonResponse() {
-//        if (this.data != null) {
-//            return Map.of("data", this.data);
-//        } else if (!this.dataMap.isEmpty()) {
-//            return Map.of("dataMap", this.dataMap);
-//        }
-//        return new HashMap<>();
-//    }
 }

@@ -133,8 +133,10 @@
       getComment() {
         getAllComment(this.type, this.playId)
           .then((res) => {
-            this.commentList = res;
-            for (let item of res) {
+            // 后端统一返回 R 后，评论数组在 res.data
+            const list = res.data || [];
+            this.commentList = list;
+            for (let item of list) {
               this.getUsers(item.userId);
             }
           })

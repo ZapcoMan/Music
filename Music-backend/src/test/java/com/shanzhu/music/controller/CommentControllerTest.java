@@ -22,7 +22,7 @@ class CommentControllerTest extends BaseTest {
     @Order(1)
     @DisplayName("测试添加评论-歌曲评论")
     void testAddCommentSong() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/comment/add")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/comment/add")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("userId", "1")
                 .param("type", "0")
@@ -35,7 +35,7 @@ class CommentControllerTest extends BaseTest {
     @Order(2)
     @DisplayName("测试添加评论-歌单评论")
     void testAddCommentSongList() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/comment/add")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/comment/add")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("userId", "1")
                 .param("type", "1")
@@ -48,7 +48,7 @@ class CommentControllerTest extends BaseTest {
     @Order(3)
     @DisplayName("测试修改评论")
     void testUpdateComment() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/comment/update")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/comment/update")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("id", "1")
                 .param("userId", "1")
@@ -62,7 +62,7 @@ class CommentControllerTest extends BaseTest {
     @Order(4)
     @DisplayName("测试删除评论")
     void testDeleteComment() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.delete("/comment/delete")
+        consumerMvc.perform(MockMvcRequestBuilders.delete("/comment/delete")
                 .param("id", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
@@ -106,7 +106,7 @@ class CommentControllerTest extends BaseTest {
     @Order(9)
     @DisplayName("测试点赞评论")
     void testLike() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/comment/like")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/comment/like")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("id", "1")
                 .param("up", "10"))
@@ -127,7 +127,7 @@ class CommentControllerTest extends BaseTest {
     @DisplayName("测试发评论时提交的 userId 不被采纳")
     void testAddCommentIgnoresSpoofedUserId() throws Exception {
         // 以消费者身份（令牌 userId=35）提交，但请求参数谎称 userId=1
-        mockMvc.perform(MockMvcRequestBuilders.post("/comment/add")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/comment/add")
                 .header("Authorization", consumerToken())
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("userId", "1")
@@ -152,24 +152,21 @@ class CommentControllerTest extends BaseTest {
     @Order(12)
     @DisplayName("测试无法修改他人评论")
     void testUpdateOthersCommentRejected() throws Exception {
-        // 先由管理员发一条评论（作者 userId=1）
-        mockMvc.perform(MockMvcRequestBuilders.post("/comment/add")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("type", "0")
-                .param("songId", "2")
-                .param("content", "属于管理员的评论"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true));
-
-        Integer id = null;
-        for (Comment c : commentService.commentOfSongId(2)) {
-            if ("属于管理员的评论".equals(c.getContent())) {
-                id = c.getId();
-            }
-        }
+        // 经 service 直接造一条属于他人(userId=1)的评论。
+        // 上一版想用 HTTP 造，但这条路已经走不通：/comment/add 只允许 consumer，
+        // 作者必然是令牌里的 35，Admin 打它会 403 —— 造不出"他人评论"这个前提，
+        // 用例便退化成"35 改自己的评论"，断言被拒自然失败。
+        Comment foreign = new Comment();
+        foreign.setUserId(1);
+        foreign.setType((byte) 0);
+        foreign.setSongId(2);
+        foreign.setContent("属于其他用户的评论");
+        commentService.insert(foreign);
+        Integer id = foreign.getId();
         Assertions.assertNotNull(id, "评论应已落库");
 
         // 换成消费者令牌（userId=35）去改它，应被拒绝且内容不变
-        mockMvc.perform(MockMvcRequestBuilders.post("/comment/update")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/comment/update")
                 .header("Authorization", consumerToken())
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("id", String.valueOf(id))
@@ -179,7 +176,7 @@ class CommentControllerTest extends BaseTest {
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false));
 
-        Assertions.assertEquals("属于管理员的评论", commentService.selectByPrimaryKey(id).getContent(),
+        Assertions.assertEquals("属于其他用户的评论", commentService.selectByPrimaryKey(id).getContent(),
                 "越权修改不应写入");
     }
 
@@ -197,7 +194,7 @@ class CommentControllerTest extends BaseTest {
         int before = target.getUp() == null ? 0 : target.getUp();
 
         // 客户端谎报 up=99999，服务端应只 +1
-        mockMvc.perform(MockMvcRequestBuilders.post("/comment/like")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/comment/like")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("id", String.valueOf(target.getId()))
                 .param("up", "99999"))

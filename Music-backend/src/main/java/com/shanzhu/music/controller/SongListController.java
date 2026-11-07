@@ -42,7 +42,7 @@ public class SongListController {
      */
     @PostMapping(value = "/add")
     @RequireUserType("admin")
-    public R addSongList(
+    public R<Void> addSongList(
             String title,
             String pic,
             String introduction,
@@ -74,7 +74,7 @@ public class SongListController {
      */
     @PostMapping(value = "/update")
     @RequireUserType("admin")
-    public R updateSongList(
+    public R<Void> updateSongList(
             String id,
             String title,
             String introduction,
@@ -106,8 +106,8 @@ public class SongListController {
      */
     @DeleteMapping(value = "/delete")
     @RequireUserType("admin")
-    public Boolean deleteSongList(Integer id) {
-        return songListService.delete(id);
+    public R<Boolean> deleteSongList(Integer id) {
+        return R.ok(songListService.delete(id));
     }
 
     /**
@@ -117,8 +117,8 @@ public class SongListController {
      * @return 歌单
      */
     @GetMapping(value = "/selectByPrimaryKey")
-    public SongList selectByPrimaryKey(Integer id) {
-        return songListService.selectByPrimaryKey(id);
+    public R<SongList> selectByPrimaryKey(Integer id) {
+        return R.ok(songListService.selectByPrimaryKey(id));
     }
 
     /**
@@ -127,9 +127,9 @@ public class SongListController {
      * @return 歌单列表
      */
     @GetMapping(value = "/allSongList")
-    public List<SongList> allSongList() {
+    public R<List<SongList>> allSongList() {
         log.info("songListService.allSongList() = " + songListService.allSongList());
-        return songListService.allSongList();
+        return R.ok(songListService.allSongList());
     }
 
     /**
@@ -139,8 +139,8 @@ public class SongListController {
      * @return 歌单列表
      */
     @GetMapping(value = "/songListOfTitle")
-    public List<SongList> songListOfName(String title) {
-        return songListService.songListOfTitle(title);
+    public R<List<SongList>> songListOfName(String title) {
+        return R.ok(songListService.songListOfTitle(title));
     }
 
     /**
@@ -150,8 +150,8 @@ public class SongListController {
      * @return 歌单列表
      */
     @GetMapping(value = "/likeTitle")
-    public List<SongList> likeTitle(String title) {
-        return songListService.likeTitle("%" + title + "%");
+    public R<List<SongList>> likeTitle(String title) {
+        return R.ok(songListService.likeTitle("%" + title + "%"));
     }
 
     /**
@@ -161,8 +161,8 @@ public class SongListController {
      * @return 歌单列表
      */
     @RequestMapping(value = "/likeStyle", method = RequestMethod.GET)
-    public Object likeStyle(String style) {
-        return songListService.likeStyle("%" + style + "%");
+    public R<List<SongList>> likeStyle(String style) {
+        return R.ok(songListService.likeStyle("%" + style + "%"));
     }
 
     /**
@@ -199,7 +199,8 @@ public class SongListController {
     }
 
     @PostMapping(value = "/queryRecommendedSongListById")
-    public R queryRecommendedSongListById(String id) {
+    @RequireUserType("consumer")
+    public R<List<Song>> queryRecommendedSongListById(String id) {
         log.info("queryRecommendedSongListById 触发了");
         log.info("id : {}", id);
         List<Song> songLists = songListService.queryRecommendedSongById(id);

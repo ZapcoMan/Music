@@ -163,60 +163,6 @@ class RTest {
     }
 
     /**
-     * 测试链式调用
-     */
-    @Test
-    @Order(10)
-    @DisplayName("测试链式调用")
-    void testChaining() {
-        R result = R.ok()
-                .code(20000)
-                .message("自定义消息")
-                .success(true);
-        
-        assertNotNull(result);
-        assertEquals(20000, result.getCode());
-        assertEquals("自定义消息", result.getMessage());
-        assertTrue(result.getSuccess());
-        System.out.println("链式调用: " + result);
-    }
-
-    /**
-     * 测试 data 方法(Map)
-     */
-    @Test
-    @Order(11)
-    @DisplayName("测试data方法-Map")
-    void testDataWithMap() {
-        Map<String, Object> dataMap = new HashMap<>();
-        dataMap.put("total", 100);
-        dataMap.put("list", new String[]{"item1", "item2"});
-        
-        R result = R.ok().data(dataMap);
-        
-        assertNotNull(result);
-        assertEquals(dataMap, result.getDataMap());
-        System.out.println("R.data(map): " + result.getDataMap());
-    }
-
-    /**
-     * 测试 data 方法(key-value)
-     */
-    @Test
-    @Order(12)
-    @DisplayName("测试data方法-key-value")
-    void testDataWithKeyValue() {
-        R result = R.ok()
-                .data("key1", "value1")
-                .data("key2", 123);
-        
-        assertNotNull(result);
-        assertEquals("value1", result.getDataMap().get("key1"));
-        assertEquals(123, result.getDataMap().get("key2"));
-        System.out.println("R.data(key, value): " + result.getDataMap());
-    }
-
-    /**
      * 测试泛型类型安全
      */
     @Test
@@ -233,5 +179,42 @@ class RTest {
         assertEquals(123, intData);
         
         System.out.println("泛型测试通过");
+    }
+
+    /**
+     * success(T) 必须把 success 位置为 true。
+     *
+     * 这条用例守着本轮修掉的一个具体缺陷：R.success(T) 此前只设 code/data/message，
+     * 漏了 setSuccess，而 success 字段带 NON_NULL 序列化策略——响应体里压根没有 success 这个键，
+     * 前端 res.success === true 恒为假。同一个坑在 error(Integer,String) 上早已修过并留了注释，
+     * 但 success(T) 因为全仓零调用一直没人碰，属于典型的"死代码陷阱"：等有人复用时才炸。
+     */
+    @Test
+    @Order(14)
+    @DisplayName("测试success工厂方法确实置success标志")
+    void testSuccessFactorySetsSuccessFlag() {
+        R<String> result = R.success("payload");
+
+        assertEquals(Boolean.TRUE, result.getSuccess(), "success 工厂必须显式置成功标志，否则前端无法区分成败");
+        assertEquals(20000, result.getCode());
+        assertEquals("payload", result.getData());
+    }
+
+    /**
+     * 单一载荷载体的守卫。
+     *
+     * R 曾同时保留 data 与 dataMap 两条载体，后端零处赋值、前端零处读取，
+     * 使"这个接口到底把结果放在哪个字段"退化成口头约定。本轮删除后，
+     * 这条用例保证它不会以"再加一个便捷字段"的名义长回来。
+     */
+    @Test
+    @Order(15)
+    @DisplayName("测试序列化结果只有单一data载体")
+    void testSerializedResultHasSingleDataCarrier() throws Exception {
+        String json = new com.fasterxml.jackson.databind.ObjectMapper()
+                .writeValueAsString(R.ok("消息", java.util.List.of("a", "b")));
+
+        assertTrue(json.contains("\"data\""), "载荷应出现在 data 字段");
+        assertFalse(json.contains("dataMap"), "不应再出现 dataMap 第二条载体");
     }
 }

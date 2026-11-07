@@ -144,12 +144,8 @@ export default {
       //获取前十条歌单
       getAllSongList()
         .then((res) => {
-          // 处理后端可能返回 List<SongList> 或 R<List<SongList>>
-          if (Array.isArray(res)) {
-            this.songsList[0].list = res.slice(0, 10);
-          } else if (res.code === 20000 || res.success === true) {
-            this.songsList[0].list = res.data.slice(0, 10);
-          }
+          // 后端已统一返回 R，无需再兼容裸 List 的旧形态
+          this.songsList[0].list = (res.data || []).slice(0, 10);
         })
         .catch((e) => this.showRequestError(e));
     },
@@ -157,12 +153,7 @@ export default {
       //获取前十名歌手
       getAllSinger()
         .then((res) => {
-          // 处理后端可能返回 List<Singer> 或 R<List<Singer>>
-          if (Array.isArray(res)) {
-            this.songsList[1].list = res.slice(0, 10);
-          } else if (res.code === 20000 || res.success === true) {
-            this.songsList[1].list = res.data.slice(0, 10);
-          }
+          this.songsList[1].list = (res.data || []).slice(0, 10);
         })
         .catch((e) => this.showRequestError(e));
     },

@@ -85,7 +85,8 @@ export default {
         getCollection(userId){
             getCollectOfUserId(userId)
                 .then(res =>{
-                        this.collection = res;
+                        // 收藏数组现随 R 一起返回，本体在 res.data
+                        this.collection = res.data || [];
                         //通过歌曲id获取歌曲信息
                         for(let item of this.collection){
                             this.getSongsOfIds(item.songId);
@@ -99,7 +100,8 @@ export default {
         getSongsOfIds(id){
             songOfSongId(id)
                 .then(res =>{
-                        this.collectList.push(res);
+                        // 歌曲对象在 res.data
+                        this.collectList.push(res.data);
                     })
                 .catch(err => {
                     console.log(err);

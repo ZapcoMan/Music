@@ -296,13 +296,10 @@ export default {
             this.tempData = [];
             this.tableData = [];
             songOfSingerId(this.singerId).then((res) => {
-                // 处理后端可能返回 List<Song> 或 R<List<Song>>
-                if (Array.isArray(res)) {
-                    this.tempData = res;
-                    this.tableData = res;
-                } else if (res.code === 20000 || res.success === true) {
-                    this.tempData = res.data;
-                    this.tableData = res.data;
+                // 后端已统一返回 R，无需再兼容裸 List 的旧形态
+                if (res.code === 20000 || res.success === true) {
+                    this.tempData = res.data || [];
+                    this.tableData = res.data || [];
                 } else {
                     this.notify(res.message || '获取歌曲列表失败', 'error');
                 }

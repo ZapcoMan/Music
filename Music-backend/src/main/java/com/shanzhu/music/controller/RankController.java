@@ -1,5 +1,6 @@
 package com.shanzhu.music.controller;
 
+import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Rank;
 import com.shanzhu.music.service.RankService;
@@ -33,7 +34,8 @@ public class RankController {
      * @return 结果
      */
     @PostMapping(value = "/add")
-    public R add(@RequestAttribute("userId") Integer userId, Integer songListId, Integer score) {
+    @RequireUserType("consumer")
+    public R<Void> add(@RequestAttribute("userId") Integer userId, Integer songListId, Integer score) {
         Rank rank = new Rank();
         rank.setSongListId(songListId);
         rank.setConsumerId(userId);
@@ -53,11 +55,12 @@ public class RankController {
      * @return 结果
      */
     @GetMapping
-    public Integer rankOfSongListId(String songListId) {
-        Integer parsedSongListId = ParseUtils.toIntegerOrNull(songListId);        if (parsedSongListId == null) {
-            return 0;
+    public R<Integer> rankOfSongListId(String songListId) {
+        Integer parsedSongListId = ParseUtils.toIntegerOrNull(songListId);
+        if (parsedSongListId == null) {
+            return R.ok(0);
         }
-        return rankService.rankOfSongListId(parsedSongListId);
+        return R.ok(rankService.rankOfSongListId(parsedSongListId));
     }
 
 }

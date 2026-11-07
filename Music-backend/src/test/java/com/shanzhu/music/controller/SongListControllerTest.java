@@ -148,10 +148,13 @@ class SongListControllerTest extends BaseTest {
     @Order(10)
     @DisplayName("测试查询推荐歌单")
     void testQueryRecommendedSongListById() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/songList/queryRecommendedSongListById")
+        // 推荐歌单是用户端功能，按角色只能由 consumer 调用
+        consumerMvc.perform(MockMvcRequestBuilders.post("/songList/queryRecommendedSongListById")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("id", "1"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
     }
 
     @Test

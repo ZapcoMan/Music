@@ -48,11 +48,24 @@ public class BaseTest {
      */
     protected MockMvc mockMvc;
 
+    /**
+     * 预置消费者令牌的实例。
+     *
+     * 评论、收藏、评分、搜索历史这些接口按角色只允许 consumer，写接口又改为 fail-closed：
+     * 用基类默认的 admin 实例打它们，拿到的是 403，测到的是权限模型而不是业务逻辑本身。
+     * 单列一个实例，免得每个用例都手写一遍 header。
+     */
+    protected MockMvc consumerMvc;
+
     @BeforeEach
     void setUpMockMvc() {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .defaultRequest(MockMvcRequestBuilders.get("/")
                         .header("Authorization", adminToken()))
+                .build();
+        this.consumerMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .defaultRequest(MockMvcRequestBuilders.get("/")
+                        .header("Authorization", consumerToken()))
                 .build();
     }
 

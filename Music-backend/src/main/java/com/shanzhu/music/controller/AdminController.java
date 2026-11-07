@@ -1,6 +1,7 @@
 package com.shanzhu.music.controller;
 
 import com.shanzhu.music.annotation.RateLimit;
+import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Admin;
 import com.shanzhu.music.entity.vo.AdminLoginVo;
@@ -48,7 +49,8 @@ public class AdminController {
      */
     @Operation(summary = "管理员登出", description = "使当前管理员令牌立即失效")
     @PostMapping(value = "/admin/logout")
-    public R logoutAdmin(HttpServletRequest request,
+    @RequireUserType("admin")
+    public R<Void> logoutAdmin(HttpServletRequest request,
                          @RequestAttribute("userId") Integer userId,
                          @RequestAttribute("username") String username,
                          @RequestAttribute("userType") String userType) {

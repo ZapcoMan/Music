@@ -62,7 +62,8 @@ public class ConsumerController {
      */
     @Operation(summary = "用户登出", description = "使当前令牌立即失效")
     @PostMapping(value = "/logout")
-    public R logout(HttpServletRequest request,
+    @RequireUserType({"consumer", "admin"})
+    public R<Void> logout(HttpServletRequest request,
                     @RequestAttribute("userId") Integer userId,
                     @RequestAttribute("username") String username,
                     @RequestAttribute("userType") String userType) {
@@ -87,7 +88,7 @@ public class ConsumerController {
     @Operation(summary = "注册用户", description = "注册新的前台用户账号")
     @RateLimit(key = "register:consumer:", timeWindow = 60, maxRequests = 5, message = "注册过于频繁，请60秒后再试")
     @PostMapping(value = "/add")
-    public R addConsumer(@Valid @RequestBody ConsumerRequest request, HttpServletRequest httpRequest) {
+    public R<Void> addConsumer(@Valid @RequestBody ConsumerRequest request, HttpServletRequest httpRequest) {
         //已经存在用户名
         Consumer existConsumer = consumerService.getByUsername(request.getUsername());
         if (existConsumer != null) {
@@ -129,7 +130,8 @@ public class ConsumerController {
      */
     @RateLimit(key = "update:consumer:", timeWindow = 60, maxRequests = 10, message = "资料修改过于频繁，请稍后再试")
     @PostMapping(value = "/update")
-    public R updateConsumer(@RequestAttribute("userId") Integer currentUserId,
+    @RequireUserType("consumer")
+    public R<Void> updateConsumer(@RequestAttribute("userId") Integer currentUserId,
                             @RequestAttribute("username") String currentUsername,
                             @RequestAttribute("userType") String currentUserType,
                             @Valid @RequestBody ConsumerRequest request,
@@ -177,7 +179,7 @@ public class ConsumerController {
     @RateLimit(key = "delete:consumer:", timeWindow = 60, maxRequests = 10, message = "用户删除过于频繁，请稍后再试")
     @DeleteMapping(value = "/delete")
     @RequireUserType("admin")
-    public Boolean deleteConsumer(@RequestAttribute("userId") Integer operatorId,
+    public R<Boolean> deleteConsumer(@RequestAttribute("userId") Integer operatorId,
                                   @RequestAttribute("username") String operatorName,
                                   @RequestAttribute("userType") String operatorType,
                                   Integer id, HttpServletRequest httpRequest) {
@@ -186,7 +188,7 @@ public class ConsumerController {
             operationLogService.logDelete(operatorId, operatorName, operatorType,
                     "用户模块", "删除前台用户 id=" + id, ipUtils.getIpAddress(httpRequest));
         }
-        return deleted;
+        return R.ok(deleted);
     }
 
     /**
@@ -197,16 +199,18 @@ public class ConsumerController {
      */
     @Operation(summary = "查询用户公开信息", description = "按ID查询账号与头像，供评论区展示他人身份；手机号、邮箱等私密资料不在此返回")
     @GetMapping(value = "/selectByPrimaryKey")
-    public ConsumerPublicVo selectByPrimaryKey(@Parameter(description = "用户ID", required = true, example = "1") Integer id) {
+    public R<ConsumerPublicVo> selectByPrimaryKey(@Parameter(description = "用户ID", required = true, example = "1") Integer id) {
         Consumer consumer = consumerService.selectByPrimaryKey(id);
         if (consumer == null) {
-            return null;
+            // 保持"查不到即空载荷"的原语义，不改成 error：评论区展示他人身份时
+            // 账号可能已注销，这不是调用方的错误
+            return R.ok(null);
         }
         ConsumerPublicVo publicVo = new ConsumerPublicVo();
         publicVo.setId(consumer.getId());
         publicVo.setUsername(consumer.getUsername());
         publicVo.setAvator(consumer.getAvator());
-        return publicVo;
+        return R.ok(publicVo);
     }
 
     /**
@@ -218,8 +222,8 @@ public class ConsumerController {
      */
     @Operation(summary = "查询本人资料", description = "返回当前令牌用户的完整资料，含私密字段")
     @GetMapping(value = "/profile")
-    public Consumer profile(@RequestAttribute("userId") Integer currentUserId) {
-        return consumerService.selectByPrimaryKey(currentUserId);
+    public R<Consumer> profile(@RequestAttribute("userId") Integer currentUserId) {
+        return R.ok(consumerService.selectByPrimaryKey(currentUserId));
     }
 
     /**
@@ -230,8 +234,8 @@ public class ConsumerController {
     @Operation(summary = "查询所有用户", description = "查询所有前台用户列表")
     @GetMapping(value = "/allConsumer")
     @RequireUserType("admin")
-    public List<Consumer> allConsumer() {
-        return consumerService.allConsumer();
+    public R<List<Consumer>> allConsumer() {
+        return R.ok(consumerService.allConsumer());
     }
     
     /**
@@ -263,6 +267,7 @@ public class ConsumerController {
      */
     @RateLimit(key = "upload:avatar:", timeWindow = 60, maxRequests = 5, message = "头像上传过于频繁，请稍后再试")
     @PostMapping(value = "/updateConsumerPic")
+    @RequireUserType("consumer")
     public R<UploadConsumerPicVo> updateConsumerPic(
             @RequestParam("file") MultipartFile avatorFile,
             @RequestParam("id") Integer id,

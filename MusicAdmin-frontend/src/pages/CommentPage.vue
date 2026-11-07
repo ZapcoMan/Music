@@ -75,7 +75,8 @@ export default {
             this.tempData = [];
             this.tableData = [];
             getCommentOfSongListId(this.$route.query.id).then(res => {
-                for(let item of res){
+                // 评论数组现随 R 一起返回
+                for(let item of res.data || []){
                     this.getUsers(item.userId,item);
                 }
             })

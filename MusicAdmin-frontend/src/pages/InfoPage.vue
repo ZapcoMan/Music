@@ -151,8 +151,10 @@ export default {
     methods: {
         getConsumer() {                     //用户总数
             getAllConsumer().then(res => {
-                this.consumer = res;
-                this.consumerCount = res.length;
+                // 后端统一返回 R 后，数据本体在 res.data；此前 res 本身就是数组
+                const list = res.data || [];
+                this.consumer = list;
+                this.consumerCount = list.length;
                 this.consumerSex.rows[0]['总数'] = this.setSex(1,this.consumer);
                 this.consumerSex.rows[1]['总数'] = this.setSex(0,this.consumer);
             })
@@ -168,17 +170,18 @@ export default {
         },
         getSong() {                      //歌曲总数
             allSong().then(res => {
-                this.songCount = res.length;
+                this.songCount = (res.data || []).length;
             })
         },
         getSinger() {                      //歌手数量
             getAllSinger().then(res => {
-                this.singerCount = res.length;
-                this.singerSex.rows[0]['总数'] = this.setSex(0,res);
-                this.singerSex.rows[1]['总数'] = this.setSex(1,res);
-                this.singerSex.rows[2]['总数'] = this.setSex(2,res);
-                this.singerSex.rows[3]['总数'] = this.setSex(3,res);
-                for(let item of res){
+                const list = res.data || [];
+                this.singerCount = list.length;
+                this.singerSex.rows[0]['总数'] = this.setSex(0,list);
+                this.singerSex.rows[1]['总数'] = this.setSex(1,list);
+                this.singerSex.rows[2]['总数'] = this.setSex(2,list);
+                this.singerSex.rows[3]['总数'] = this.setSex(3,list);
+                for(let item of list){
                     this.getByCountry(item.location);
                 }
             })
@@ -186,8 +189,9 @@ export default {
 
         getSongList() {                    //歌单数量
             getAllSongList().then(res => {
-                this.songListCount = res.length;
-                for(let item of res){
+                const list = res.data || [];
+                this.songListCount = list.length;
+                for(let item of list){
                     this.getByStyle(item.style);
                 }
             })

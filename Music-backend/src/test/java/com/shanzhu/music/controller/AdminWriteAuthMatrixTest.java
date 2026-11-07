@@ -105,4 +105,45 @@ class AdminWriteAuthMatrixTest extends BaseTest {
             default -> throw new IllegalArgumentException("矩阵未覆盖的 HTTP 方法: " + method);
         };
     }
+
+    /**
+     * 只允许 consumer 的自助写接口。
+     *
+     * 评论 update/delete 允许 {consumer, admin}，管理员可清理违规评论，因此不列在这里——
+     * 用 admin 令牌打它们应当是 200 而不是 403。
+     */
+    static Stream<Arguments> consumerOnlyEndpoints() {
+        return Stream.of(
+                Arguments.of("POST", "/collect/add", false),
+                Arguments.of("DELETE", "/collect/delete", false),
+                Arguments.of("POST", "/comment/add", false),
+                Arguments.of("POST", "/comment/like", false),
+                Arguments.of("POST", "/consumer/update", false),
+                Arguments.of("POST", "/consumer/updateConsumerPic", true),
+                Arguments.of("POST", "/rank/add", false),
+                Arguments.of("POST", "/search-history/record", false),
+                Arguments.of("DELETE", "/search-history/clear", false),
+                Arguments.of("DELETE", "/search-history/clean-old", false));
+    }
+
+    @ParameterizedTest(name = "匿名调用消费者接口 {0} {1} 应被拒 (第 {index} 项)")
+    @MethodSource("consumerOnlyEndpoints")
+    void anonymousCannotReachConsumerEndpoints(String method, String path, boolean multipart) throws Exception {
+        anonymous.perform(requestFor(method, path, multipart))
+                .andExpect(MockMvcResultMatchers.status().isUnauthorized());
+    }
+
+    /**
+     * 管理员令牌也不能替消费者写自助数据。
+     *
+     * 这条看着像多余，实际不是：评论、收藏、评分都以 consumer 表的 id 为归属，
+     * admin 的 id 在 consumer 表里不存在，让它写这类数据只会造成孤儿行或外键失败。
+     * fail-closed 之后角色域是显式声明的，这里验证声明确实生效。
+     */
+    @ParameterizedTest(name = "管理员令牌调用消费者接口 {0} {1} 应被拒 (第 {index} 项)")
+    @MethodSource("consumerOnlyEndpoints")
+    void adminTokenCannotReachConsumerEndpoints(String method, String path, boolean multipart) throws Exception {
+        mockMvc.perform(requestFor(method, path, multipart))
+                .andExpect(MockMvcResultMatchers.status().isForbidden());
+    }
 }

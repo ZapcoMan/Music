@@ -171,7 +171,8 @@ export default {
             this.tempData = [];
             this.tableData = [];
             listSongDetail(this.songListId).then((res) => {
-                for (let item of res) {
+                // 关联记录数组现随 R 一起返回
+                for (let item of res.data || []) {
                     this.getSong(item.songId);
                 }
             });
@@ -180,8 +181,8 @@ export default {
         getSong(id) {
             songOfSongId(id)
                 .then((res) => {
-                    this.tempData.push(res);
-                    this.tableData.push(res);
+                    this.tempData.push(res.data);
+                    this.tableData.push(res.data);
                 })
                 .catch((err) => {
                     console.log(err);

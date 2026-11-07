@@ -21,8 +21,8 @@ class RankControllerTest extends BaseTest {
     @Order(1)
     @DisplayName("测试添加评价")
     void testAddRank() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/rank/add")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        consumerMvc.perform(MockMvcRequestBuilders.post("/rank/add")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("songListId", "1")
                 .param("consumerId", "1")
                 .param("score", "5"))
@@ -38,8 +38,8 @@ class RankControllerTest extends BaseTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/rank")
                 .param("songListId", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                // 返回的是 Integer 而非 R：断言它确实是个数字，而不是仅仅 200
-                .andExpect(MockMvcResultMatchers.jsonPath("$").isNumber());
+                // 平均分现随 R 一起返回，数字在 data 里；断 data 是数字才算真验到值
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isNumber());
     }
 
     /**
@@ -52,19 +52,25 @@ class RankControllerTest extends BaseTest {
      *
      * 歌单 id 现查而非写死：ranks 上有 (song_list_id, consumer_id) 唯一索引，
      * 种子数据已占用 35 的部分组合，写死会撞索引而失败，那与本次要验的东西无关。
-     * 选题只依赖 ranks 表，被 ranks 引用过的歌单必然存在（孤儿引用已在 V8 清理）。
+     *
+     * 选题从 song_list 全集里挑，而不是上一版那样从 ranks 反查"别人评过但 35 没评过"：
+     * 后者候选集只有几十行，一旦被逐次占满就查不到行，queryForObject 会抛
+     * EmptyResultDataAccessException，用例红得不明不白。改成歌单全集后候选充裕，
+     * 并用 queryForList + 显式断言把"选不到题"变成一句可读的失败信息。
      */
     @Test
     @Order(3)
     @DisplayName("测试评分人取自令牌而非入参consumerId")
     void testRankRaterComesFromTokenNotParameter() throws Exception {
-        Integer songListId = jdbcTemplate.queryForObject(
-                "select r.song_list_id from ranks r " +
-                        "where r.consumer_id <> 35 " +
-                        "and not exists (select 1 from ranks r2 " +
-                        "where r2.song_list_id = r.song_list_id and r2.consumer_id = 35) " +
-                        "limit 1",
+        java.util.List<Integer> candidates = jdbcTemplate.queryForList(
+                "select sl.id from song_list sl " +
+                        "where not exists (select 1 from ranks r " +
+                        "where r.song_list_id = sl.id and r.consumer_id = 35) " +
+                        "order by sl.id limit 1",
                 Integer.class);
+        Assertions.assertFalse(candidates.isEmpty(),
+                "song_list 中应存在 35 尚未评分的歌单，否则本用例无法构造");
+        Integer songListId = candidates.get(0);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/rank/add")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)

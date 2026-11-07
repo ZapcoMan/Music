@@ -90,8 +90,8 @@ public class SongController {
      * @return 歌曲列表
      */
     @GetMapping(value = "/singer/detail")
-    public List<Song> songOfSingerId(Integer singerId) {
-        return songService.songOfSingerId(singerId);
+    public R<List<Song>> songOfSingerId(Integer singerId) {
+        return R.ok(songService.songOfSingerId(singerId));
     }
 
     /**
@@ -105,7 +105,7 @@ public class SongController {
      */
     @PostMapping(value = "/update")
     @RequireUserType("admin")
-    public R updateSong(Integer id, String name, String introduction, String lyric) {
+    public R<Void> updateSong(Integer id, String name, String introduction, String lyric) {
         //保存到歌手的对象中
         Song song = new Song();
         song.setId(id);
@@ -129,8 +129,8 @@ public class SongController {
      */
     @DeleteMapping(value = "/delete")
     @RequireUserType("admin")
-    public Boolean deleteSinger(Integer id) {
-        return songService.delete(id);
+    public R<Boolean> deleteSinger(Integer id) {
+        return R.ok(songService.delete(id));
     }
 
     /**
@@ -207,8 +207,8 @@ public class SongController {
      * @return 歌曲
      */
     @GetMapping(value = "/detail")
-    public Object detail(Integer songId) {
-        return songService.selectByPrimaryKey(songId);
+    public R<Song> detail(Integer songId) {
+        return R.ok(songService.selectByPrimaryKey(songId));
     }
 
     /**
@@ -218,8 +218,8 @@ public class SongController {
      * @return 歌曲列表
      */
     @GetMapping(value = "/songOfSongName")
-    public Object songOfSongName(String songName) {
-        return songService.songOfName(songName);
+    public R<List<Song>> songOfSongName(String songName) {
+        return R.ok(songService.songOfName(songName));
     }
 
     /**
@@ -229,8 +229,8 @@ public class SongController {
      * @return 歌曲列表
      */
     @GetMapping(value = "/likeSongOfName")
-    public Object likeSongOfName(String songName) {
-        return songService.likeSongOfName(songName);
+    public R<List<Song>> likeSongOfName(String songName) {
+        return R.ok(songService.likeSongOfName(songName));
     }
 
     /**
@@ -239,8 +239,8 @@ public class SongController {
      * @return 歌曲列表
      */
     @GetMapping(value = "/allSong")
-    public Object allSong() {
-        return songService.allSong();
+    public R<List<Song>> allSong() {
+        return R.ok(songService.allSong());
     }
     
     /**

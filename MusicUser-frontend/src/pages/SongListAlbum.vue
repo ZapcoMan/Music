@@ -84,7 +84,8 @@ export default {
         getSongId(){
             listSongDetail(this.songListId)
                 .then(res => {
-                    for(let item of res){
+                    // 关联记录数组现随 R 一起返回
+                    for(let item of (res.data || [])){
                         this.getSongList(item.songId);
                     }
                     this.$store.commit('setListOfSongs',this.songLists);
@@ -97,7 +98,8 @@ export default {
         getSongList(id){
             songOfSongId(id)
                 .then(res => {
-                    this.songLists.push(res);
+                    // 单首歌曲现在 res.data 里；直接 push(res) 会把整个响应体塞进列表
+                    this.songLists.push(res.data);
                 })
                 .catch(err =>{
                     console.log(err)
@@ -107,7 +109,8 @@ export default {
         getRank(id){
             getRankOfSongListId(id)
                 .then(res => {
-                    this.average = res/2;
+                    // 平均分随 R 返回，读 res 会得到 NaN，星级展示整块失效
+                    this.average = (res.data || 0)/2;
                 })
                 .catch(err =>{
                     console.log(err)

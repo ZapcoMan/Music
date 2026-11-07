@@ -457,12 +457,10 @@ export default {
                 this.$store.commit("setIsActive", false);
                 if (this.loginIn) {
                     getCollectOfUserId(this.userId).then((res) => {
-                        // 后端未登录或异常时返回的不是数组，遍历前先判类型，
-                        // 否则 for...of 直接抛 TypeError
-                        if (!Array.isArray(res)) {
-                            return;
-                        }
-                        for (let item of res) {
+                        // 后端统一返回 R，收藏数组在 res.data；接口异常时按空集合处理即可，
+                        // 不必再判"是不是数组"来防 for...of 抛 TypeError
+                        const collected = res.data || [];
+                        for (let item of collected) {
                             if (item.songId == this.id) {
                                 this.$store.commit("setIsActive", true);
                                 break;

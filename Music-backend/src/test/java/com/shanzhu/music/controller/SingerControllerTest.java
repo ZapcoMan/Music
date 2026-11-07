@@ -41,7 +41,8 @@ class SingerControllerTest extends BaseTest {
     void testAllSinger() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/singer/allSinger"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$").isArray());
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
         
         System.out.println("查询所有歌手接口测试通过");
     }
@@ -56,7 +57,8 @@ class SingerControllerTest extends BaseTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/singer/singerOfName")
                 .param("name", "周"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$").isArray());
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
         
         System.out.println("模糊查询歌手接口测试通过");
     }
@@ -71,7 +73,8 @@ class SingerControllerTest extends BaseTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/singer/singerOfSex")
                 .param("sex", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$").isArray());
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
         
         System.out.println("根据性别查询歌手接口测试通过");
     }

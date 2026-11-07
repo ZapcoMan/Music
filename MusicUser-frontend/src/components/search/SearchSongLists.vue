@@ -32,8 +32,11 @@ export default {
             }else{
                 getSongListOfLikeTitle(this.$route.query.keywords)
                     .then(res =>{
-                        if(res){
-                            this.albumDatas = res
+                        // 歌单数组现随 R 一起返回；判空要看 data，
+                        // 否则 res 是非空对象，永远进不了"暂无"分支
+                        const list = res.data || [];
+                        if(list.length){
+                            this.albumDatas = list
                         }else{
                             this.notify('暂无该歌曲内容','warning')
                         }

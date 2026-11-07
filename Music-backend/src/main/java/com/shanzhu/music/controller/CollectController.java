@@ -39,7 +39,8 @@ public class CollectController {
      * @return 添加结果
      */
     @PostMapping(value = "/add")
-    public R addCollect(@RequestAttribute("userId") Integer userId,
+    @RequireUserType("consumer")
+    public R<Void> addCollect(@RequestAttribute("userId") Integer userId,
                         @RequestParam Byte type,
                         @RequestParam(required = false) Integer songId,
                         @RequestParam(required = false) Integer songListId) {
@@ -80,13 +81,14 @@ public class CollectController {
      * @return 删除结果
      */
     @DeleteMapping(value = "/delete")
-    public Boolean deleteCollect(@RequestAttribute("userId") Integer userId,
+    @RequireUserType("consumer")
+    public R<Boolean> deleteCollect(@RequestAttribute("userId") Integer userId,
                                 @RequestParam(required = false) Integer songId,
                                 @RequestParam(required = false) Integer songListId) {
         if (songListId != null) {
-            return collectService.deleteByUserIdSongListId(userId, songListId);
+            return R.ok(collectService.deleteByUserIdSongListId(userId, songListId));
         }
-        return collectService.deleteByUserIdSongId(userId, songId);
+        return R.ok(collectService.deleteByUserIdSongId(userId, songId));
     }
 
     /**
@@ -96,8 +98,8 @@ public class CollectController {
      * @return 歌单列表
      */
     @GetMapping(value = "/songList")
-    public List<SongList> collectSongList(@RequestAttribute("userId") Integer userId) {
-        return collectService.collectSongListOfUserId(userId);
+    public R<List<SongList>> collectSongList(@RequestAttribute("userId") Integer userId) {
+        return R.ok(collectService.collectSongListOfUserId(userId));
     }
 
     /**
@@ -107,8 +109,8 @@ public class CollectController {
      */
     @GetMapping(value = "/allCollect")
     @RequireUserType("admin")
-    public List<Collect> allCollect() {
-        return collectService.allCollect();
+    public R<List<Collect>> allCollect() {
+        return R.ok(collectService.allCollect());
     }
 
     /**
@@ -118,8 +120,8 @@ public class CollectController {
      * @return 收藏列表
      */
     @GetMapping(value = "/collectOfUserId")
-    public List<Collect> collectOfUserId(@RequestAttribute("userId") Integer userId) {
-        return collectService.collectOfUserId(userId);
+    public R<List<Collect>> collectOfUserId(@RequestAttribute("userId") Integer userId) {
+        return R.ok(collectService.collectOfUserId(userId));
     }
 
 }

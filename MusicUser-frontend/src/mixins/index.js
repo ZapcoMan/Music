@@ -28,11 +28,13 @@ export const mixin = {
                 this.notify('您输入的内容为空','warning');
             }else{
                 likeSongOfName(this.$route.query.keywords).then(res => {
-                    if(!res.length){
+                    // 后端统一返回 R 后，搜索结果数组在 res.data
+                    const list = res.data || [];
+                    if(!list.length){
                         this.$store.commit('setListOfSongs',[]);
                         this.notify('系统暂无符合条件的歌曲','warning');
                     }else{
-                        this.$store.commit('setListOfSongs',res);
+                        this.$store.commit('setListOfSongs',list);
                     }
                 }).catch(err => {
                     console.log(err)
@@ -73,7 +75,8 @@ export const mixin = {
             if(this.loginIn){
                 getCollectOfUserId(this.userId)
                     .then(res =>{
-                        for(let item of res){
+                        // 收藏数组现随 R 一起返回
+                        for(let item of res.data || []){
                             if(item.songId == id){
                                 this.$store.commit('setIsActive',true);
                                 break;

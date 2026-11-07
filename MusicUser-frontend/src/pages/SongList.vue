@@ -55,7 +55,7 @@ export default {
             getAllSongList()
                 .then(res =>{
                     this.currentPage = 1;
-                    this.albumDatas = res;
+                    this.albumDatas = res.data || [];
                 })
         },
         //获取当前页
@@ -77,7 +77,7 @@ export default {
             getSongListOfLikeStyle(style)
                 .then(res =>{
                         this.currentPage = 1;
-                        this.albumDatas = res;
+                        this.albumDatas = res.data || [];
                     })
         },
 
