@@ -52,6 +52,11 @@ public interface SongMapper {
     List<Song> allSong();
 
     /**
+     * 带安全上限的全量歌曲查询，供不经分页的全量视图使用
+     */
+    List<Song> allSongLimited();
+
+    /**
      * 根据歌手名字精确查询歌曲
      *
      * @param name 歌手名

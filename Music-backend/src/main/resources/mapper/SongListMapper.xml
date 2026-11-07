@@ -91,13 +91,18 @@
         where id=#{id}
     </select>
 
+    <!-- 同 allSong：本语句被 PageHelper 包装，内部不能出现 LIMIT -->
     <select id="allSongList" resultMap="ResultMapWithBLOBs">
         select
         <include refid="Blob_Column_List"/>
         from song_list
-        <!-- 安全上限：全量接口此前无 LIMIT，表一旦增长，单次请求与整份缓存会一起失控。
-             真正的分页入口是 allSongListByPage（PageHelper），这里只是防无界增长的保险丝。
-             当前各表规模远低于该上限，不会截断任何现有数据。 -->
+    </select>
+
+    <!-- 全量视图与整表缓存走这条，带安全上限 -->
+    <select id="allSongListLimited" resultMap="ResultMapWithBLOBs">
+        select
+        <include refid="Blob_Column_List"/>
+        from song_list
         LIMIT 1000
     </select>
 

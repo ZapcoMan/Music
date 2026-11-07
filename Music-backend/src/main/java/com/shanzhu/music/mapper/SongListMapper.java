@@ -51,6 +51,11 @@ public interface SongListMapper {
     List<SongList> allSongList();
 
     /**
+     * 带安全上限的全量歌单查询，供全量视图与整表缓存使用
+     */
+    List<SongList> allSongListLimited();
+
+    /**
      * 根据标题精确查询歌单列表
      *
      * @param title 标题

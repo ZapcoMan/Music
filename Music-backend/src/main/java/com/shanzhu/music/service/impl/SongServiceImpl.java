@@ -182,7 +182,8 @@ public class SongServiceImpl implements SongService {
         }
         
         log.info("从数据库查询所有歌曲数据");
-        List<Song> songs = songMapper.allSong();
+        // 全量视图走带上限的版本；allSong 留给 PageHelper 的分页路径使用
+        List<Song> songs = songMapper.allSongLimited();
         
         redisUtils.setCacheObject(ALL_SONG_KEY, songs, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
         

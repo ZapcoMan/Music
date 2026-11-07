@@ -132,13 +132,21 @@
         where id=#{id}
     </select>
 
+    <!-- 供 PageHelper 使用，禁止在本语句里写 LIMIT：
+         PageHelper 是在原语句之后追加 LIMIT ?，若原语句已有 LIMIT，
+         结果就是 "LIMIT 1000 LIMIT ?" 的语法错误（实测 MySQL 与 H2 均报错）。
+         需要上限的全量视图请走下面的 allSongLimited。 -->
     <select id="allSong" resultMap="ResultMapWithBLOBs">
         select
         <include refid="Blob_Column_List"/>
         from song
-        <!-- 安全上限：全量接口此前无 LIMIT，表一旦增长，单次请求与整份缓存会一起失控。
-             真正的分页入口是 allSongByPage（PageHelper），这里只是防无界增长的保险丝。
-             当前各表规模远低于该上限，不会截断任何现有数据。 -->
+    </select>
+
+    <!-- 全量视图专用安全上限：不经分页，直接封顶 -->
+    <select id="allSongLimited" resultMap="ResultMapWithBLOBs">
+        select
+        <include refid="Blob_Column_List"/>
+        from song
         LIMIT 1000
     </select>
 

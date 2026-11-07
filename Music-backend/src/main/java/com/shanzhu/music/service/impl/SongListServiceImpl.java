@@ -154,7 +154,8 @@ public class SongListServiceImpl implements SongListService {
         
         // 缓存未命中，从数据库查询
         log.info("从数据库查询所有歌单数据");
-        List<SongList> songList = songListMapper.allSongList();
+        // 整表缓存的这条走带上限的版本，allSongList 留给分页路径
+        List<SongList> songList = songListMapper.allSongListLimited();
         
         // 存入Redis缓存，设置24小时过期
         redisUtils.setCacheObject(ALL_SONG_LIST_KEY, songList, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
