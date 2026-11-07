@@ -83,5 +83,17 @@ replay_pid*
 .env.*
 !.env.example
 
+# 例外：两套前端的构建期地址配置只含 VUE_APP_API_BASE_URL，不含任何密钥，
+# 且必须随仓库分发——否则 clone 之后 config/load-env.js 读不到文件，
+# "VUE_APP_* 真正生效"这条要求就落空了。
+# 这里逐文件精确放行，不用 !/**/.env 之类的通配，
+# 免得把后端目录下可能存在的真实口令文件一起放行。
+!MusicAdmin-frontend/.env
+!MusicAdmin-frontend/.env.development
+!MusicAdmin-frontend/.env.production
+!MusicUser-frontend/.env
+!MusicUser-frontend/.env.development
+!MusicUser-frontend/.env.production
+
 # 前端 jest 覆盖率产物
 **/test/unit/coverage/

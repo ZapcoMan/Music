@@ -1,6 +1,10 @@
+// 基础地址只有 api/http.js 一个出处：此前这里写死 http://localhost:9171，
+// 与 axios 的 baseURL 各走一套，换环境时要改两处且极易漏
+import { HOST } from '../api/http'
+
 const configure = {
     state:{
-        HOST: 'http://localhost:9171',  //后台访问地址根目录
+        HOST,                      //后台访问地址根目录
         activeName: '',                  //当前选中的菜单名
         showAside: false,               //是否显示播放中的歌曲列表
         loginIn: false,                 //用户是否已登录
