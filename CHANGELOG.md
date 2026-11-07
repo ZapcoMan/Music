@@ -14,7 +14,14 @@ v1.0.0 之后、尚未定版号的改动。
   `mvn -B clean verify`（142 例 + JaCoCo 四项门禁），JDK 17 + Maven 缓存 + 20 分钟超时，
   失败时上传 surefire 报告。Redis 以 step 内 `docker run redis:7 redis-server --requirepass admin`
   提供（`services.options` 的写法会让 docker 收不到容器参数、首跑直接 exit 125），
-  就绪判定用 `redis-cli ping` 断言 `PONG` 而非只探端口。
+  就绪判定用 `redis-cli ping` 断言 `PONG` 而非只探端口。**已跑通转绿。**
+- **测试隔离（CI 抓出来的两个假绿）**：
+  `SongListControllerTest` 原先硬编码 `id=1` 修改并删除 `schema.sql` 的种子歌单行，
+  使任何 `INNER JOIN song_list` 的用例随测试类顺序时红时绿——CI（Linux）红、本地（Windows）绿；
+  现改为只操作本类自己新增的那一行，并断言种子行未被伤及。
+  `application-test.yml` 补 `spring.sql.init.encoding: UTF-8`：此前 H2 按平台编码 GBK 读
+  UTF-8 的 `schema.sql`，中文种子全部变乱码，依赖中文的断言实际查不到数据，
+  能过纯粹是靠 Redis 历史缓存命中绕过了数据库。
 - **许可证**：补 Apache License 2.0 的 `LICENSE` 文件（官方原文逐字未改），
   README 新增「许可证」章节，使已存在的许可徽章有出处。
 
