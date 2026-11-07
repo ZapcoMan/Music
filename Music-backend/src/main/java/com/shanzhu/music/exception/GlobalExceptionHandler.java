@@ -6,6 +6,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -88,6 +93,66 @@ public class GlobalExceptionHandler {
     public R handleIllegalArgumentException(IllegalArgumentException e) {
         log.warn("非法参数异常: {}", e.getMessage());
         return R.error(400, e.getMessage());
+    }
+
+    /**
+     * 请求方法不匹配，例如用 GET 调已被改为 @DeleteMapping 的接口。
+     *
+     * 此前没有专门处理器，它落到最后的 handleException 变成 500：
+     * 客户端看到的是"系统异常"，而真实原因是方法用错，排查方向被彻底带偏 ——
+     * 本轮修测试用例时正是被这个 500 误导，先去看数据而不是动词。
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public R handleMethodNotSupported(HttpRequestMethodNotSupportedException e,
+                                      jakarta.servlet.http.HttpServletRequest request) {
+        log.warn("请求方法不支持 - method={}, uri={}, 支持={}",
+                e.getMethod(), request.getRequestURI(),
+                String.valueOf(e.getSupportedHttpMethods()));
+        return R.error(405, "请求方法不支持: " + e.getMethod());
+    }
+
+    /**
+     * 请求体 Content-Type 不被支持（需要 JSON 却发了表单等）。
+     * 同属协议层问题，不该记成系统异常。
+     */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+    public R handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException e) {
+        log.warn("Content-Type 不支持: {}", e.getContentType());
+        return R.error(415, "不支持的请求类型: " + e.getContentType());
+    }
+
+    /**
+     * 必填请求参数缺失。
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public R handleMissingParameter(MissingServletRequestParameterException e) {
+        log.warn("缺少必填参数: {}", e.getParameterName());
+        return R.error(400, "缺少必填参数: " + e.getParameterName());
+    }
+
+    /**
+     * 静态资源未找到（favicon、误访问目录等）。
+     * Spring Boot 3.4 会抛 NoResourceFoundException，落到通用分支就成了 500，
+     * 于是一个 favicon 请求就能在日志里制造一条"系统异常"。
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public R handleNoResourceFound(NoResourceFoundException e) {
+        log.debug("静态资源未找到: {}", e.getResourcePath());
+        return R.error(404, "资源不存在");
+    }
+
+    /**
+     * 没有匹配的处理器（仅在未启用静态资源兜底时抛出）。
+     */
+    @ExceptionHandler(NoHandlerFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public R handleNoHandlerFound(NoHandlerFoundException e) {
+        log.warn("接口不存在 - {} {}", e.getHttpMethod(), e.getRequestURL());
+        return R.error(404, "接口不存在");
     }
 
     /**

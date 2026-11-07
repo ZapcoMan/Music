@@ -206,4 +206,17 @@ class CommentControllerTest extends BaseTest {
         Assertions.assertEquals(before + 1, commentService.selectByPrimaryKey(target.getId()).getUp(),
                 "点赞数应由服务端自增，而不是采纳请求参数");
     }
+
+    @Test
+    @Order(14)
+    @DisplayName("测试方法不匹配返回 405 而不是 500")
+    void testWrongHttpMethodReturns405() throws Exception {
+        // /comment/delete 是 @DeleteMapping；用 GET 打它是客户端错误，
+        // 此前被全局异常处理归到 Exception 分支变成 500，日志看起来像服务端故障
+        mockMvc.perform(MockMvcRequestBuilders.get("/comment/delete")
+                .param("id", "1"))
+                .andExpect(MockMvcResultMatchers.status().isMethodNotAllowed())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value(405));
+    }
 }
