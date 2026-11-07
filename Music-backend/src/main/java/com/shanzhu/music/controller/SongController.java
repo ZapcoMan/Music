@@ -25,7 +25,7 @@ import java.util.List;
  * 增删改与文件上传会一并处于未认证状态。下沉一层后业务接口全部落在鉴权之内。
  */
 @RestController
-@RequestMapping("/song/manage")
+@RequestMapping("/api/v1/song/manage")
 // 类级角色域兜底：本类未单独标注的方法（详情、列表、搜索等读接口）一律要求已登录，
 // 具体到方法的 @RequireUserType("admin") 优先级更高，不会被这里放宽。
 @RequireUserType({"consumer", "admin"})

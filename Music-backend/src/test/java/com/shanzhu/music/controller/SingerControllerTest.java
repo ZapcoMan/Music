@@ -39,7 +39,7 @@ class SingerControllerTest extends BaseTest {
     @Order(1)
     @DisplayName("测试分页查询歌手")
     void testAllSingerByPage() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/singer/allSingerByPage")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/singer/allSingerByPage")
                 .param("pageNum", "1")
                 .param("pageSize", "5"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -57,7 +57,7 @@ class SingerControllerTest extends BaseTest {
     @Order(2)
     @DisplayName("测试查询所有歌手")
     void testAllSinger() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/singer/allSinger"))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/singer/allSinger"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
@@ -72,7 +72,7 @@ class SingerControllerTest extends BaseTest {
     @Order(3)
     @DisplayName("测试根据名称模糊查询歌手")
     void testSingerOfName() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/singer/singerOfName")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/singer/singerOfName")
                 .param("name", "周"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
@@ -88,7 +88,7 @@ class SingerControllerTest extends BaseTest {
     @Order(4)
     @DisplayName("测试根据性别查询歌手")
     void testSingerOfSex() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/singer/singerOfSex")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/singer/singerOfSex")
                 .param("sex", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
@@ -104,7 +104,7 @@ class SingerControllerTest extends BaseTest {
     @Order(5)
     @DisplayName("测试查询歌手详情")
     void testSelectByPrimaryKey() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/singer/selectByPrimaryKey")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/singer/selectByPrimaryKey")
                 .param("id", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
@@ -131,7 +131,7 @@ class SingerControllerTest extends BaseTest {
                 "\"introduction\":\"测试简介\"" +
                 "}";
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/singer/add")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/singer/add")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -164,7 +164,7 @@ class SingerControllerTest extends BaseTest {
                 "\"introduction\":\"华语流行音乐男歌手\"" +
                 "}";
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/singer/update")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/singer/update")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -184,7 +184,7 @@ class SingerControllerTest extends BaseTest {
     @DisplayName("测试删除歌手")
     void testDeleteSinger() throws Exception {
         // 先添加一个测试歌手
-        mockMvc.perform(MockMvcRequestBuilders.post("/singer/add")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/singer/add")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("name", "待删除歌手")
                 .param("sex", "1")

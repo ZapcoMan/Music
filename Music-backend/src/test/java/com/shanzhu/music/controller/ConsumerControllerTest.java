@@ -36,7 +36,7 @@ class ConsumerControllerTest extends BaseTest {
     @DisplayName("测试用户登录-成功")
     void testLoginSuccess() throws Exception {
         // ConsumerController 中的登录接口是 /consumer/login
-        mockMvc.perform(MockMvcRequestBuilders.post("/consumer/login")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/consumer/login")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("username", "testuser")
                 .param("password", "123456"))
@@ -53,7 +53,7 @@ class ConsumerControllerTest extends BaseTest {
     @Order(2)
     @DisplayName("测试用户登录-失败")
     void testLoginFailed() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/consumer/login")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/consumer/login")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("username", "testuser")
                 .param("password", "wrongpassword"))
@@ -88,7 +88,7 @@ class ConsumerControllerTest extends BaseTest {
                 "\"avator\":\"/userImages/test.jpg\"" +
                 "}";
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/consumer/add")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/consumer/add")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -105,7 +105,7 @@ class ConsumerControllerTest extends BaseTest {
                 "头像由上传接口维护，注册时只占空串（请求里的 avator 字段不采纳）");
 
         // 同名再注册应被拒，且第一次注册的数据不被二次写入覆盖
-        mockMvc.perform(MockMvcRequestBuilders.post("/consumer/add")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/consumer/add")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -124,7 +124,7 @@ class ConsumerControllerTest extends BaseTest {
     @DisplayName("测试查询用户详情")
     void testSelectByPrimaryKey() throws Exception {
         // ConsumerController 中的接口是 /consumer/selectByPrimaryKey
-        mockMvc.perform(MockMvcRequestBuilders.get("/consumer/selectByPrimaryKey")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/consumer/selectByPrimaryKey")
                 .param("id", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
@@ -144,7 +144,7 @@ class ConsumerControllerTest extends BaseTest {
     @DisplayName("测试修改用户信息")
     void testUpdateConsumer() throws Exception {
         String username = "profileuser" + System.currentTimeMillis();
-        mockMvc.perform(MockMvcRequestBuilders.post("/consumer/add")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/consumer/add")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"" + username + "\",\"password\":\"123456\"}"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true));
@@ -164,7 +164,7 @@ class ConsumerControllerTest extends BaseTest {
                 "\"avator\":\"/userImages/test.jpg\"" +
                 "}";
 
-        consumerMvc.perform(MockMvcRequestBuilders.post("/consumer/update")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/api/v1/consumer/update")
                 .header("Authorization",
                         jwtUtils.generateToken(created.getId(), created.getUsername(), "consumer", "127.0.0.1"))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -189,7 +189,7 @@ class ConsumerControllerTest extends BaseTest {
     @Order(6)
     @DisplayName("测试分页查询用户")
     void testAllConsumerByPage() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/consumer/allConsumerByPage")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/consumer/allConsumerByPage")
                 .param("pageNum", "1")
                 .param("pageSize", "5"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -206,7 +206,7 @@ class ConsumerControllerTest extends BaseTest {
     @Order(7)
     @DisplayName("测试删除用户")
     void testDeleteConsumer() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.delete("/consumer/delete")
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/v1/consumer/delete")
                 .param("id", "99999"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
@@ -221,7 +221,7 @@ class ConsumerControllerTest extends BaseTest {
         // 同一个"参数错误"语义此前有两个 code 来源：ResultCodeEnum.PARAM_ERROR 是 20002，
         // 而 GlobalExceptionHandler 直接写了 R.error(400, ...)
         String jsonRequest = "{\"username\":\"\",\"password\":\"123456\"}";
-        mockMvc.perform(MockMvcRequestBuilders.post("/consumer/add")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/consumer/add")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest())

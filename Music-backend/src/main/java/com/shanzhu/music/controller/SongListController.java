@@ -23,7 +23,7 @@ import java.util.List;
  * 歌单 控制层
  */
 @RestController
-@RequestMapping("/songList")
+@RequestMapping("/api/v1/songList")
 @RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 public class SongListController {

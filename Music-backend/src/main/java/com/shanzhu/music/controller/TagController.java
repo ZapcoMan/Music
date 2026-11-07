@@ -35,7 +35,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/tag")
+@RequestMapping("/api/v1/tag")
 @RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 @io.swagger.v3.oas.annotations.tags.Tag(name = "标签管理", description = "歌曲标签查询与维护接口")

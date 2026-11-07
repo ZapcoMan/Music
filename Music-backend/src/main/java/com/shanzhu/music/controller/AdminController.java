@@ -48,7 +48,7 @@ public class AdminController {
      * @return 结果
      */
     @Operation(summary = "管理员登出", description = "使当前管理员令牌立即失效")
-    @PostMapping(value = "/admin/logout")
+    @PostMapping(value = "/api/v1/admin/logout")
     @RequireUserType("admin")
     public R<Void> logoutAdmin(HttpServletRequest request,
                          @RequestAttribute("userId") Integer userId,
@@ -74,7 +74,7 @@ public class AdminController {
      * @return 登录结果和Token
      */
     @Operation(summary = "管理员登录", description = "管理员使用账号密码登录,返回JWT Token(IP绑定)")
-    @RequestMapping(value = "/admin/login/status", method = RequestMethod.POST)
+    @RequestMapping(value = "/api/v1/admin/login/status", method = RequestMethod.POST)
     @RateLimit(key = "login:admin:", timeWindow = 60, maxRequests = 5, message = "登录尝试次数过多，请60秒后再试")
     public R<AdminLoginVo> loginStatus(
             // 不在 @Parameter 里给 example：仓库公开后 Swagger UI 也是公开的，

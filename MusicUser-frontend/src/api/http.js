@@ -4,12 +4,23 @@ import router from '../router';
 // 后端地址支持构建期覆盖，不再只能改源码；默认仍指向本地端口，保持现有开发方式
 const API_BASE_URL = process.env.VUE_APP_API_BASE_URL || 'http://localhost:9171';
 
+/**
+ * 同一个来源派生出两个地址，部署时仍然只需要给 VUE_APP_API_BASE_URL 一个变量。
+ *
+ * HOST 是静态资源根目录：/song/{文件}、/img/**、/userImages/** 都挂在这里，不带 /api/v1。
+ * 这些路径必须保持裸前缀——<audio> 与 <img> 发不出 Authorization 头，
+ * 而且库里存的历史 URL 本身就是 /song/1715868205989 这种形态，加了前缀会集体 404。
+ * API_HOST 是业务接口根目录，与后端 WebMvcConfig 的白名单口径一一对应。
+ */
+export const HOST = API_BASE_URL;
+export const API_HOST = `${API_BASE_URL}/api/v1`;
+
 // 推荐接口首次生成需要跑召回与统计，5 秒极易超时，放宽到 15 秒
 axios.defaults.timeout = 15000;
 // 令牌通过 Authorization 头传递，不需要携带 Cookie；
 // 关闭 credentials 也避免与后端 CORS 白名单策略相互牵制
 axios.defaults.withCredentials = false;
-axios.defaults.baseURL = API_BASE_URL;
+axios.defaults.baseURL = API_HOST;
 // 说明：此前这里全局写死了
 // headers.post['Content-Type'] = 'application/x-www-form-urlencoded'，
 // 会让所有 POST 都按表单发送。后端 SingerController/ConsumerController 的
@@ -97,6 +108,3 @@ export function del(url,params={}){
         })
     });
 }
-
-// 导出基础地址，供 el-upload 等非 axios 调用复用，避免各处再硬编码
-export const HOST = API_BASE_URL;

@@ -43,33 +43,33 @@ class AdminWriteAuthMatrixTest extends BaseTest {
     static Stream<Arguments> adminEndpoints() {
         return Stream.of(
                 // 曲库：歌曲
-                Arguments.of("POST", "/song/manage/add", true),
-                Arguments.of("POST", "/song/manage/update", false),
-                Arguments.of("DELETE", "/song/manage/delete", false),
-                Arguments.of("POST", "/song/manage/updateSongPic", true),
-                Arguments.of("POST", "/song/manage/updateSongUrl", true),
+                Arguments.of("POST", "/api/v1/song/manage/add", true),
+                Arguments.of("POST", "/api/v1/song/manage/update", false),
+                Arguments.of("DELETE", "/api/v1/song/manage/delete", false),
+                Arguments.of("POST", "/api/v1/song/manage/updateSongPic", true),
+                Arguments.of("POST", "/api/v1/song/manage/updateSongUrl", true),
                 // 曲库：歌手
-                Arguments.of("POST", "/singer/add", false),
-                Arguments.of("POST", "/singer/update", false),
-                Arguments.of("DELETE", "/singer/delete", false),
-                Arguments.of("POST", "/singer/updateSingerPic", true),
+                Arguments.of("POST", "/api/v1/singer/add", false),
+                Arguments.of("POST", "/api/v1/singer/update", false),
+                Arguments.of("DELETE", "/api/v1/singer/delete", false),
+                Arguments.of("POST", "/api/v1/singer/updateSingerPic", true),
                 // 曲库：歌单
-                Arguments.of("POST", "/songList/add", false),
-                Arguments.of("POST", "/songList/update", false),
-                Arguments.of("DELETE", "/songList/delete", false),
-                Arguments.of("POST", "/songList/updateSongListPic", true),
+                Arguments.of("POST", "/api/v1/songList/add", false),
+                Arguments.of("POST", "/api/v1/songList/update", false),
+                Arguments.of("DELETE", "/api/v1/songList/delete", false),
+                Arguments.of("POST", "/api/v1/songList/updateSongListPic", true),
                 // 歌单与歌曲的关联
-                Arguments.of("POST", "/listSong/add", false),
-                Arguments.of("DELETE", "/listSong/delete", false),
+                Arguments.of("POST", "/api/v1/listSong/add", false),
+                Arguments.of("DELETE", "/api/v1/listSong/delete", false),
                 // 标签
-                Arguments.of("POST", "/tag/song/update", false),
-                Arguments.of("POST", "/tag/singer/update", false),
-                Arguments.of("POST", "/tag/batchAdd", false),
+                Arguments.of("POST", "/api/v1/tag/song/update", false),
+                Arguments.of("POST", "/api/v1/tag/singer/update", false),
+                Arguments.of("POST", "/api/v1/tag/batchAdd", false),
                 // 用户治理：删除账号与两份全量名单
-                Arguments.of("DELETE", "/consumer/delete", false),
-                Arguments.of("GET", "/consumer/allConsumer", false),
-                Arguments.of("GET", "/consumer/allConsumerByPage", false),
-                Arguments.of("GET", "/collect/allCollect", false));
+                Arguments.of("DELETE", "/api/v1/consumer/delete", false),
+                Arguments.of("GET", "/api/v1/consumer/allConsumer", false),
+                Arguments.of("GET", "/api/v1/consumer/allConsumerByPage", false),
+                Arguments.of("GET", "/api/v1/collect/allCollect", false));
     }
 
     @ParameterizedTest(name = "匿名调用 {0} {1} 应被拒 (第 {index} 项)")
@@ -115,16 +115,16 @@ class AdminWriteAuthMatrixTest extends BaseTest {
      */
     static Stream<Arguments> consumerOnlyEndpoints() {
         return Stream.of(
-                Arguments.of("POST", "/collect/add", false),
-                Arguments.of("DELETE", "/collect/delete", false),
-                Arguments.of("POST", "/comment/add", false),
-                Arguments.of("POST", "/comment/like", false),
-                Arguments.of("POST", "/consumer/update", false),
-                Arguments.of("POST", "/consumer/updateConsumerPic", true),
-                Arguments.of("POST", "/rank/add", false),
-                Arguments.of("POST", "/search-history/record", false),
-                Arguments.of("DELETE", "/search-history/clear", false),
-                Arguments.of("DELETE", "/search-history/clean-old", false));
+                Arguments.of("POST", "/api/v1/collect/add", false),
+                Arguments.of("DELETE", "/api/v1/collect/delete", false),
+                Arguments.of("POST", "/api/v1/comment/add", false),
+                Arguments.of("POST", "/api/v1/comment/like", false),
+                Arguments.of("POST", "/api/v1/consumer/update", false),
+                Arguments.of("POST", "/api/v1/consumer/updateConsumerPic", true),
+                Arguments.of("POST", "/api/v1/rank/add", false),
+                Arguments.of("POST", "/api/v1/search-history/record", false),
+                Arguments.of("DELETE", "/api/v1/search-history/clear", false),
+                Arguments.of("DELETE", "/api/v1/search-history/clean-old", false));
     }
 
     @ParameterizedTest(name = "匿名调用消费者接口 {0} {1} 应被拒 (第 {index} 项)")

@@ -34,7 +34,7 @@ class SongControllerTest extends BaseTest {
                 "test audio content".getBytes()
         );
 
-        mockMvc.perform(MockMvcRequestBuilders.multipart("/song/manage/add")
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/song/manage/add")
                 .file(file)
                 .param("singerId", "1")
                 .param("name", "测试歌曲")
@@ -50,7 +50,7 @@ class SongControllerTest extends BaseTest {
     @Order(2)
     @DisplayName("测试根据歌手id查询歌曲")
     void testSongOfSingerId() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/song/manage/singer/detail")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/song/manage/singer/detail")
                 .param("singerId", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
@@ -61,7 +61,7 @@ class SongControllerTest extends BaseTest {
     @Order(3)
     @DisplayName("测试修改歌曲")
     void testUpdateSong() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/song/manage/update")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/song/manage/update")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("id", "1")
                 .param("name", "修改后的歌曲名")
@@ -75,7 +75,7 @@ class SongControllerTest extends BaseTest {
     @Order(4)
     @DisplayName("测试删除歌曲")
     void testDeleteSong() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.delete("/song/manage/delete")
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/v1/song/manage/delete")
                 .param("id", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists())
@@ -91,7 +91,7 @@ class SongControllerTest extends BaseTest {
         // 这里断言的是 #22 那批补上的扩展名白名单确实生效 ——
         // 校验在落盘之前，所以不会产生垃圾文件
         byte[] bytes = new byte[]{0x4d, 0x5a, 0x01, 0x02};
-        mockMvc.perform(MockMvcRequestBuilders.multipart("/song/manage/updateSongPic")
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/song/manage/updateSongPic")
                 .file(new MockMultipartFile("file", "evil.exe", "application/octet-stream", bytes))
                 .param("id", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -107,7 +107,7 @@ class SongControllerTest extends BaseTest {
         // 这里断言的是 #22 那批补上的扩展名白名单确实生效 ——
         // 校验在落盘之前，所以不会产生垃圾文件
         byte[] bytes = new byte[]{0x4d, 0x5a, 0x01, 0x02};
-        mockMvc.perform(MockMvcRequestBuilders.multipart("/song/manage/updateSongUrl")
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/song/manage/updateSongUrl")
                 .file(new MockMultipartFile("file", "evil.exe", "application/octet-stream", bytes))
                 .param("id", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -118,7 +118,7 @@ class SongControllerTest extends BaseTest {
     @Order(7)
     @DisplayName("测试查询歌曲详情")
     void testDetail() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/song/manage/detail")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/song/manage/detail")
                 .param("songId", String.valueOf(anExistingSongId())))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 // 本用例原先写死 songId=1 并只断 200，而 @Order(4) 的删除用例已经把 id=1
@@ -143,7 +143,7 @@ class SongControllerTest extends BaseTest {
     @Order(8)
     @DisplayName("测试根据歌曲名精确查询")
     void testSongOfSongName() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/song/manage/songOfSongName")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/song/manage/songOfSongName")
                 .param("songName", "泡沫"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
@@ -153,7 +153,7 @@ class SongControllerTest extends BaseTest {
     @Order(9)
     @DisplayName("测试根据歌曲名模糊查询")
     void testLikeSongOfName() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/song/manage/likeSongOfName")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/song/manage/likeSongOfName")
                 .param("songName", "泡沫"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
@@ -163,7 +163,7 @@ class SongControllerTest extends BaseTest {
     @Order(10)
     @DisplayName("测试查询所有歌曲")
     void testAllSong() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/song/manage/allSong"))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/song/manage/allSong"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
     }
@@ -172,7 +172,7 @@ class SongControllerTest extends BaseTest {
     @Order(11)
     @DisplayName("测试分页查询所有歌曲")
     void testAllSongByPage() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/song/manage/allSongByPage")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/song/manage/allSongByPage")
                 .param("pageNum", "1")
                 .param("pageSize", "10"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -199,7 +199,7 @@ class SongControllerTest extends BaseTest {
         MockMultipartFile file = new MockMultipartFile(
                 "file", "anonymous.mp3", "audio/mpeg", "x".getBytes());
 
-        anonymous.perform(MockMvcRequestBuilders.multipart("/song/manage/add")
+        anonymous.perform(MockMvcRequestBuilders.multipart("/api/v1/song/manage/add")
                         .file(file)
                         .param("singerId", "1")
                         .param("name", "匿名上传"))
@@ -236,7 +236,7 @@ class SongControllerTest extends BaseTest {
         MockMultipartFile file = new MockMultipartFile(
                 "file", "not-mine.mp3", "audio/mpeg", "x".getBytes());
 
-        mockMvc.perform(MockMvcRequestBuilders.multipart("/song/manage/add")
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/song/manage/add")
                         .file(file)
                         .param("singerId", "1")
                         .param("name", "越权添加")

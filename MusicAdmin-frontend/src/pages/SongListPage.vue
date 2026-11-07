@@ -235,7 +235,7 @@ export default {
             };
         },
         uploadUrl(id){
-            return `${this.$store.state.HOST}/songList/updateSongListPic?id=${id}`
+            return `${this.$store.state.API_HOST}/songList/updateSongListPic?id=${id}`
         },
         //删除一个歌单
         deleteRow(){

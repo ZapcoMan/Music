@@ -22,7 +22,7 @@ import java.util.List;
  * 歌手 控制层
  */
 @RestController
-@RequestMapping("/singer")
+@RequestMapping("/api/v1/singer")
 @RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 public class SingerController {

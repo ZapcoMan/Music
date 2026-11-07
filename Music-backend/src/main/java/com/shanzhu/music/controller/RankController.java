@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 评价 控制层
  */
 @RestController
-@RequestMapping("/rank")
+@RequestMapping("/api/v1/rank")
 @RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 public class RankController {

@@ -6,12 +6,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+
+import java.util.Set;
 
 /**
  * 基础测试类
@@ -34,6 +37,9 @@ public class BaseTest {
 
     @Autowired
     protected JwtUtils jwtUtils;
+
+    @Autowired
+    protected RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 统一在基类构造，并给所有请求预置一个合法的管理员令牌。
@@ -59,6 +65,7 @@ public class BaseTest {
 
     @BeforeEach
     void setUpMockMvc() {
+        evictAppCache();
         this.mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .defaultRequest(MockMvcRequestBuilders.get("/")
                         .header("Authorization", adminToken()))
@@ -81,5 +88,24 @@ public class BaseTest {
      */
     protected String consumerToken() {
         return jwtUtils.generateToken(35, "user", "consumer", "127.0.0.1");
+    }
+
+    /**
+     * 每个用例前清空本应用的缓存命名空间，让本地跑法与 CI 的冷缓存跑法对齐。
+     *
+     * 不清的后果已经出现：测试库的自增 id 每轮都从 1 重新开始，而本机 Redis 是跨轮存活的，
+     * 上一轮写进 music:consumer:3 的用户会被这一轮的 selectByPrimaryKey(3) 原样读出，
+     * 用例拿到的是"别人家的行"——表现就是本地偶发红、CI 全绿（或反过来）。
+     *
+     * 键模式固定 music:*：这是 CacheKeys 里全部业务缓存的公共前缀，不会误伤同机其他应用；
+     * 已吊销令牌黑名单在 jwt:blacklist: 下，它不是缓存，清掉等于把登出过的令牌放回来。
+     *
+     * KEYS 在大集合上会阻塞 Redis，所以这条路只写在测试里，不进生产代码。
+     */
+    private void evictAppCache() {
+        Set<String> keys = redisTemplate.keys("music:*");
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
     }
 }

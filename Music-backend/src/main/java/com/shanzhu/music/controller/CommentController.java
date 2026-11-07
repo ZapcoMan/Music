@@ -22,7 +22,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/comment")
+@RequestMapping("/api/v1/comment")
 @RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 public class CommentController {

@@ -17,7 +17,7 @@ import java.util.List;
  * 歌单内歌曲 控制层
  */
 @RestController
-@RequestMapping("/listSong")
+@RequestMapping("/api/v1/listSong")
 @RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 public class ListSongController {

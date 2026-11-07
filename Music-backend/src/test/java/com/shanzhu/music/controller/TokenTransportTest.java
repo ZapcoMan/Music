@@ -33,7 +33,7 @@ class TokenTransportTest extends BaseTest {
     void urlParameterTokenIsNotAccepted() throws Exception {
         // 令牌本身是合法签发的，只有携带方式不合规——断言 401 才能证明是"传输方式被拒"
         // 而不是"令牌无效"
-        bare.perform(MockMvcRequestBuilders.get("/collect/collectOfUserId")
+        bare.perform(MockMvcRequestBuilders.get("/api/v1/collect/collectOfUserId")
                         .param("token", adminToken()))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized());
     }
@@ -41,7 +41,7 @@ class TokenTransportTest extends BaseTest {
     @Test
     @DisplayName("同一个令牌走请求头即可通过")
     void headerTokenStillWorks() throws Exception {
-        bare.perform(MockMvcRequestBuilders.get("/collect/collectOfUserId")
+        bare.perform(MockMvcRequestBuilders.get("/api/v1/collect/collectOfUserId")
                         .header("Authorization", adminToken()))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
@@ -53,11 +53,11 @@ class TokenTransportTest extends BaseTest {
     @Test
     @DisplayName("登出接口同样不再接受参数形式令牌")
     void logoutRejectsParameterToken() throws Exception {
-        bare.perform(MockMvcRequestBuilders.post("/consumer/logout")
+        bare.perform(MockMvcRequestBuilders.post("/api/v1/consumer/logout")
                         .param("token", consumerToken()))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized());
 
-        bare.perform(MockMvcRequestBuilders.post("/admin/logout")
+        bare.perform(MockMvcRequestBuilders.post("/api/v1/admin/logout")
                         .param("token", adminToken()))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized());
     }
@@ -69,7 +69,7 @@ class TokenTransportTest extends BaseTest {
         // 若 IpUtils 仍无条件信任透传头，这里会把客户端 IP 读成 8.8.8.8，
         // 与令牌绑定的 127.0.0.1 不一致而返回 403；
         // 现在默认不信任透传头，因此伪造无效，请求按原绑定通过。
-        bare.perform(MockMvcRequestBuilders.get("/collect/collectOfUserId")
+        bare.perform(MockMvcRequestBuilders.get("/api/v1/collect/collectOfUserId")
                         .header("Authorization", consumerToken())
                         .header("X-Forwarded-For", "8.8.8.8"))
                 .andExpect(MockMvcResultMatchers.status().isOk());

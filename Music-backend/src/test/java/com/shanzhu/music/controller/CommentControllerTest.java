@@ -22,7 +22,7 @@ class CommentControllerTest extends BaseTest {
     @Order(1)
     @DisplayName("测试添加评论-歌曲评论")
     void testAddCommentSong() throws Exception {
-        consumerMvc.perform(MockMvcRequestBuilders.post("/comment/add")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/api/v1/comment/add")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("userId", "1")
                 .param("type", "0")
@@ -36,7 +36,7 @@ class CommentControllerTest extends BaseTest {
     @Order(2)
     @DisplayName("测试添加评论-歌单评论")
     void testAddCommentSongList() throws Exception {
-        consumerMvc.perform(MockMvcRequestBuilders.post("/comment/add")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/api/v1/comment/add")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("userId", "1")
                 .param("type", "1")
@@ -54,7 +54,7 @@ class CommentControllerTest extends BaseTest {
     @Order(3)
     @DisplayName("测试评论改写入口已下线")
     void testCommentUpdateEndpointRetired() throws Exception {
-        consumerMvc.perform(MockMvcRequestBuilders.post("/comment/update")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/api/v1/comment/update")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("id", "1")
                 .param("type", "0")
@@ -80,7 +80,7 @@ class CommentControllerTest extends BaseTest {
         Integer id = own.getId();
         Assertions.assertNotNull(id, "评论应已落库");
 
-        consumerMvc.perform(MockMvcRequestBuilders.delete("/comment/delete")
+        consumerMvc.perform(MockMvcRequestBuilders.delete("/api/v1/comment/delete")
                 .param("id", String.valueOf(id)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true));
@@ -92,7 +92,7 @@ class CommentControllerTest extends BaseTest {
     @Order(5)
     @DisplayName("测试查询评论详情")
     void testSelectByPrimaryKey() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/comment/selectByPrimaryKey")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/comment/selectByPrimaryKey")
                 .param("id", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
@@ -102,7 +102,7 @@ class CommentControllerTest extends BaseTest {
     @Order(6)
     @DisplayName("测试查询所有评论")
     void testAllComment() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/comment/allComment"))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/comment/allComment"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
@@ -111,7 +111,7 @@ class CommentControllerTest extends BaseTest {
     @Order(7)
     @DisplayName("测试查询歌曲评论")
     void testCommentOfSongId() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/comment/commentOfSongId")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/comment/commentOfSongId")
                 .param("songId", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
@@ -121,7 +121,7 @@ class CommentControllerTest extends BaseTest {
     @Order(8)
     @DisplayName("测试查询歌单评论")
     void testCommentOfSongListId() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/comment/commentOfSongListId")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/comment/commentOfSongListId")
                 .param("songListId", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
@@ -131,7 +131,7 @@ class CommentControllerTest extends BaseTest {
     @Order(9)
     @DisplayName("测试点赞评论")
     void testLike() throws Exception {
-        consumerMvc.perform(MockMvcRequestBuilders.post("/comment/like")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/api/v1/comment/like")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("id", "1")
                 .param("up", "10"))
@@ -143,7 +143,7 @@ class CommentControllerTest extends BaseTest {
     @Order(10)
     @DisplayName("测试获取高频词汇")
     void testGetFrequentWords() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/comment/frequent-words")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/comment/frequent-words")
                 .param("songId", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
@@ -154,7 +154,7 @@ class CommentControllerTest extends BaseTest {
     @DisplayName("测试发评论时提交的 userId 不被采纳")
     void testAddCommentIgnoresSpoofedUserId() throws Exception {
         // 以消费者身份（令牌 userId=35）提交，但请求参数谎称 userId=1
-        consumerMvc.perform(MockMvcRequestBuilders.post("/comment/add")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/api/v1/comment/add")
                 .header("Authorization", consumerToken())
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("userId", "1")
@@ -192,7 +192,7 @@ class CommentControllerTest extends BaseTest {
         Assertions.assertNotNull(id, "评论应已落库");
 
         // 换成消费者令牌（userId=35）去删它，应被拒绝且评论仍在
-        consumerMvc.perform(MockMvcRequestBuilders.delete("/comment/delete")
+        consumerMvc.perform(MockMvcRequestBuilders.delete("/api/v1/comment/delete")
                 .param("id", String.valueOf(id)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false))
@@ -215,7 +215,7 @@ class CommentControllerTest extends BaseTest {
         int before = target.getUp() == null ? 0 : target.getUp();
 
         // 客户端谎报 up=99999，服务端应只 +1
-        consumerMvc.perform(MockMvcRequestBuilders.post("/comment/like")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/api/v1/comment/like")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("id", String.valueOf(target.getId()))
                 .param("up", "99999"))
@@ -231,7 +231,7 @@ class CommentControllerTest extends BaseTest {
     void testWrongHttpMethodReturns405() throws Exception {
         // /comment/delete 是 @DeleteMapping；用 GET 打它是客户端错误，
         // 此前被全局异常处理归到 Exception 分支变成 500，日志看起来像服务端故障
-        mockMvc.perform(MockMvcRequestBuilders.get("/comment/delete")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/comment/delete")
                 .param("id", "1"))
                 .andExpect(MockMvcResultMatchers.status().isMethodNotAllowed())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false))

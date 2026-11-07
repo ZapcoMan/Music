@@ -38,9 +38,9 @@ class EndpointRoleGuardTest extends BaseTest {
      * 必须逐条列全——往这个清单里加一项，等于开一个匿名入口。
      */
     private static final Set<String> PUBLIC_ENDPOINTS = Set.of(
-            "/admin/login/status",
-            "/consumer/login",
-            "/consumer/add",
+            "/api/v1/admin/login/status",
+            "/api/v1/consumer/login",
+            "/api/v1/consumer/add",
             "/manage");
 
     /**

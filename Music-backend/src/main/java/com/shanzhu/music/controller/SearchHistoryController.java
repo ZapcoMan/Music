@@ -13,7 +13,7 @@ import java.util.List;
  * 搜索历史 控制层
  */
 @RestController
-@RequestMapping("/search-history")
+@RequestMapping("/api/v1/search-history")
 @RequireUserType("consumer")
 @RequiredArgsConstructor
 public class SearchHistoryController {

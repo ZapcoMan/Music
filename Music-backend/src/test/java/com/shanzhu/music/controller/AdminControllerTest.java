@@ -33,7 +33,7 @@ class AdminControllerTest extends BaseTest {
         jdbc.update("update admin set password = ? where name = 'admin'",
                 com.shanzhu.music.utils.PasswordUtils.encode(rawPassword));
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/admin/login/status")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/admin/login/status")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("name", "admin")
                 .param("password", rawPassword))
@@ -52,7 +52,7 @@ class AdminControllerTest extends BaseTest {
     @Order(2)
     @DisplayName("测试管理员登录-失败")
     void testLoginFailed() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/admin/login/status")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/admin/login/status")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("name", "admin")
                 .param("password", "wrongpassword"))

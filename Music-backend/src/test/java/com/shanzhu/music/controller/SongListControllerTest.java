@@ -41,7 +41,7 @@ class SongListControllerTest extends BaseTest {
     @Order(1)
     @DisplayName("测试添加歌单")
     void testAddSongList() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/songList/add")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/songList/add")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("title", PROBE_TITLE)
                 .param("pic", "/img/songListPic/test.jpg")
@@ -59,7 +59,7 @@ class SongListControllerTest extends BaseTest {
     void testUpdateSongList() throws Exception {
         Integer id = probeId();
         assertNotNull(id);
-        mockMvc.perform(MockMvcRequestBuilders.post("/songList/update")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/songList/update")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("id", String.valueOf(id))
                 .param("title", PROBE_TITLE)
@@ -75,7 +75,7 @@ class SongListControllerTest extends BaseTest {
     void testDeleteSongList() throws Exception {
         Integer id = probeId();
         assertNotNull(id);
-        mockMvc.perform(MockMvcRequestBuilders.delete("/songList/delete")
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/v1/songList/delete")
                 .param("id", String.valueOf(id)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
@@ -91,7 +91,7 @@ class SongListControllerTest extends BaseTest {
     @Order(4)
     @DisplayName("测试查询歌单详情")
     void testSelectByPrimaryKey() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/songList/selectByPrimaryKey")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/songList/selectByPrimaryKey")
                 .param("id", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
@@ -101,7 +101,7 @@ class SongListControllerTest extends BaseTest {
     @Order(5)
     @DisplayName("测试查询所有歌单")
     void testAllSongList() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/songList/allSongList"))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/songList/allSongList"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
     }
@@ -110,7 +110,7 @@ class SongListControllerTest extends BaseTest {
     @Order(6)
     @DisplayName("测试根据标题精确查询歌单")
     void testSongListOfName() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/songList/songListOfTitle")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/songList/songListOfTitle")
                 .param("title", "经典"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
@@ -120,7 +120,7 @@ class SongListControllerTest extends BaseTest {
     @Order(7)
     @DisplayName("测试根据标题模糊查询歌单")
     void testLikeTitle() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/songList/likeTitle")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/songList/likeTitle")
                 .param("title", "经典"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
@@ -130,7 +130,7 @@ class SongListControllerTest extends BaseTest {
     @Order(8)
     @DisplayName("测试根据风格模糊查询歌单")
     void testLikeStyle() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/songList/likeStyle")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/songList/likeStyle")
                 .param("style", "流行"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists());
@@ -145,7 +145,7 @@ class SongListControllerTest extends BaseTest {
         // 这里断言的是 #22 那批补上的扩展名白名单确实生效 ——
         // 校验在落盘之前，所以不会产生垃圾文件
         byte[] bytes = new byte[]{0x4d, 0x5a, 0x01, 0x02};
-        mockMvc.perform(MockMvcRequestBuilders.multipart("/songList/updateSongListPic")
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/songList/updateSongListPic")
                 .file(new MockMultipartFile("file", "evil.exe", "application/octet-stream", bytes))
                 .param("id", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -157,7 +157,7 @@ class SongListControllerTest extends BaseTest {
     @DisplayName("测试查询推荐歌单")
     void testQueryRecommendedSongListById() throws Exception {
         // 推荐歌单是用户端功能，按角色只能由 consumer 调用
-        consumerMvc.perform(MockMvcRequestBuilders.post("/songList/queryRecommendedSongListById")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/api/v1/songList/queryRecommendedSongListById")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("id", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -169,7 +169,7 @@ class SongListControllerTest extends BaseTest {
     @Order(11)
     @DisplayName("测试分页查询所有歌单")
     void testAllSongListByPage() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/songList/allSongListByPage")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/songList/allSongListByPage")
                 .param("pageNum", "1")
                 .param("pageSize", "10"))
                 .andExpect(MockMvcResultMatchers.status().isOk())

@@ -51,14 +51,18 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .order(0);
 
         // JWT认证拦截器 - 除白名单外一律要求携带有效 Token。
-        // 免登录接口在此显式声明，而不是靠拦截器"无 Token 就放行"
+        // 免登录接口在此显式声明，而不是靠拦截器"无 Token 就放行"。
+        //
+        // 业务接口整体在 /api/v1 下；白名单里的静态资源前缀必须保持裸路径：
+        // <audio>/<img> 带不了 Authorization 头，历史数据里存的也是 /song/xxx 这种绝对路径，
+        // 一旦给它们加前缀，全库歌曲与头像会在浏览器里集体 404。
         registry.addInterceptor(jwtAuthenticationInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
-                        "/admin/login/status",   // 管理员登录
-                        "/consumer/login",       // 用户登录
-                        "/consumer/add",         // 用户注册
-                        "/manage",               // 管理端页面入口
+                        "/api/v1/admin/login/status",   // 管理员登录
+                        "/api/v1/consumer/login",       // 用户登录
+                        "/api/v1/consumer/add",         // 用户注册
+                        "/manage",               // 管理端页面入口（HTML，不在 API 前缀下）
                         "/img/**",               // 静态图片
                         // 静态音频。只放行单层 /song/*：音频文件的落盘路径就是
                         // /song/{时间戳-随机名}（见 FileStorageService.store），全部单层且多数无扩展名，

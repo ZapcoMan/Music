@@ -21,7 +21,7 @@ class RankControllerTest extends BaseTest {
     @Order(1)
     @DisplayName("测试添加评价")
     void testAddRank() throws Exception {
-        consumerMvc.perform(MockMvcRequestBuilders.post("/rank/add")
+        consumerMvc.perform(MockMvcRequestBuilders.post("/api/v1/rank/add")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .param("songListId", "1")
                 .param("consumerId", "1")
@@ -36,7 +36,7 @@ class RankControllerTest extends BaseTest {
     @DisplayName("测试按歌单查询平均分")
     void testRankOfSongListId() throws Exception {
         // RankController 的读取接口是无路子路径的 @GetMapping，即 GET /rank
-        mockMvc.perform(MockMvcRequestBuilders.get("/rank")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/rank")
                 .param("songListId", "1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 // 平均分现随 R 一起返回，数字在 data 里；断 data 是数字才算真验到值
@@ -73,7 +73,7 @@ class RankControllerTest extends BaseTest {
                 "song_list 中应存在 35 尚未评分的歌单，否则本用例无法构造");
         Integer songListId = candidates.get(0);
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/rank/add")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/rank/add")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                         .param("songListId", String.valueOf(songListId))
                         .param("consumerId", "999")

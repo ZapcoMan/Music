@@ -24,7 +24,7 @@ import java.util.List;
  * 增删收藏。
  */
 @RestController
-@RequestMapping("/collect")
+@RequestMapping("/api/v1/collect")
 @RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 public class CollectController {
