@@ -2,6 +2,7 @@
 
 <div align="center">
 
+![Version](https://img.shields.io/badge/Version-v1.0.0-informational)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.3-brightgreen)
 ![Vue](https://img.shields.io/badge/Vue-2.6.11-4FC08D)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-orange)
