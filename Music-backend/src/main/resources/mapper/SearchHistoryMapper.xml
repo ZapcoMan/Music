@@ -46,10 +46,15 @@
 
     <!-- 获取用户最近搜索的关键词列表 -->
     <select id="getRecentKeywords" resultType="java.lang.String">
-        SELECT DISTINCT keywords
+        <!-- DISTINCT 与 ORDER BY create_time 不能共存：create_time 不在选择列里，
+             在 ONLY_FULL_GROUP_BY（MySQL 8 默认开启）下会直接报错。
+             改为按关键词分组、取每组最近一次搜索时间排序，语义与原意一致。
+             此前不暴露是因为 search_history 一直是空表。 -->
+        SELECT keywords
         FROM search_history
         WHERE user_id = #{userId}
-        ORDER BY create_time DESC
+        GROUP BY keywords
+        ORDER BY MAX(create_time) DESC
         LIMIT #{limit}
     </select>
 
