@@ -5,7 +5,7 @@
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.3-brightgreen)
 ![Vue](https://img.shields.io/badge/Vue-2.6.11-4FC08D)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-orange)
-![Tests](https://img.shields.io/badge/Tests-141%20run%2C%200%20failed%2C%2016%20skipped-yellow)
+![Tests](https://img.shields.io/badge/Tests-142%20passed%2C%200%20skipped-brightgreen)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue)
 ![License](https://img.shields.io/badge/License-Apache%202.0-red)
 
@@ -387,7 +387,17 @@ Authorization: eyJhbGciOiJIUzI1NiJ9...
 
 ## 🧪 测试说明
 
-项目包含完整的单元测试，覆盖 Service 层和 Controller 层。
+后端 142 个用例、前端 24 个用例，实测全部通过（`mvn -o test` 约 1 分 20 秒；
+两端 `npm run unit` 各约 10 秒）。数字以 `docs/FIX-LOG-2026-11.md` 第四、六节的实测记录为准。
+
+需要如实说明的边界：
+
+- 后端覆盖以 Controller 与 Service 层为主，推荐算法链路没有断言级测试；
+  六路召回与端到端推荐靠真实 MySQL + Redis 探针验证，不在 `mvn test` 内
+- 管理端没有管理员账号的增删改查接口，对应位置不留占位测试
+- 前端测试针对纯逻辑（歌词解析、store 回读语义、mixin 纯函数），
+  不含浏览器端 UI 验证；`npm run build` 两端均能产出 dist，
+  但 Docker 镜像内的构建过程未实机验证（详见 FIX-LOG 第七节）
 
 | 层级 | 测试数量 | 通过率 |
 |------|---------|--------|
