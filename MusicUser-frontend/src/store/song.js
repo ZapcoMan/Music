@@ -1,136 +1,70 @@
+/**
+ * 播放状态。
+ *
+ * 修正要点：
+ * 1. 原 getter 一律写成 if (!state.x) 就回读 sessionStorage，把"未初始化"与
+ *    "合法的零值"混为一谈：listIndex=0（第一首）被历史索引替换导致上下首跳错歌，
+ *    isPlay=false（刚暂停）被恢复成旧的 true，curTime=0 被旧进度覆盖使进度条停在半路，
+ *    listOfSongs 显式清空为 [] 后又被旧缓存填回（搜索无结果时残留上一次列表）。
+ *    现在初值为 null，只有 null 才回读。
+ * 2. 原 mutation 每次都全量 JSON.stringify；setCurTime 由 timeupdate 高频触发，
+ *    等于每秒序列化整个歌单，而进度并不需要跨刷新恢复。现只持久化列表与曲目信息。
+ * 3. JSON.parse 加保护，脏数据不再让初始化抛错。
+ */
+function readCache(key, fallback) {
+    const raw = window.sessionStorage.getItem(key);
+    if (raw === null) {
+        return fallback;
+    }
+    try {
+        const parsed = JSON.parse(raw);
+        return parsed === null ? fallback : parsed;
+    } catch (e) {
+        return fallback;
+    }
+}
+
 const song = {
     state:{
-        listOfSongs: [],     //当前歌曲列表
-        isPlay: false,          //是否播放中
-        url: '',                //歌曲地址
-        id: '',                  //歌曲id
-        playButtonUrl: '#icon-bofang',   //播放状态的图标
-        duration: 0,                //音乐时长
-        curTime:  0,                //当前音乐的播放位置
-        changeTime: 0,              //指定播放时刻
-        title: '',                  //歌名
-        artist: '',                 //歌手名
-        picUrl: '',                 //歌曲图片
-        autoNext: true,             //用于自动触发播放下一首
-        lyric: [],                  //未处理的歌词数据
-        tempList: {},               //单个歌单信息或歌手信息
-        listIndex: null,            //当前歌曲在歌单中的位置
-        volume: 50                  //音量
+        // 初值统一为 null，表示"尚未初始化"；
+        // 只有 null 才回读 sessionStorage，0 / false / '' 等合法零值原样保留
+        listOfSongs: null,     //当前歌曲列表
+        isPlay: null,          //是否播放中
+        url: '',               //歌曲地址
+        id: null,              //歌曲id
+        playButtonUrl: null,   //播放状态的图标
+        duration: null,        //音乐时长
+        curTime:  null,        //当前音乐的播放位置（瞬时状态，不持久化）
+        changeTime: null,      //指定播放时刻（瞬时状态，不持久化）
+        title: null,           //歌名
+        artist: null,          //歌手名
+        picUrl: null,          //歌曲图片
+        autoNext: null,        //用于自动触发播放下一首
+        lyric: null,           //未处理的歌词数据
+        tempList: null,        //单个歌单信息或歌手信息
+        listIndex: null,       //当前歌曲在歌单中的位置
+        volume: null           //音量
     },
     getters: {
-        listOfSongs: state => {
-            let listOfSongs = state.listOfSongs;
-            if(!listOfSongs.length){
-                listOfSongs = JSON.parse(window.sessionStorage.getItem('listOfSongs')||null); 
-            }
-            return listOfSongs;
-        },
-        isPlay: state => {
-            let isPlay = state.isPlay;
-            if(!isPlay){
-                isPlay = JSON.parse(window.sessionStorage.getItem('isPlay')||null); 
-            }
-            return isPlay;
-        },
-        url: state => {
-            let url = state.url;
-            if(!url){
-                url = JSON.parse(window.sessionStorage.getItem('url')||null); 
-            }
-            return url;
-        },
-        id: state => {
-            let id = state.id;
-            if(!id){
-                id = JSON.parse(window.sessionStorage.getItem('id')||null); 
-            }
-            return id;
-        },
-        playButtonUrl: state => {
-            let playButtonUrl = state.playButtonUrl;
-            if(!playButtonUrl){
-                playButtonUrl = JSON.parse(window.sessionStorage.getItem('playButtonUrl')||null); 
-            }
-            return playButtonUrl;
-        },
-        duration: state => {
-            let duration = state.duration;
-            if(!duration){
-                duration = JSON.parse(window.sessionStorage.getItem('duration')||null); 
-            }
-            return duration;
-        },
-        curTime: state => {
-            let curTime = state.curTime;
-            if(!curTime){
-                curTime = JSON.parse(window.sessionStorage.getItem('curTime')||null); 
-            }
-            return curTime;
-        },
-        changeTime: state => {
-            let changeTime = state.changeTime;
-            if(!changeTime){
-                changeTime = JSON.parse(window.sessionStorage.getItem('changeTime')||null); 
-            }
-            return changeTime;
-        },
-        title: state => {
-            let title = state.title;
-            if(!title){
-                title = JSON.parse(window.sessionStorage.getItem('title')||null); 
-            }
-            return title;
-        },
-        artist: state => {
-            let artist = state.artist;
-            if(!artist){
-                artist = JSON.parse(window.sessionStorage.getItem('artist')||null); 
-            }
-            return artist;
-        },
-        picUrl: state => {
-            let picUrl = state.picUrl;
-            if(!picUrl){
-                picUrl = JSON.parse(window.sessionStorage.getItem('picUrl')||null); 
-            }
-            return picUrl;
-        },
-        autoNext: state => {
-            let autoNext = state.autoNext;
-            if(!autoNext){
-                autoNext = JSON.parse(window.sessionStorage.getItem('autoNext')||null); 
-            }
-            return autoNext;
-        },
-        lyric: state => {
-            let lyric = state.lyric;
-            if(!lyric){
-                lyric = JSON.parse(window.sessionStorage.getItem('lyric')||null); 
-            }
-            return lyric;
-        },
-        tempList: state => {
-            let tempList = state.tempList;
-            if(!tempList){
-                tempList = JSON.parse(window.sessionStorage.getItem('tempList')||null); 
-            }
-            return tempList;
-        },
-        listIndex: state => {
-            let listIndex = state.listIndex;
-            if(!listIndex){
-                listIndex = JSON.parse(window.sessionStorage.getItem('listIndex')||null); 
-            }
-            return listIndex;
-        },
-        volume: state => {
-            let volume = state.volume;
-            if(!volume){
-                volume = JSON.parse(window.sessionStorage.getItem('volume')||null); 
-            }
-            return volume;
-        }
-        
+        // 只在确实未初始化（null）时回读；0 / false / '' 是有效状态，不再被历史值覆盖。
+        // 回读统一走 readCache：脏数据不再让整个播放器初始化失败，并按类型给合理兜底
+        listOfSongs: state => state.listOfSongs !== null ? state.listOfSongs : readCache('listOfSongs', []),
+        isPlay: state => state.isPlay !== null ? state.isPlay : readCache('isPlay', false),
+        url: state => state.url !== null ? state.url : readCache('url', ''),
+        id: state => state.id !== null ? state.id : readCache('id', ''),
+        playButtonUrl: state => state.playButtonUrl !== null ? state.playButtonUrl : readCache('playButtonUrl', '#icon-bofang'),
+        duration: state => state.duration !== null ? state.duration : readCache('duration', 0),
+        // 播放进度是高频瞬时状态：不回读旧值，否则进度条一进来就停在半路
+        curTime: state => state.curTime !== null ? state.curTime : 0,
+        changeTime: state => state.changeTime !== null ? state.changeTime : 0,
+        title: state => state.title !== null ? state.title : readCache('title', ''),
+        artist: state => state.artist !== null ? state.artist : readCache('artist', ''),
+        picUrl: state => state.picUrl !== null ? state.picUrl : readCache('picUrl', ''),
+        autoNext: state => state.autoNext !== null ? state.autoNext : readCache('autoNext', true),
+        lyric: state => state.lyric !== null ? state.lyric : readCache('lyric', []),
+        tempList: state => state.tempList !== null ? state.tempList : readCache('tempList', {}),
+        listIndex: state => state.listIndex !== null ? state.listIndex : readCache('listIndex', -1),
+        volume: state => state.volume !== null ? state.volume : readCache('volume', 50)
     },
     mutations: {
         setListOfSongs: (state,listOfSongs) => {
@@ -157,13 +91,12 @@ const song = {
             state.duration = duration;
             window.sessionStorage.setItem('duration',JSON.stringify(duration));
         },        
+        // 播放进度只存内存：避免 timeupdate 高频序列化整个歌单
         setCurTime: (state,curTime) => {
             state.curTime = curTime;
-            window.sessionStorage.setItem('curTime',JSON.stringify(curTime));
         },
         setChangeTime: (state,changeTime) => {
             state.changeTime = changeTime;
-            window.sessionStorage.setItem('changeTime',JSON.stringify(changeTime));
         },
         setTitle: (state,title) => {
             state.title = title;

@@ -92,8 +92,13 @@ export const mixin = {
                 return [[0,text]]
             }        
             //去掉前面格式不正确的行
-            while(!pattern.test(lines[0])){
+            //原写法没有空数组出口：歌词只含 [by:xxx] / [offset:0] 这类无时间戳行时，
+            //lines 会被 slice 到空，lines[0] 变成 undefined，test 恒为 false，循环不退出
+            while(lines.length && !pattern.test(lines[0])){
                 lines = lines.slice(1);
+            }
+            if(!lines.length){
+                return [[0,text]]
             }
             //遍历每一行，形成一个每行带着俩元素的数组，第一个元素是以秒为计算单位的时间，第二个元素是歌词
             for(let item of lines){

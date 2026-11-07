@@ -31,9 +31,15 @@
 import searchSongs from '../components/search/SearchSongs'
 import searchSongLists from '../components/search/SearchSongLists'
 import { getRecentSearchKeywords, clearSearchHistory } from '../api'
+import {mixin} from '../mixins'
 
 export default {
    name: 'search',
+   // 本页调用了 this.getSong() 与 this.userId，两者都由 mixin 提供
+   // （getSong 定义在 mixins/index.js，userId 来自其 mapGetters）。
+   // 此前没有混入，点击搜索历史标签会直接抛 "this.getSong is not a function"，
+   // this.userId 也恒为 undefined，导致历史列表根本不会加载。
+   mixins: [mixin],
    components: {
        searchSongs,
        searchSongLists
@@ -57,7 +63,7 @@ export default {
        },
        //加载搜索历史
        loadSearchHistory() {
-           const userId = this.$store.state.userId;
+           const userId = this.userId;
            if (userId) {
                getRecentSearchKeywords(userId, 10).then(res => {
                    this.historyKeywords = res || [];
@@ -68,13 +74,23 @@ export default {
        },
        //通过关键词搜索
        handleSearchByKeyword(keyword) {
-           this.$store.commit('setSearchWord', keyword);
            this.showHistory = false;
-           this.getSong();
+           // 原来这里 commit('setSearchWord', keyword)，但 store 的 user 模块只有
+           // setUserId/setUsername/setAvator 三个 mutation，Vuex 对未知 mutation
+           // 仅打印警告后静默返回，点击搜索历史因此毫无反应。
+           // getSong 依赖 $route.query.keywords，故先写路由再取结果。
+           this.$router.replace({ path: '/search', query: { keywords: keyword } })
+               .then(() => {
+                   this.getSong();
+               })
+               .catch(() => {
+                   // 路由参数未变化会抛 NavigationDuplicated，仍需执行搜索
+                   this.getSong();
+               });
        },
        //清空搜索历史
        handleClearHistory() {
-           const userId = this.$store.state.userId;
+           const userId = this.userId;
            if (userId) {
                clearSearchHistory(userId).then(() => {
                    this.historyKeywords = [];

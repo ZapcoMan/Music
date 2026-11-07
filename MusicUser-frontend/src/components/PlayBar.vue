@@ -188,33 +188,62 @@ export default {
         },
     },
     mounted() {
-        this.progressLength = this.$refs.progress.getBoundingClientRect().width;
-        document.querySelector(".item-volume").addEventListener(
-            "click",
-            function (e) {
-                document.querySelector(".volume").classList.add("show-volume");
-                e.stopPropagation();
-            },
-            false
-        );
-        document.querySelector(".volume").addEventListener(
-            "click",
-            function (e) {
-                e.stopPropagation();
-            },
-            false
-        );
-        document.addEventListener(
-            "click",
-            function () {
-                document
-                    .querySelector(".volume")
-                    .classList.remove("show-volume");
-            },
-            false
-        );
+        this.measureProgressWidth();
+        // 进度条宽度原来只在 mounted 量一次，窗口缩放后点击与拖拽的
+        // 百分比换算仍用旧宽度，会点错位置
+        this.onResize = () => this.measureProgressWidth();
+        window.addEventListener("resize", this.onResize);
+        // 拖拽过程中若鼠标在 idot 元素之外松开，元素上的 mouseup 不会触发，
+        // tag 会一直停在 true，此后每次鼠标移动都在改写进度（拖拽卡死）
+        this.onDocMouseUp = () => {
+            this.tag = false;
+        };
+        document.addEventListener("mouseup", this.onDocMouseUp);
+
+        this.onVolumeBoxClick = function (e) {
+            document.querySelector(".volume").classList.add("show-volume");
+            e.stopPropagation();
+        };
+        this.onVolumeClick = function (e) {
+            e.stopPropagation();
+        };
+        this.onDocClick = function () {
+            const el = document.querySelector(".volume");
+            if (el) {
+                el.classList.remove("show-volume");
+            }
+        };
+        const volumeBox = document.querySelector(".item-volume");
+        const volume = document.querySelector(".volume");
+        if (volumeBox) {
+            volumeBox.addEventListener("click", this.onVolumeBoxClick, false);
+        }
+        if (volume) {
+            volume.addEventListener("click", this.onVolumeClick, false);
+        }
+        document.addEventListener("click", this.onDocClick, false);
+    },
+    beforeDestroy() {
+        // 原实现只加监听不清理，组件反复挂载会累积监听器
+        window.removeEventListener("resize", this.onResize);
+        document.removeEventListener("mouseup", this.onDocMouseUp);
+        document.removeEventListener("click", this.onDocClick);
+        const volumeBox = document.querySelector(".item-volume");
+        const volume = document.querySelector(".volume");
+        if (volumeBox) {
+            volumeBox.removeEventListener("click", this.onVolumeBoxClick);
+        }
+        if (volume) {
+            volume.removeEventListener("click", this.onVolumeClick);
+        }
     },
     methods: {
+        measureProgressWidth() {
+            const el = this.$refs.progress;
+            if (el) {
+                this.progressLength = el.getBoundingClientRect().width;
+            }
+        },
         share() {
             //分享
             if (this.id && this.id != "") {
@@ -339,10 +368,11 @@ export default {
                 return;
             }
             if (!this.tag) {
-                //进度条的左侧坐标
-                let curLength = this.$refs.bg.offsetLeft;
-                let newPercent =
-                    ((e.clientX - curLength) / this.progressLength) * 100;
+                // 原来用 $refs.bg.offsetLeft 作为进度条左端基准，
+                // 而拖拽分支用的是 progressLength，两套坐标不一致；
+                // 这里统一取视口坐标，与 progressLength 的计算口径相同
+                const rect = this.$refs.progress.getBoundingClientRect();
+                let newPercent = ((e.clientX - rect.left) / this.progressLength) * 100;
                 if (newPercent > 100) {
                     newPercent = 100;
                 } else if (newPercent < 0) {
@@ -427,13 +457,19 @@ export default {
                 this.$store.commit("setIsActive", false);
                 if (this.loginIn) {
                     getCollectOfUserId(this.userId).then((res) => {
-                  console.log(res)
+                        // 后端未登录或异常时返回的不是数组，遍历前先判类型，
+                        // 否则 for...of 直接抛 TypeError
+                        if (!Array.isArray(res)) {
+                            return;
+                        }
                         for (let item of res) {
                             if (item.songId == this.id) {
                                 this.$store.commit("setIsActive", true);
                                 break;
                             }
                         }
+                    }).catch(() => {
+                        // 收藏状态查询失败不影响播放，只是不点亮心形图标
                     });
                 }
             }
@@ -458,8 +494,14 @@ export default {
                 return [[0, text]];
             }
             //去掉前面格式不正确的行
-            while (!pattern.test(lines[0])) {
+            //原写法没有空数组出口：歌词只含 [by:xxx] / [offset:0] 这类无时间戳行时，
+            //lines 会被 slice 到空，lines[0] 变成 undefined，test 恒为 false，
+            //循环不退出，页面直接卡死
+            while (lines.length && !pattern.test(lines[0])) {
                 lines = lines.slice(1);
+            }
+            if (!lines.length) {
+                return [[0, text]];
             }
             //遍历每一行，形成一个每行带着俩元素的数组，第一个元素是以秒为计算单位的时间，第二个元素是歌词
             for (let item of lines) {
