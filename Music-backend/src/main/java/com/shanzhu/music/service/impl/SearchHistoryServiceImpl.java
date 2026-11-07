@@ -88,8 +88,9 @@ public class SearchHistoryServiceImpl implements SearchHistoryService {
             }
 
             Integer result = searchHistoryMapper.deleteByUserId(userId);
-            log.info("清空搜索历史成功，userId={}, deletedCount={}", userId, result);
-            return true;
+            log.info("清空搜索历史，userId={}, deletedCount={}", userId, result);
+            // 以Mapper实际返回为准，不无条件返回成功
+            return result != null;
         } catch (Exception e) {
             log.error("清空搜索历史失败，userId={}", userId, e);
             return false;
@@ -108,8 +109,8 @@ public class SearchHistoryServiceImpl implements SearchHistoryService {
             }
 
             Integer result = searchHistoryMapper.deleteOldHistory(userId, days);
-            log.info("清理过期搜索历史成功，userId={}, days={}, deletedCount={}", userId, days, result);
-            return true;
+            log.info("清理过期搜索历史，userId={}, days={}, deletedCount={}", userId, days, result);
+            return result != null;
         } catch (Exception e) {
             log.error("清理过期搜索历史失败，userId={}, days={}", userId, days, e);
             return false;

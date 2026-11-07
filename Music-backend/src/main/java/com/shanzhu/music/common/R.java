@@ -85,6 +85,9 @@ public class R<T> {
 
     public static R error(Integer code, String msg) {
         R result = new R();
+        // 必须显式置 success=false：否则该字段序列化为 null，
+        // 前端 res.success === true 的判定永远为假，成功与失败无法区分
+        result.setSuccess(false);
         result.setCode(code);
         result.setMessage(msg);
         return result;
@@ -92,6 +95,7 @@ public class R<T> {
 
     public static R error(String msg) {
         R result = new R();
+        result.setSuccess(false);
         result.setCode(ResultCodeEnum.UNKNOWN_ERROR.getCode());
         result.setMessage(msg);
         return result;

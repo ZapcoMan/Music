@@ -162,9 +162,13 @@ public class CommentServiceImpl implements CommentService {
         return commentMapper.selectAllComments();
     }
 
+    /**
+     * 接口方法此前恒返回空列表，真正的分词统计实现（getTopFourFrequentWords）
+     * 没有接入任何调用链，导致 /comment/frequent-words 永远拿不到数据。
+     */
     @Override
     public List<String> getFrequentWords(String id) {
-        return Collections.emptyList();
+        return getTopFourFrequentWords(id);
     }
 
     /**
@@ -191,8 +195,8 @@ public List<String> getTopFourFrequentWords(String id) {
         }
     }
 
-    // 打印每个词及其对应的词频次数
-    wordCounts.forEach((word, count) -> log.info(word + ": " + count));
+    // 词频明细只作排查用，接口接线后按请求触发，不能以 info 级别刷屏
+    wordCounts.forEach((word, count) -> log.debug(word + ": " + count));
 
     // 根据出现次数排序，并获取排序后的单词列表
     List<Map.Entry<String, Integer>> sortedEntries = new ArrayList<>(wordCounts.entrySet());
