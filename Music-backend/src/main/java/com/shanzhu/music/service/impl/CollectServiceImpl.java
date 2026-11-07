@@ -3,7 +3,9 @@ package com.shanzhu.music.service.impl;
 import com.shanzhu.music.entity.po.Collect;
 import com.shanzhu.music.mapper.CollectMapper;
 import com.shanzhu.music.service.CollectService;
+import com.shanzhu.music.service.ranking.RecommendationCache;
 import com.shanzhu.music.utils.RedisUtils;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,10 +23,10 @@ public class CollectServiceImpl implements CollectService {
 
     private final CollectMapper collectMapper;
     private final RedisUtils redisUtils;
+    private final RecommendationCache recommendationCache;
     
     // Redis缓存键前缀
     private static final String COLLECT_CACHE_KEY = "music:collect:";
-    private static final String RECOMMENDATION_CACHE_KEY = "music:recommendation:user:";
     private static final long CACHE_EXPIRE_HOURS = 12; // 缓存过期时间12小时
 
     /**
@@ -40,8 +42,8 @@ public class CollectServiceImpl implements CollectService {
             Integer userId = collect.getUserId();
             // 使用延时双删策略清除用户收藏列表缓存
             redisUtils.deleteWithDelay(COLLECT_CACHE_KEY + "user:" + userId);
-            // 清除该用户的推荐缓存，触发重新计算
-            redisUtils.deleteWithDelay(RECOMMENDATION_CACHE_KEY + userId);
+            // 让该用户的推荐缓存失效，下次请求按新偏好重新生成
+            recommendationCache.evict(userId);
             log.info("新增收藏，清除收藏和推荐缓存，userId={}", userId);
         }
         return result;
@@ -69,8 +71,8 @@ public class CollectServiceImpl implements CollectService {
         if (result && userId != null) {
             // 使用延时双删策略清除缓存
             redisUtils.deleteWithDelay(COLLECT_CACHE_KEY + "user:" + userId);
-            // 清除该用户的推荐缓存，触发重新计算
-            redisUtils.deleteWithDelay(RECOMMENDATION_CACHE_KEY + userId);
+            // 让该用户的推荐缓存失效，下次请求按新偏好重新生成
+            recommendationCache.evict(userId);
             log.info("删除收藏，清除收藏和推荐缓存，userId={}", userId);
         }
         return result;
@@ -89,8 +91,8 @@ public class CollectServiceImpl implements CollectService {
         if (result) {
             // 使用延时双删策略清除缓存
             redisUtils.deleteWithDelay(COLLECT_CACHE_KEY + "user:" + userId);
-            // 清除该用户的推荐缓存，触发重新计算
-            redisUtils.deleteWithDelay(RECOMMENDATION_CACHE_KEY + userId);
+            // 让该用户的推荐缓存失效，下次请求按新偏好重新生成
+            recommendationCache.evict(userId);
             log.info("删除收藏，清除收藏和推荐缓存，userId={}", userId);
         }
         return result;

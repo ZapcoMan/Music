@@ -5,6 +5,7 @@ import com.shanzhu.music.mapper.SearchHistoryMapper;
 import com.shanzhu.music.service.SearchHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.shanzhu.music.service.ranking.RecommendationCache;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.List;
 public class SearchHistoryServiceImpl implements SearchHistoryService {
 
     private final SearchHistoryMapper searchHistoryMapper;
+    private final RecommendationCache recommendationCache;
 
     @Override
     public Boolean recordSearch(Integer userId, String keywords, Byte searchType) {
@@ -32,6 +34,8 @@ public class SearchHistoryServiceImpl implements SearchHistoryService {
             searchHistory.setSearchType(searchType != null ? searchType : 0);
 
             Integer result = searchHistoryMapper.insert(searchHistory);
+            // 搜索历史本身是一路召回的输入，写入后需让推荐缓存失效
+            recommendationCache.evict(userId);
             log.debug("记录搜索历史成功，userId={}, keywords={}", userId, keywords);
             return result > 0;
         } catch (Exception e) {

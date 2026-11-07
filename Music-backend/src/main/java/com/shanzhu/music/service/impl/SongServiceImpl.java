@@ -42,7 +42,7 @@ public class SongServiceImpl implements SongService {
         if (result) {
             // 使用延时双删策略
             redisUtils.deleteWithDelay(ALL_SONG_KEY);
-            redisUtils.deleteWithDelay(SONG_BY_SINGER_KEY + song.getSingerId());
+            evictSingerCache(song.getSingerId(), song.getId());
             log.info("新增歌曲，延时双删缓存");
         }
         return result;
@@ -61,7 +61,7 @@ public class SongServiceImpl implements SongService {
             // 使用延时双删策略
             redisUtils.deleteWithDelay(ALL_SONG_KEY);
             redisUtils.deleteWithDelay(SONG_CACHE_KEY + song.getId());
-            redisUtils.deleteWithDelay(SONG_BY_SINGER_KEY + song.getSingerId());
+            evictSingerCache(song.getSingerId(), song.getId());
             log.info("更新歌曲，延时双删缓存");
         }
         return result;
@@ -81,10 +81,31 @@ public class SongServiceImpl implements SongService {
             // 使用延时双删策略
             redisUtils.deleteWithDelay(ALL_SONG_KEY);
             redisUtils.deleteWithDelay(SONG_CACHE_KEY + id);
-            redisUtils.deleteWithDelay(SONG_BY_SINGER_KEY + song.getSingerId());
+            evictSingerCache(song.getSingerId(), song.getId());
             log.info("删除歌曲，延时双删缓存");
         }
         return result;
+    }
+
+    /**
+     * 失效歌手维度的歌曲缓存。
+     * Controller 组装的 Song 常常不带 singerId，直接拼接会得到
+     * music:song:singer:null，真正的歌手维度缓存从未被清理，只能等 24 小时自然过期；
+     * 这里在 singerId 缺失时按歌曲 id 回查一次，取不到则明确告警而不是静默拼出无效键。
+     */
+    private void evictSingerCache(Integer singerId, Integer songId) {
+        Integer resolvedSingerId = singerId;
+        if (resolvedSingerId == null && songId != null) {
+            Song persisted = songMapper.selectByPrimaryKey(songId);
+            if (persisted != null) {
+                resolvedSingerId = persisted.getSingerId();
+            }
+        }
+        if (resolvedSingerId == null) {
+            log.warn("歌曲 {} 无法确定所属歌手，跳过歌手维度缓存失效", songId);
+            return;
+        }
+        redisUtils.deleteWithDelay(SONG_BY_SINGER_KEY + resolvedSingerId);
     }
 
     /**

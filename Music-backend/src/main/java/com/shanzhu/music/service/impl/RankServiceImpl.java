@@ -3,7 +3,7 @@ package com.shanzhu.music.service.impl;
 import com.shanzhu.music.entity.po.Rank;
 import com.shanzhu.music.mapper.RankMapper;
 import com.shanzhu.music.service.RankService;
-import com.shanzhu.music.utils.RedisUtils;
+import com.shanzhu.music.service.ranking.RecommendationCache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,10 +17,7 @@ import org.springframework.stereotype.Service;
 public class RankServiceImpl implements RankService {
 
     private final RankMapper rankMapper;
-    private final RedisUtils redisUtils;
-    
-    // 推荐缓存键前缀
-    private static final String RECOMMENDATION_CACHE_KEY = "music:recommendation:user:";
+    private final RecommendationCache recommendationCache;
 
     /**
      * 新增评价
@@ -32,8 +29,8 @@ public class RankServiceImpl implements RankService {
     public Boolean insert(Rank rank) {
         Boolean result = rankMapper.insert(rank) > 0;
         if (result && rank.getConsumerId() != null) {
-            // 清除该用户的推荐缓存，因为评分会影响相似度计算
-            redisUtils.deleteWithDelay(RECOMMENDATION_CACHE_KEY + rank.getConsumerId());
+            // 评分会影响相似度与统计，让该用户的推荐缓存失效
+            recommendationCache.evict(rank.getConsumerId());
             log.info("新增评价，清除推荐缓存，userId={}", rank.getConsumerId());
         }
         return result;
