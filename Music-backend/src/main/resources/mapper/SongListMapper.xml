@@ -133,7 +133,7 @@
                  JOIN collect c ON ls.song_id = c.song_id
         WHERE c.user_id = #{id}
         GROUP BY sl.id
-        ORDER BY COUNT(c.id) DESC LIMIT 5;
+        ORDER BY COUNT(c.id) DESC LIMIT 5
     </select>
     <!-- 查询相似用户ID -->
     <select id="findSimilarUsers" resultType="java.lang.Integer" parameterType="java.lang.Integer">
@@ -144,6 +144,11 @@
         AND r1.consumer_id &lt; r2.consumer_id GROUP BY r1.consumer_id, r2.consumer_id
         HAVING SUM(r1.score * r2.score) / (SQRT(SUM(r1.score * r1.score)) * SQRT(SUM(r2.score * r2.score))) > 0.9
         ORDER BY SUM(r1.score * r2.score) / (SQRT(SUM(r1.score * r1.score)) * SQRT(SUM(r2.score * r2.score))) DESC
+        <!-- 原本没有 LIMIT：相似用户集合随评分行数增长，而调用方
+             （协同过滤召回）只取前若干个用户的收藏，
+             多出来的部分既占内存又要再被下游遍历一次。
+             200 与召回侧的实际用量相比已留足余量。 -->
+        LIMIT 200
     </select>
 
     <!-- 查询相似用户及其相似度分数 -->

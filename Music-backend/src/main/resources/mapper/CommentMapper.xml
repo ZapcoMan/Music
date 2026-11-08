@@ -139,9 +139,15 @@
         where song_list_id = #{songListId}
     </select>
 
-    <!-- 查询所有精选评论的内容 -->
+    <!-- 查询所有精选评论的内容，供高频词统计。
+         两条改动：去掉语句尾分号（数据源配了 filters: stat,wall，
+         WallFilter 对多语句形态敏感，留着是潜在的运行期拦截源）；
+         加 LIMIT 兜住无界增长——这条的结果会整份进内存做 HanLP 分词，
+         评论表一旦长大，先垮的是这一段。
+         截断会影响词频统计的代表性，但统计本身是"取前若干条做展示"的性质，
+         上限取 1000 与 allCollect 那类保险丝同一口径。 -->
     <select id="selectAllComments" resultType="String">
-        SELECT content FROM comment WHERE type = 1;
+        SELECT content FROM comment WHERE type = 1 LIMIT 1000
     </select>
     <select id="selectAllCommentsBySongListId" resultType="String" parameterType="String">
          SELECT content FROM comment WHERE type = 1 and song_list_id = #{songListId}
