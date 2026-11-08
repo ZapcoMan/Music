@@ -89,8 +89,9 @@ spring:
     locations: classpath:db/migration
     encoding: UTF-8
     validate-on-migrate: true       # 开启校验
-    baseline-on-migrate: true
-    baseline-version: 0
+    # 生产原本是 true，风险最高：备份恢复或历史库缺 flyway_schema_history 时，
+    # 会把带 DROP TABLE 的 V1 起全部脚本重放一遍，等于上线即清库。
+    baseline-on-migrate: false
     table: flyway_schema_history
     repair: false                   # 生产环境关闭自动修复
 

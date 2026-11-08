@@ -58,9 +58,9 @@ spring:
     enabled: true
     locations: classpath:db/migration
     encoding: UTF-8
-    validate-on-migrate: false
-    baseline-on-migrate: true
-    baseline-version: 0
+    # 口径与 dev/prod 一致：V1 含 DROP TABLE，绝不能在非空库上自动重放。
+    validate-on-migrate: true
+    baseline-on-migrate: false
     table: flyway_schema_history
     repair: true
 

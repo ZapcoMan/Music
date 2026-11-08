@@ -81,9 +81,14 @@ spring:
     enabled: true
     locations: classpath:db/migration
     encoding: UTF-8
-    validate-on-migrate: false
-    baseline-on-migrate: true
-    baseline-version: 0
+    # V1__InitDateBase.sql 对每张业务表都带 DROP TABLE IF EXISTS。
+    # baseline-on-migrate: true 配 baseline-version: 0 的实际含义是：
+    # 非空库但没有 history 表时，从 V1 起把全部脚本重放一遍——
+    # 于是手工导过 dump、或从备份恢复过的库一启动就被整库清空。
+    # 这里选择让这种环境启动失败，而不是静默删数据。
+    # 需要给已有数据的库补 history 表时，显式执行 baseline 命令，不要靠配置兜。
+    validate-on-migrate: true
+    baseline-on-migrate: false
     table: flyway_schema_history
     repair: true
 
