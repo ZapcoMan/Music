@@ -34,8 +34,10 @@ class AdminServiceImplTest extends BaseTest {
                 PasswordUtils.matches("另一个口令", hash), "不同明文应校验失败");
         org.junit.jupiter.api.Assertions.assertFalse(
                 adminService.verifyPassword("admin", "随便填的口令"), "错误口令不应通过");
-        // AdminMapper 只有 verifyPassword 与 getByName，没有任何写入方法，
-        // 因此也无法在测试里构造一个已知口令的管理员账号
+        // AdminMapper 只有 getByName 一个读方法、没有任何写入路径，
+        // 所以这里无法在测试里构造一个已知口令的管理员账号，只能对种子行断"错口令不通过"。
+        // （原先这里还提到 verifyPassword：那条 SQL 用等值比对 BCrypt 散列，
+        //   从来没工作过也从来没被调用，已随 Mapper 一起删除。）
     }
 
 

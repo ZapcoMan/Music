@@ -37,8 +37,14 @@ class EndpointRoleGuardTest extends BaseTest {
     /**
      * 由 WebMvcConfig 的 excludePathPatterns 排除在拦截器之外的路径，因此不需要角色声明。
      * 必须逐条列全——往这个清单里加一项，等于开一个匿名入口。
+     *
+     * 现在是空的：原先唯一的成员 "/manage" 随端点一起删掉了
+     * （它把视图名写成 /src/main/resources/static/screenIndex/index.html，
+     * 而该目录不存在，只会 500）。
+     * 保持空集是刻意的：以后有人想往这里加一项，就该先想清楚
+     * "这个路径凭什么可以匿名访问"。
      */
-    private static final Set<String> EXCLUDED_PATHS = Set.of("/manage");
+    private static final Set<String> EXCLUDED_PATHS = Set.of();
 
     /**
      * 由 JwtAuthenticationInterceptor#ANONYMOUS_ENTRIES 按 (方法, 路径) 放行的入口。

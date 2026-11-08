@@ -147,11 +147,11 @@
         from consumer
     </select>
 
-    <select id="verifyPassword" resultType="java.lang.Integer" parameterType="java.util.HashMap">
-        select count(*)
-        from consumer
-        where username = #{username} and password = #{password}
-    </select>
+    <!--
+      原先此处有 verifyPassword，用 SQL 等值比对 password 列。
+      password 存的是 BCrypt 散列（每次加盐、结果不同），等值比对恒为 0，
+      这个方法从来没有工作过。服务层走的是 PasswordUtils.matches，全仓无调用点，已删除。
+    -->
 
     <select id="getByUsername" resultMap="BaseResultMap" parameterType="java.lang.String">
         select

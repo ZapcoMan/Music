@@ -51,15 +51,6 @@ public interface ConsumerMapper {
     List<Consumer> allConsumer();
 
     /**
-     * 查看密码是否正确
-     *
-     * @param username 用户名
-     * @param password 密码
-     * @return 结果
-     */
-    Integer verifyPassword(String username, String password);
-
-    /**
      * 根据账号查询
      *
      * @param username 账户名

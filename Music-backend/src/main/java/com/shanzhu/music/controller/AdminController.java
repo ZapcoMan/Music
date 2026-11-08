@@ -16,14 +16,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import com.shanzhu.music.service.TokenBlacklistService;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.ModelAndView;
 
 
 /**
@@ -116,17 +113,6 @@ public class AdminController {
         operationLogService.logLogin(admin.getId(), name, "admin", ip, true);
         log.info("管理员登录成功 - adminId={}, username={}, ip={}", admin.getId(), name, ip);
         return R.ok("登录成功", result);
-    }
-
-    /**
-     * 打包项目接口
-     *
-     * @return modelAndView
-     */
-    @Operation(summary = "管理页面", description = "返回后台管理页面")
-    @GetMapping(value = "/manage")
-    public ModelAndView index() {
-        return new ModelAndView("/src/main/resources/static/screenIndex/index.html");
     }
 
 }

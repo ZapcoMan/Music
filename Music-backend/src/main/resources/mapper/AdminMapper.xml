@@ -9,9 +9,13 @@
         <result column="password" jdbcType="VARCHAR" property="password"/>
     </resultMap>
 
-    <select id="verifyPassword" resultType="java.lang.Integer">
-        select count(*) from admin where name=#{username} and password=#{password}
-    </select>
+    <!--
+      这里原先有一条 verifyPassword：select count(*) from admin
+      where name=? and password=?，用 SQL 等值比对密码。
+      密码列存的是 BCrypt 散列，同一口令每次散列都不同，等值比对永远为 0——
+      它不是"旧方法"，是从来没工作过的方法。全仓无调用点（服务层走
+      PasswordUtils.matches），已删除；留着会被下一个人当成可用能力接上。
+    -->
 
     <select id="getByName" resultMap="BaseResultMap" parameterType="java.lang.String">
         select id, name, password from admin where name = #{name}

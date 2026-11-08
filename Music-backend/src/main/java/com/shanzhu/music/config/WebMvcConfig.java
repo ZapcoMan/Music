@@ -60,7 +60,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(jwtAuthenticationInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
-                        "/manage",               // 管理端页面入口（HTML，不在 API 前缀下）
+                        // 原先这里还排除 "/manage"：那是 AdminController 上一个把视图名
+                        // 写成 /src/main/resources/static/screenIndex/index.html 的端点，
+                        // 而 resources/static 目录并不存在，它只会 500；前端也没有任何地方引用它。
+                        // 端点已删，这条匿名入口一并撤掉——少一个匿名面，就少一处要人记着的例外。
                         "/img/**",               // 静态图片
                         // 静态音频。只放行单层 /song/*：音频文件的落盘路径就是
                         // /song/{时间戳-随机名}（见 FileStorageService.store），全部单层且多数无扩展名，
