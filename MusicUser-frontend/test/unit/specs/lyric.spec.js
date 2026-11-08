@@ -6,13 +6,13 @@
  * undefined，test 恒为 false，循环永不退出 —— 只要歌词全是
  * [by:xxx] / [offset:0.5] 这类无时间戳行就会命中。
  */
+import { mixin } from '@/mixins/index';
+
 jest.mock('@/api/index', () => ({
   likeSongOfName: jest.fn(),
   getCollectOfUserId: jest.fn(),
   recordSearchHistory: jest.fn()
 }));
-
-import { mixin } from '@/mixins/index';
 
 const parse = mixin.methods.parseLyric;
 

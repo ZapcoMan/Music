@@ -6,3 +6,6 @@ config/
 dist/
 node_modules/
 src/assets/
+# jest --coverage 每次跑都会重新生成的报告目录：里面是 prettify.js/sorter.js 这类
+# 压缩过的第三方脚本，lint 它们只会产出几百条与本仓库无关的错误
+/test/unit/coverage/

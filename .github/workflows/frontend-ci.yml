@@ -58,10 +58,10 @@ jobs:
         run: npm run lint
 
       - name: 单元测试
-        # 只跑 unit。npm test 等价于 unit && e2e，
-        # 而 e2e 是 vue-cli 脚手架残留（nightwatch 0.9 + chromedriver 2 + selenium 3，
-        # 断言的目标 ".hello" 在本工程 DOM 里根本不存在），
-        # 接进 CI 只会得到一个恒红的无关信号。
+        # 只跑 unit。test/e2e 目录（nightwatch 0.9 + chromedriver 2 + selenium 3，
+        # 断言的目标 ".hello" 在本工程 DOM 里根本不存在）已随本轮清理整体移除，
+        # package.json 里的 e2e 脚本与那三个只为它存在的 devDependency 一并删掉；
+        # 单测仍是 24 个用例的真信号，跑在 npm run unit 这一步。
         run: npm run unit
 
       - name: 生产构建
