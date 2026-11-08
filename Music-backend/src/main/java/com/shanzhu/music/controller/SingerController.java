@@ -11,6 +11,9 @@ import com.shanzhu.music.entity.vo.UploadPicVo;
 import com.shanzhu.music.service.SingerService;
 import com.shanzhu.music.service.SongService;
 import com.shanzhu.music.service.FileStorageService;
+import com.shanzhu.music.service.OperationLogService;
+import com.shanzhu.music.utils.IpUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +35,8 @@ public class SingerController {
     private final SingerService singerService;
     private final SongService songService;
     private final FileStorageService fileStorageService;
+    private final OperationLogService operationLogService;
+    private final IpUtils ipUtils;
 
     /**
      * 添加歌手
@@ -41,9 +46,18 @@ public class SingerController {
      */
     @PostMapping
     @RequireUserType("admin")
-    public R<Void> addSinger(@Valid @RequestBody SingerRequest request) {
+    public R<Void> addSinger(
+            @RequestAttribute("userId") Integer operatorId,
+            @RequestAttribute("username") String operatorName,
+            @RequestAttribute("userType") String operatorType,
+            @Valid @RequestBody SingerRequest request,
+            HttpServletRequest httpRequest
+    ) {
         // 生日转换与 DTO→PO 组装在 service，这里只做响应塑形
         if (singerService.insert(request)) {
+            operationLogService.logAdd(operatorId, operatorName, operatorType,
+                    "曲库模块", "新增歌手 " + request.getName(),
+                    ipUtils.getIpAddress(httpRequest));
             return R.ok("添加成功");
         }
         return R.error("添加失败");
@@ -58,9 +72,16 @@ public class SingerController {
      */
     @PatchMapping(value = "/{id}")
     @RequireUserType("admin")
-    public R<Void> updateSinger(@PathVariable("id") Integer id,
-                                @Valid @RequestBody SingerRequest request) {
+    public R<Void> updateSinger(@RequestAttribute("userId") Integer operatorId,
+                               @RequestAttribute("username") String operatorName,
+                               @RequestAttribute("userType") String operatorType,
+                               @PathVariable("id") Integer id,
+                               @Valid @RequestBody SingerRequest request,
+                               HttpServletRequest httpRequest) {
         if (singerService.update(id, request)) {
+            operationLogService.logUpdate(operatorId, operatorName, operatorType,
+                    "曲库模块", "修改歌手 id=" + id + " 歌手名=" + request.getName(),
+                    ipUtils.getIpAddress(httpRequest));
             return R.ok("修改成功");
         }
         return R.error("修改失败");
@@ -74,8 +95,18 @@ public class SingerController {
      */
     @DeleteMapping(value = "/{id}")
     @RequireUserType("admin")
-    public R<Boolean> deleteSinger(@PathVariable("id") Integer id) {
-        return R.ok(singerService.delete(id));
+    public R<Boolean> deleteSinger(@RequestAttribute("userId") Integer operatorId,
+                                   @RequestAttribute("username") String operatorName,
+                                   @RequestAttribute("userType") String operatorType,
+                                   @PathVariable("id") Integer id,
+                                   HttpServletRequest httpRequest) {
+        boolean deleted = singerService.delete(id);
+        // 删除歌手会连带删掉其名下全部歌曲及歌单关联，是最难恢复的动作，必须留痕
+        if (deleted) {
+            operationLogService.logDelete(operatorId, operatorName, operatorType,
+                    "曲库模块", "删除歌手 id=" + id, ipUtils.getIpAddress(httpRequest));
+        }
+        return R.ok(deleted);
     }
 
     /**
@@ -161,8 +192,12 @@ public class SingerController {
     @PostMapping(value = "/{id}/picture")
     @RequireUserType("admin")
     public R<UploadPicVo> updateSingerPic(
+            @RequestAttribute("userId") Integer operatorId,
+            @RequestAttribute("username") String operatorName,
+            @RequestAttribute("userType") String operatorType,
             @RequestParam("file") MultipartFile avatorFile,
-            @PathVariable("id") Integer id
+            @PathVariable("id") Integer id,
+            HttpServletRequest httpRequest
     ) throws IOException {
         String storeAvatorPath;
         try {
@@ -175,6 +210,9 @@ public class SingerController {
         singer.setPic(storeAvatorPath);
 
         if (singerService.update(singer)) {
+            operationLogService.logUpdate(operatorId, operatorName, operatorType,
+                    "曲库模块", "更换歌手头像 id=" + id + " → " + storeAvatorPath,
+                    ipUtils.getIpAddress(httpRequest));
             UploadPicVo songListVo = new UploadPicVo();
             songListVo.setPic(storeAvatorPath);
             return R.ok("上传成功", songListVo);

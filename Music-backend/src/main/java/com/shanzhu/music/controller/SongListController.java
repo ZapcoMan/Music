@@ -8,6 +8,9 @@ import com.shanzhu.music.entity.po.SongList;
 import com.shanzhu.music.entity.vo.UploadPicVo;
 import com.shanzhu.music.service.SongListService;
 import com.shanzhu.music.service.FileStorageService;
+import com.shanzhu.music.service.OperationLogService;
+import com.shanzhu.music.utils.IpUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +38,8 @@ public class SongListController {
     private static final Logger log = LoggerFactory.getLogger(SongListController.class);
     private final SongListService songListService;
     private final FileStorageService fileStorageService;
+    private final OperationLogService operationLogService;
+    private final IpUtils ipUtils;
 
     /**
      * 添加歌单
@@ -48,10 +53,14 @@ public class SongListController {
     @PostMapping
     @RequireUserType("admin")
     public R<Void> addSongList(
+            @RequestAttribute("userId") Integer operatorId,
+            @RequestAttribute("username") String operatorName,
+            @RequestAttribute("userType") String operatorType,
             String title,
             String pic,
             String introduction,
-            String style
+            String style,
+            HttpServletRequest httpRequest
     ) {
         //保存到歌单的对象中
         SongList songList = new SongList();
@@ -62,6 +71,9 @@ public class SongListController {
 
         //添加成功
         if (songListService.insert(songList)) {
+            operationLogService.logAdd(operatorId, operatorName, operatorType,
+                    "曲库模块", "新增歌单 " + title + " (id=" + songList.getId() + ")",
+                    ipUtils.getIpAddress(httpRequest));
             return R.ok("添加成功");
         }
 
@@ -84,10 +96,14 @@ public class SongListController {
      */
     @PatchMapping(value = "/{id}")
     @RequireUserType("admin")
-    public R<Void> updateSongList(@PathVariable("id") Integer id,
+    public R<Void> updateSongList(@RequestAttribute("userId") Integer operatorId,
+                                  @RequestAttribute("username") String operatorName,
+                                  @RequestAttribute("userType") String operatorType,
+                                  @PathVariable("id") Integer id,
                                   String title,
                                   String introduction,
-                                  String style
+                                  String style,
+                                  HttpServletRequest httpRequest
     ) {
         //保存到歌单的对象中
         SongList songList = new SongList();
@@ -98,6 +114,9 @@ public class SongListController {
 
         //修改成功
         if (songListService.update(songList)) {
+            operationLogService.logUpdate(operatorId, operatorName, operatorType,
+                    "曲库模块", "修改歌单 id=" + id + " 标题=" + title,
+                    ipUtils.getIpAddress(httpRequest));
             return R.ok("修改成功");
         }
         return R.error("修改失败");
@@ -111,8 +130,18 @@ public class SongListController {
      */
     @DeleteMapping(value = "/{id}")
     @RequireUserType("admin")
-    public R<Boolean> deleteSongList(@PathVariable("id") Integer id) {
-        return R.ok(songListService.delete(id));
+    public R<Boolean> deleteSongList(@RequestAttribute("userId") Integer operatorId,
+                                     @RequestAttribute("username") String operatorName,
+                                     @RequestAttribute("userType") String operatorType,
+                                     @PathVariable("id") Integer id,
+                                     HttpServletRequest httpRequest) {
+        boolean deleted = songListService.delete(id);
+        // 删除歌单会级联清理 list_song、评论与评分，是最难恢复的动作，必须留痕
+        if (deleted) {
+            operationLogService.logDelete(operatorId, operatorName, operatorType,
+                    "曲库模块", "删除歌单 id=" + id, ipUtils.getIpAddress(httpRequest));
+        }
+        return R.ok(deleted);
     }
 
     /**
@@ -182,8 +211,12 @@ public class SongListController {
     @PostMapping(value = "/{id}/picture")
     @RequireUserType("admin")
     public R<UploadPicVo> updateSongListPic(
+            @RequestAttribute("userId") Integer operatorId,
+            @RequestAttribute("username") String operatorName,
+            @RequestAttribute("userType") String operatorType,
             @RequestParam("file") MultipartFile avatorFile,
-            @PathVariable("id") Integer id
+            @PathVariable("id") Integer id,
+            HttpServletRequest httpRequest
     ) throws IOException {
         String storeAvatorPath;
         try {
@@ -197,6 +230,9 @@ public class SongListController {
 
         //更新歌单
         if (songListService.update(songList)) {
+            operationLogService.logUpdate(operatorId, operatorName, operatorType,
+                    "曲库模块", "更换歌单封面 id=" + id + " → " + storeAvatorPath,
+                    ipUtils.getIpAddress(httpRequest));
             UploadPicVo uploadPicVo = new UploadPicVo();
             uploadPicVo.setPic(storeAvatorPath);
             return R.ok("上传成功", uploadPicVo);

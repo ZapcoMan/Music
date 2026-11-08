@@ -4,11 +4,15 @@ import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.ListSong;
 import com.shanzhu.music.service.ListSongService;
+import com.shanzhu.music.service.OperationLogService;
+import com.shanzhu.music.utils.IpUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -27,6 +31,8 @@ import java.util.List;
 public class ListSongController {
 
     private final ListSongService listSongService;
+    private final OperationLogService operationLogService;
+    private final IpUtils ipUtils;
 
     /**
      * 给歌单添加歌曲
@@ -37,7 +43,12 @@ public class ListSongController {
      */
     @PostMapping(value = "/api/v1/song-lists/{songListId}/songs")
     @RequireUserType("admin")
-    public R<Void> addListSong(@PathVariable("songListId") Integer songListId, Integer songId) {
+    public R<Void> addListSong(@RequestAttribute("userId") Integer operatorId,
+                               @RequestAttribute("username") String operatorName,
+                               @RequestAttribute("userType") String operatorType,
+                               @PathVariable("songListId") Integer songListId,
+                               Integer songId,
+                               HttpServletRequest httpRequest) {
         // 歌单id 只认 URL：请求体里再传一个不同的 songListId 也不能把歌加进别的歌单
         ListSong listSong = new ListSong();
         listSong.setSongId(songId);
@@ -45,6 +56,9 @@ public class ListSongController {
 
         //插入歌单
         if (listSongService.insert(listSong)) {
+            operationLogService.logAdd(operatorId, operatorName, operatorType,
+                    "曲库模块", "歌单 id=" + songListId + " 添加歌曲 id=" + songId,
+                    ipUtils.getIpAddress(httpRequest));
             return R.ok("保存成功");
         }
         return R.error("保存失败");
@@ -70,9 +84,20 @@ public class ListSongController {
      */
     @DeleteMapping(value = "/api/v1/song-lists/{songListId}/songs/{songId}")
     @RequireUserType("admin")
-    public R<Boolean> delete(@PathVariable("songListId") Integer songListId,
-                             @PathVariable("songId") Integer songId) {
-        return R.ok(listSongService.deleteBySongIdAndSongListId(songId, songListId));
+    public R<Boolean> delete(@RequestAttribute("userId") Integer operatorId,
+                             @RequestAttribute("username") String operatorName,
+                             @RequestAttribute("userType") String operatorType,
+                             @PathVariable("songListId") Integer songListId,
+                             @PathVariable("songId") Integer songId,
+                             HttpServletRequest httpRequest) {
+        boolean deleted = listSongService.deleteBySongIdAndSongListId(songId, songListId);
+        // 关联行删除后本表不留任何痕迹，是谁在什么时候摘掉的不记审计就查不回来
+        if (deleted) {
+            operationLogService.logDelete(operatorId, operatorName, operatorType,
+                    "曲库模块", "歌单 id=" + songListId + " 移除歌曲 id=" + songId,
+                    ipUtils.getIpAddress(httpRequest));
+        }
+        return R.ok(deleted);
     }
 
 }
