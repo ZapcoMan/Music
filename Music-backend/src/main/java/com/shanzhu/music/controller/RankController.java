@@ -4,19 +4,22 @@ import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Rank;
 import com.shanzhu.music.service.RankService;
-import com.shanzhu.music.utils.ParseUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 评价 控制层
+ *
+ * 评分记录本身是 /api/v1/ranks 下的资源；而"某张歌单的平均分"读的是歌单的衍生属性，
+ * 归属在歌单一侧，写成 /api/v1/song-lists/{songListId}/rank。
+ * 两类路径不在同一个前缀下，故不声明类级 @RequestMapping，逐方法写绝对路径。
+ * 角色域仍留在类级兜底，方法级注解优先级更高。
  */
 @RestController
-@RequestMapping("/api/v1/rank")
 @RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 public class RankController {
@@ -34,7 +37,7 @@ public class RankController {
      * @param score      评价
      * @return 结果
      */
-    @PostMapping(value = "/add")
+    @PostMapping(value = "/api/v1/ranks")
     @RequireUserType("consumer")
     public R<Void> add(@RequestAttribute("userId") Integer userId, Integer songListId, Integer score) {
         Rank rank = new Rank();
@@ -52,16 +55,16 @@ public class RankController {
     /**
      * 计算平均分
      *
+     * songListId 由查询串改成路径段之后，"参数缺失"这件事在路由层就不可能发生了：
+     * 路径匹配不上直接 404，不会再走到这里。所以原先用 ParseUtils 兜 "空串/漏传 → 返回 0"
+     * 的那段容错已无对应输入，删掉，交给 Spring 做类型转换。
+     *
      * @param songListId 歌单id
      * @return 结果
      */
-    @GetMapping
-    public R<Integer> rankOfSongListId(String songListId) {
-        Integer parsedSongListId = ParseUtils.toIntegerOrNull(songListId);
-        if (parsedSongListId == null) {
-            return R.ok(0);
-        }
-        return R.ok(rankService.rankOfSongListId(parsedSongListId));
+    @GetMapping(value = "/api/v1/song-lists/{songListId}/rank")
+    public R<Integer> rankOfSongListId(@PathVariable("songListId") Integer songListId) {
+        return R.ok(rankService.rankOfSongListId(songListId));
     }
 
 }

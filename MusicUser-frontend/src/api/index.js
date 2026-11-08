@@ -26,7 +26,7 @@ export const getRecommendedsongsList = () => get(`song-lists/recommended`)
 
 //============歌单的歌曲相关============
 //根据歌单id查询歌曲列表
-export const listSongDetail = (songListId) => get(`listSong/detail?songListId=${songListId}`);
+export const listSongDetail = (songListId) => get(`song-lists/${songListId}/songs`);
 
 //============用户相关================
 //查询用户
@@ -52,41 +52,41 @@ export const download = (url)  => Axios({
 
 //===========评价======================
 //提交评分
-export const setRank =(params) => post(`/rank/add`,params);
+export const setRank =(params) => post(`/ranks`,params);
 //获取指定歌单的平均分
-export const getRankOfSongListId = (songListId) => get(`/rank?songListId=${songListId}`);
+export const getRankOfSongListId = (songListId) => get(`/song-lists/${songListId}/rank`);
 
 //===========评论======================
 //提交评论
-export const setComment =(params) => post(`/comment/add`,params);
+export const setComment =(params) => post(`/comments`,params);
 //点赞
-export const setLike =(params) => post(`/comment/like`,params);
+export const setLike = (id) => post(`/comments/${id}/likes`);
 //返回当前歌单或歌曲的评论列表
 export const getAllComment = (type,id) => {
     if(type == 0){              //歌曲
-        return get(`/comment/commentOfSongId?songId=${id}`);
+        return get(`/songs/${id}/comments`);
     }else{                      //歌单
-        return get(`/comment/commentOfSongListId?songListId=${id}`);
+        return get(`/song-lists/${id}/comments`);
     }
 }
 
 //===============收藏===================
 //新增收藏
-export const setCollect =(params) => post(`/collect/add`,params);
+export const setCollect =(params) => post(`/collections`,params);
 //指定用户的收藏列表
-export const getCollectOfUserId = (userId) => get(`/collect/collectOfUserId?userId=${userId}`);
-export const  delCollectOfUserId = (userId,songId) => del(`/collect/delete?userId=${userId}&songId=${songId}`)
-export const getfeaturedComment =(songId) => get(`/comment/frequent-words?songId=${songId}`)
+export const getCollectOfUserId = () => get(`/collections/mine`);
+export const  delCollectOfUserId = (songId) => del(`/collections?songId=${songId}`)
+export const getfeaturedComment =(songId) => get(`/songs/${songId}/frequent-words`)
 
 //===========搜索历史==================
 //记录搜索历史
-export const recordSearchHistory = (params) => post(`/search-history/record`, params);
+export const recordSearchHistory = (params) => post(`/search-history`, params);
 //获取最近搜索历史
-export const getRecentSearchHistory = (userId, limit = 20) => get(`/search-history/recent?userId=${userId}&limit=${limit}`);
+export const getRecentSearchHistory = (limit = 20) => get(`/search-history?limit=${limit}`);
 //获取最近搜索关键词
-export const getRecentSearchKeywords = (userId, limit = 10) => get(`/search-history/keywords?userId=${userId}&limit=${limit}`);
+export const getRecentSearchKeywords = (limit = 10) => get(`/search-history/keywords?limit=${limit}`);
 //清空搜索历史
-export const clearSearchHistory = (userId) => Axios({
+export const clearSearchHistory = () => Axios({
     method: 'delete',
-    url: `/search-history/clear?userId=${userId}`
+    url: `/search-history`
 });

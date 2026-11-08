@@ -33,7 +33,7 @@ class TokenTransportTest extends BaseTest {
     void urlParameterTokenIsNotAccepted() throws Exception {
         // 令牌本身是合法签发的，只有携带方式不合规——断言 401 才能证明是"传输方式被拒"
         // 而不是"令牌无效"
-        bare.perform(MockMvcRequestBuilders.get("/api/v1/collect/collectOfUserId")
+        bare.perform(MockMvcRequestBuilders.get("/api/v1/collections/mine")
                         .param("token", adminToken()))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized());
     }
@@ -41,7 +41,7 @@ class TokenTransportTest extends BaseTest {
     @Test
     @DisplayName("同一个令牌走请求头即可通过")
     void headerTokenStillWorks() throws Exception {
-        bare.perform(MockMvcRequestBuilders.get("/api/v1/collect/collectOfUserId")
+        bare.perform(MockMvcRequestBuilders.get("/api/v1/collections/mine")
                         .header("Authorization", adminToken()))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
@@ -72,7 +72,7 @@ class TokenTransportTest extends BaseTest {
         // 若 IpUtils 仍无条件信任透传头，这里会把客户端 IP 读成 8.8.8.8，
         // 与令牌绑定的 127.0.0.1 不一致而返回 403；
         // 现在默认不信任透传头，因此伪造无效，请求按原绑定通过。
-        bare.perform(MockMvcRequestBuilders.get("/api/v1/collect/collectOfUserId")
+        bare.perform(MockMvcRequestBuilders.get("/api/v1/collections/mine")
                         .header("Authorization", consumerToken())
                         .header("X-Forwarded-For", "8.8.8.8"))
                 .andExpect(MockMvcResultMatchers.status().isOk());

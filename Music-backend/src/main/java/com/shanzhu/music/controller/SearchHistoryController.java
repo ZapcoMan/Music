@@ -11,6 +11,10 @@ import java.util.List;
 
 /**
  * 搜索历史 控制层
+ *
+ * 角色域只有 consumer：搜索历史按 consumer 表的 id 归属，管理端从不写它，
+ * 也不该由 admin 令牌代读（admin 的 id 在 consumer 表里不存在）。
+ * 既有鉴权矩阵用例断言 admin 令牌打这些端点返回 403，不要把这里改成 {consumer, admin}。
  */
 @RestController
 @RequestMapping("/api/v1/search-history")
@@ -28,7 +32,7 @@ public class SearchHistoryController {
      * @param searchType 搜索类型（0歌曲1歌手2歌单）
      * @return 结果
      */
-    @PostMapping("/record")
+    @PostMapping
     @RequireUserType("consumer")
     public R<Boolean> recordSearch(
             @RequestAttribute("userId") Integer userId,
@@ -45,11 +49,14 @@ public class SearchHistoryController {
     /**
      * 获取用户最近的搜索历史
      *
+     * 集合根路径即"我的搜索历史"：搜索历史是用户私有数据，身份只取令牌。
+     *
      * @param userId 用户ID
      * @param limit 限制数量，默认20
      * @return 搜索历史列表
      */
-    @GetMapping("/recent")
+    @GetMapping
+    @RequireUserType("consumer")
     public R<List<SearchHistory>> getRecentHistory(
             @RequestAttribute("userId") Integer userId,
             @RequestParam(required = false, defaultValue = "20") Integer limit
@@ -77,10 +84,13 @@ public class SearchHistoryController {
     /**
      * 清空用户的搜索历史
      *
+     * 根路径的 DELETE 即"删掉我这个人的全部搜索历史"：集合根已经带上了 owner（令牌），
+     * 再叫 /clear 只是把同一个动作说两遍。
+     *
      * @param userId 用户ID
      * @return 结果
      */
-    @DeleteMapping("/clear")
+    @DeleteMapping
     @RequireUserType("consumer")
     public R<Boolean> clearHistory(@RequestAttribute("userId") Integer userId) {
         Boolean result = searchHistoryService.clearHistory(userId);
@@ -93,11 +103,14 @@ public class SearchHistoryController {
     /**
      * 清理过期搜索历史
      *
+     * 用 /expired 这个集合名做 DELETE 的目标，意思是"删掉集合里符合条件的那批行"，
+     * 与根路径的"整集清空"区分开；原 /clean-old 是动词短语，读起来不像资源。
+     *
      * @param userId 用户ID
      * @param days 天数，默认30天
      * @return 结果
      */
-    @DeleteMapping("/clean-old")
+    @DeleteMapping("/expired")
     @RequireUserType("consumer")
     public R<Boolean> cleanOldHistory(
             @RequestAttribute("userId") Integer userId,

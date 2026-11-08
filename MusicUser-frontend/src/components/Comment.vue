@@ -170,11 +170,9 @@
       // 给某一个评论点赞
       postUp(id, up, index) {
         if (this.loginIn) {
-          let params = new URLSearchParams();
-
-          params.append("id", id);
-          params.append("up", up + 1);
-          setLike(params)
+          // 只把评论 id 放进路径：点赞数由服务端按当前值原子自增，
+          // 前端提交的 up 一律不采纳（此前客户端传多少就涨多少，一次请求即可刷数）
+          setLike(id)
             .then((res) => {
               if (res.code == 20000 || res.success === true) {
                 this.$refs.up[index].children[0].style.color =

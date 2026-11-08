@@ -73,7 +73,7 @@ export const mixin = {
             this.$store.commit('setLyric',this.parseLyric(lyric));
             this.$store.commit('setIsActive',false);
             if(this.loginIn){
-                getCollectOfUserId(this.userId)
+                getCollectOfUserId()
                     .then(res =>{
                         // 收藏数组现随 R 一起返回
                         for(let item of res.data || []){

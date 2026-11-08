@@ -116,7 +116,7 @@ export default {
         getData() {
             this.tempData = [];
             this.tableData = [];
-            getCollectOfUserId(this.$route.query.id).then((res) => {
+            getCollectOfUserId().then((res) => {
                 // 收藏记录数组现随 R 一起返回
                 for (let item of res.data || []) {
                     this.getSong(item.songId);
@@ -137,7 +137,7 @@ export default {
         },
         //删除一条歌曲
         deleteRow() {
-            deleteCollection(this.$route.query.id, this.idx.id)
+            deleteCollection(this.idx.id)
                 .then((res) => {
                     if (res) {
                         this.getData();

@@ -210,7 +210,7 @@ export default {
             params.append("songId", songId);
             params.append("songListId", this.songListId);
 
-            listSongAdd(params)
+            listSongAdd(params.songListId, params)
                 .then((res) => {
                     if (res.code == 20000 || res.success === true) {
                         this.getData();

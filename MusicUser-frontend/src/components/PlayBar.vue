@@ -456,7 +456,7 @@ export default {
                 );
                 this.$store.commit("setIsActive", false);
                 if (this.loginIn) {
-                    getCollectOfUserId(this.userId).then((res) => {
+                    getCollectOfUserId().then((res) => {
                         // 后端统一返回 R，收藏数组在 res.data；接口异常时按空集合处理即可，
                         // 不必再判"是不是数组"来防 for...of 抛 TypeError
                         const collected = res.data || [];
@@ -576,9 +576,8 @@ export default {
                         cancelButtonText: '取消',
                         type: 'warning'
                       }).then(() => {
-                        const userId = this.userId;
                         const songId = this.id;
-                        delCollectOfUserId(userId,songId).then((delRes) => {
+                        delCollectOfUserId(songId).then((delRes) => {
                           if (delRes === true) {
                             this.$store.commit("setIsActive", false);
                             this.notify("取消收藏成功", "success");

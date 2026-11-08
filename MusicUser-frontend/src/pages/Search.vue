@@ -65,7 +65,7 @@ export default {
        loadSearchHistory() {
            const userId = this.userId;
            if (userId) {
-               getRecentSearchKeywords(userId, 10).then(res => {
+               getRecentSearchKeywords(10).then(res => {
                    this.historyKeywords = res || [];
                }).catch(err => {
                    console.error('加载搜索历史失败:', err);
@@ -92,7 +92,7 @@ export default {
        handleClearHistory() {
            const userId = this.userId;
            if (userId) {
-               clearSearchHistory(userId).then(() => {
+               clearSearchHistory().then(() => {
                    this.historyKeywords = [];
                    this.$message.success('清空成功');
                }).catch(err => {

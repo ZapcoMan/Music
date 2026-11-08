@@ -59,8 +59,8 @@ class AdminWriteAuthMatrixTest extends BaseTest {
                 Arguments.of("DELETE", "/api/v1/song-lists/1", false),
                 Arguments.of("POST", "/api/v1/song-lists/1/picture", true),
                 // 歌单与歌曲的关联
-                Arguments.of("POST", "/api/v1/listSong/add", false),
-                Arguments.of("DELETE", "/api/v1/listSong/delete", false),
+                Arguments.of("POST", "/api/v1/song-lists/1/songs", false),
+                Arguments.of("DELETE", "/api/v1/song-lists/1/songs/1", false),
                 // 标签
                 Arguments.of("PUT", "/api/v1/songs/1/tags", false),
                 Arguments.of("PUT", "/api/v1/singers/1/tags", false),
@@ -69,7 +69,7 @@ class AdminWriteAuthMatrixTest extends BaseTest {
                 Arguments.of("DELETE", "/api/v1/consumers/1", false),
                 Arguments.of("GET", "/api/v1/consumers", false),
                 Arguments.of("GET", "/api/v1/consumers/page", false),
-                Arguments.of("GET", "/api/v1/collect/allCollect", false));
+                Arguments.of("GET", "/api/v1/collections", false));
     }
 
     @ParameterizedTest(name = "匿名调用 {0} {1} 应被拒 (第 {index} 项)")
@@ -119,17 +119,17 @@ class AdminWriteAuthMatrixTest extends BaseTest {
      */
     static Stream<Arguments> consumerOnlyEndpoints() {
         return Stream.of(
-                Arguments.of("POST", "/api/v1/collect/add", false),
-                Arguments.of("DELETE", "/api/v1/collect/delete", false),
-                Arguments.of("POST", "/api/v1/comment/add", false),
-                Arguments.of("POST", "/api/v1/comment/like", false),
+                Arguments.of("POST", "/api/v1/collections", false),
+                Arguments.of("DELETE", "/api/v1/collections", false),
+                Arguments.of("POST", "/api/v1/comments", false),
+                Arguments.of("POST", "/api/v1/comments/1/likes", false),
                 Arguments.of("PATCH", "/api/v1/consumers/profile", false),
                 Arguments.of("POST", "/api/v1/consumers/1/avatar", true),
-                Arguments.of("POST", "/api/v1/rank/add", false),
+                Arguments.of("POST", "/api/v1/ranks", false),
                 Arguments.of("GET", "/api/v1/song-lists/recommended", false),
-                Arguments.of("POST", "/api/v1/search-history/record", false),
-                Arguments.of("DELETE", "/api/v1/search-history/clear", false),
-                Arguments.of("DELETE", "/api/v1/search-history/clean-old", false));
+                Arguments.of("POST", "/api/v1/search-history", false),
+                Arguments.of("DELETE", "/api/v1/search-history", false),
+                Arguments.of("DELETE", "/api/v1/search-history/expired", false));
     }
 
     @ParameterizedTest(name = "匿名调用消费者接口 {0} {1} 应被拒 (第 {index} 项)")

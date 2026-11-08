@@ -83,7 +83,7 @@ export default {
         },
         //获取我的收藏列表
         getCollection(userId){
-            getCollectOfUserId(userId)
+            getCollectOfUserId()
                 .then(res =>{
                         // 收藏数组现随 R 一起返回，本体在 res.data
                         this.collection = res.data || [];
