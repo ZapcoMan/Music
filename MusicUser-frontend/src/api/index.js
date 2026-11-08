@@ -82,14 +82,34 @@ export const  delCollectOfUserId = (songId) => del(`/collections?songId=${songId
 export const getfeaturedComment =(songId) => get(`/songs/${songId}/frequent-words`)
 
 //===========搜索历史==================
+/**
+ * 后端用 @RequestParam 接收的写接口要的是表单。
+ * axios 拿到普通对象会自动编成 application/json，参数落不到 @RequestParam，
+ * 请求当场 400——SearchSongs.vue 与 SearchSongLists.vue 传的都是对象，
+ * 所以统一在 api 层转一次，调用方写法不必跟着改。
+ */
+const toForm = (obj) => {
+    const form = new URLSearchParams();
+    Object.keys(obj || {}).forEach((key) => {
+        const value = obj[key];
+        // null/undefined 经 append 会变成字符串 "null"/"undefined"，
+        // 后端做类型转换时要么报错、要么当成 0，宁可不传这个参数
+        if (value !== undefined && value !== null) {
+            form.append(key, value);
+        }
+    });
+    return form;
+};
+
 //记录搜索历史
-export const recordSearchHistory = (params) => post(`/search-history`, params);
+export const recordSearchHistory = (params) => post(`/search-history`, toForm(params));
 //获取最近搜索历史
 export const getRecentSearchHistory = (limit = 20) => get(`/search-history?limit=${limit}`);
 //获取最近搜索关键词
 export const getRecentSearchKeywords = (limit = 10) => get(`/search-history/keywords?limit=${limit}`);
 //清空搜索历史
-export const clearSearchHistory = () => Axios({
-    method: 'delete',
-    url: `/search-history`
-});
+// 原先这里绕过封装直接 new Axios：既没有 baseURL（请求打到相对路径 /search-history，
+// 命中不到后端），也没有 Authorization 头（除 el-upload 外没人自己带令牌），
+// 而该端点 @RequireUserType("consumer") —— 结果只会是 401，
+// 页面还提示"清空成功"，因为清空那一步压根没发出去过。
+export const clearSearchHistory = () => del(`/search-history`);

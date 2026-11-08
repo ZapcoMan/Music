@@ -66,9 +66,13 @@ export default {
            const userId = this.userId;
            if (userId) {
                getRecentSearchKeywords(10).then(res => {
-                   this.historyKeywords = res || [];
+                   // 载荷在 R.data 里。原先把整个信封赋给数组，
+                   // v-for 遍历对象时取到的是 success/code/message/data 这几个值，
+                   // 历史标签区显示的是 true、20000 这类东西而不是关键词
+                   this.historyKeywords = res.data || [];
                }).catch(err => {
                    console.error('加载搜索历史失败:', err);
+                   this.notify((err && err.userMessage) || '搜索历史加载失败', 'error');
                });
            }
        },
@@ -92,11 +96,17 @@ export default {
        handleClearHistory() {
            const userId = this.userId;
            if (userId) {
-               clearSearchHistory().then(() => {
-                   this.historyKeywords = [];
-                   this.$message.success('清空成功');
+               clearSearchHistory().then(res => {
+                   // 该接口返回 R<Boolean>，业务失败也走 200；
+                   // 原先完全不看结果就提示"清空成功"
+                   if (res.code == 20000 || res.success === true) {
+                       this.historyKeywords = [];
+                       this.$message.success(res.message || '清空成功');
+                   } else {
+                       this.$message.error(res.message || '清空失败');
+                   }
                }).catch(err => {
-                   this.$message.error('清空失败');
+                   this.$message.error((err && err.userMessage) || '清空失败');
                });
            }
        }
