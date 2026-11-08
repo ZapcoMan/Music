@@ -1,12 +1,16 @@
 name: CI
 
-# 后端全量校验门禁：编译 + 142 个测试 + JaCoCo 覆盖率四项阈值。
+# 后端全量校验门禁：编译 + 249 个测试 + JaCoCo 覆盖率四项阈值。
 # 与本地 `mvn -B clean verify` 同一条命令，不额外放宽任何门禁。
+#
+# 监听 master 而非 main：v2.0.0 之后仓库只用 master 单一分支，main 已删除。
+# 改这里必须与 GitHub Settings → Branches 里的默认分支同步——两者不一致时，
+# 表现不是 CI 失败，而是"推了但一条 run 都没有"，最容易被误判成流水线坏了。
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   backend-verify:
