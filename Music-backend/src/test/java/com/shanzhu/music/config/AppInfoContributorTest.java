@@ -52,6 +52,6 @@ class AppInfoContributorTest extends BaseTest {
 
         assertEquals(first, second,
                 "字段叫 startTime，取值就只能是启动时刻；"
-                        + "此前它每次都取 LocalDateTime.now()，每访问一次 /info 就"重新启动"一次");
+                        + "此前它每次都取 LocalDateTime.now()，每访问一次 /info 就重新计时一次");
     }
 }
