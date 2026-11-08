@@ -1,6 +1,24 @@
 -- H2 测试数据库表结构初始化
 -- 基于 MySQL 语法,使用 H2 兼容模式
 
+-- 先清场，再建表与种数据。
+--
+-- 数据源 URL 带 DB_CLOSE_DELAY=-1，内存库的生命周期跟着 JVM 而不是跟着 Spring 上下文，
+-- 所以只要有一个测试类的上下文配置与别人不同（缓存 key 变了），Spring 就会新建第二个上下文，
+-- 而这份脚本会在那块还留着第一批数据的库上再跑一遍。
+-- 建表语句是 CREATE TABLE IF NOT EXISTS，第二次跑静默跳过；
+-- 但下面的 INSERT 是无条件的，于是：
+--   · admin.name / consumer.username 有唯一约束（V12 同步过来的），
+--     重复插入当场报 23505，上下文启动失败，几百条用例级联变 ERROR；
+--   · 没有唯一约束的 singer / song 等表更隐蔽——它们安静地插入双份，
+--     于是"查出 3 首"的断言变成 6 首。
+-- 实际触发过一次：给指标装配测试加 @AutoConfigureObservability 之后，
+-- 全量从 277 绿变成 242 个 error，报错停在 INSERT INTO `admin` 那一行。
+--
+-- 用 DROP ALL OBJECTS 而不是逐表 DROP：这是 H2 专用语句，
+-- 目的是让每个上下文都从一块干净的库开始，新增表时不必记得回来补一行。
+DROP ALL OBJECTS;
+
 -- 管理员表
 CREATE TABLE IF NOT EXISTS `admin` (
     `id` INT PRIMARY KEY AUTO_INCREMENT,
