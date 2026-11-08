@@ -90,8 +90,17 @@ public class SecurityConfig {
             "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
         ));
         
-        // 允许的请求头
-        configuration.setAllowedHeaders(List.of("*"));
+        // 允许的请求头：枚举而不是 "*"。
+        // 与上面的 allowCredentials(true) 并存时，"*" 会让预检响应回显调用方
+        // 请求的任意头名——等于允许注入自定义头，其它基于头做的检查就得假设
+        // 任何一个头都可能出现。实际需要的只有两个：
+        //   Authorization —— axios 请求拦截器、el-upload 与 SongPage 的原生 XHR 都显式设置它
+        //   Content-Type  —— JSON body 与 multipart 上传由浏览器自动带上
+        // 后端读的 X-Forwarded-For / X-Real-IP 那类是代理加的，不由页面脚本设置，
+        // 不在 CORS 允许头的约束范围内。
+        configuration.setAllowedHeaders(Arrays.asList(
+            "Authorization", "Content-Type"
+        ));
         
         // 允许携带凭证(Cookie、Authorization 头等)
         configuration.setAllowCredentials(true);
@@ -99,11 +108,12 @@ public class SecurityConfig {
         // 预检请求缓存时间(秒)
         configuration.setMaxAge(3600L);
         
-        // 暴露的响应头(让前端可以读取)
-        configuration.setExposedHeaders(List.of(
-            "Authorization",
-            "Content-Type"
-        ));
+        // 暴露的响应头留空。此前这里写的是 Authorization 与 Content-Type——
+        // 那两个是请求头名，放在 exposedHeaders 里没有对应语义：
+        // exposedHeaders 决定的是浏览器 JS 被允许读取哪些响应头。
+        // 已核实两端没有任何读响应头的代码（下载走 responseType: 'blob'，
+        // 不解析 Content-Disposition），因此这里不需要暴露任何东西。
+        configuration.setExposedHeaders(List.of());
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         // 对所有路径应用 CORS 配置
