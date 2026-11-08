@@ -196,21 +196,32 @@ export default {
                 "-" +
                 _this.registerForm.songName;
             songOfSongName(songOfName).then((res) => {
-                if (res[0] == undefined) {
+                // 后端返回 R<List<Song>>，载荷在 res.data 里；此前直接取 res[0]，
+                // 拿的是整个信封对象的下标，永远是 undefined，
+                // 于是无论输什么都在报"歌曲或者歌名不正确"。
+                const matched = (res.data || [])[0];
+                if (matched == undefined) {
                     this.notify("歌曲或者歌名不正确", "warning");
                     return;
                 }
-                _this.addSong(res[0].id);
+                _this.addSong(matched.id);
             });
         },
         //添加歌曲
         addSong(songId) {
             let _this = this;
+            // 后端 addListSong 的 songId 是请求参数，表单编码与之匹配，保持不动。
+            // 歌单 id 只认 URL（见 ListSongController 的说明），body 里再传一个
+            // 不同的值也不能把歌加进别的歌单，因此不再重复发送。
             let params = new URLSearchParams();
             params.append("songId", songId);
-            params.append("songListId", this.songListId);
 
-            listSongAdd(params.songListId, params)
+            // api/index.js 的 listSongAdd(songListId, params) 第一个参数用于拼 URL。
+            // 此前传的是 params.songListId，而 URLSearchParams 上没有这个属性
+            // （取值得用 .get('songListId')），请求因此打到
+            // /song-lists/undefined/songs，后端 @PathVariable Integer songListId
+            // 收到的是字面量 "undefined"——加歌从来没有成功过。
+            listSongAdd(this.songListId, params)
                 .then((res) => {
                     if (res.code == 20000 || res.success === true) {
                         this.getData();
