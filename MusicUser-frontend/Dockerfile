@@ -1,11 +1,17 @@
 # 构建阶段
-FROM node:16-alpine AS builder
+# 原先是 node:16-alpine，该版本 2023-09 已 EOL、不再有安全补丁。
+# 升到 20 后本地实测 webpack 3 的 md4 依赖并未触发 OpenSSL 3 的
+# unsupported 报错（node 24 下 npm run build 完整通过），
+# 因此不需要额外挂 --openssl-legacy-provider。
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 # 复制 package.json 并安装依赖
+# 用 npm ci 而不是 npm install：仓库里有 package-lock.json，
+# install 会按 semver 重新解析、构建不可复现，同一份代码两次构建产物可能不同。
 COPY package*.json ./
-RUN npm install --registry=https://registry.npmmirror.com
+RUN npm ci --registry=https://registry.npmmirror.com
 
 # 复制源代码并构建
 COPY . .
