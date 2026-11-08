@@ -45,15 +45,8 @@ public interface ConsumerMapper {
     Consumer selectByPrimaryKey(Integer id);
 
     /**
-     * 查询所有前台用户
-     *
-     * @return 前台用户
-     */
-    List<Consumer> allConsumer();
-
-    /**
      * 按关键词模糊查询前台用户，供管理端筛选与分页共用。
-     * keyword 为空时等价于全量查询，与 allConsumer 的区别只在于本方法专为分页起点使用。
+     * keyword 为空时不加 WHERE，等价于全量查询（分页由 PageHelper 在这一条上生效）。
      *
      * @param keyword 账号、电话或邮箱的模糊词
      * @return 匹配的用户列表

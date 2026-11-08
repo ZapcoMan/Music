@@ -228,16 +228,6 @@ public class ConsumerServiceImpl implements ConsumerService {
     }
 
     /**
-     * 查询所有前台用户
-     *
-     * @return 前台用户
-     */
-    @Override
-    public List<Consumer> allConsumer() {
-        return consumerMapper.allConsumer();
-    }
-
-    /**
      * 查看密码是否正确（BCrypt验证）
      *
      * 这条必须读库，不能走 getByUsername 的缓存：Consumer.password 上有 @JsonIgnore，

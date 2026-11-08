@@ -212,19 +212,12 @@ public class ConsumerController {
     }
 
     /**
-     * 查询所有前台用户
-     *
-     * @return 前台用户
-     */
-    @Operation(summary = "查询所有用户", description = "查询所有前台用户列表")
-    @GetMapping
-    @RequireUserType("admin")
-    public R<List<Consumer>> allConsumer() {
-        return R.ok(consumerService.allConsumer());
-    }
-    
-    /**
      * 分页查询所有前台用户
+     *
+     * 这里原先还有一条不分页的 GET /consumers：它把全部用户的手机号、邮箱、生日
+     * 一次返回，而本轮把两端前端唯一调用它的 getAllConsumer 删掉之后已无任何调用方。
+     * 管理端要找人用 /consumers/page（支持关键词），要展示他人身份用 /consumers/{id}
+     * （已经是 ConsumerPublicVo）。保留一条"整表 PII"通道只会让下一个人顺手去用它。
      *
      * @param pageNum 页码，默认1
      * @param pageSize 每页大小，默认10

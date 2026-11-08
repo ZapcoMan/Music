@@ -62,13 +62,6 @@ public interface ConsumerService {
     Consumer selectByPrimaryKey(Integer id);
 
     /**
-     * 查询所有前台用户
-     *
-     * @return 前台用户
-     */
-    List<Consumer> allConsumer();
-
-    /**
      * 查看密码是否正确
      *
      * @param username 用户名

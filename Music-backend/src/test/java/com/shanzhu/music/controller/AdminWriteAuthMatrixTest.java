@@ -65,12 +65,14 @@ class AdminWriteAuthMatrixTest extends BaseTest {
                 Arguments.of("PUT", "/api/v1/songs/1/tags", false),
                 Arguments.of("PUT", "/api/v1/singers/1/tags", false),
                 Arguments.of("POST", "/api/v1/tags", false),
-                // 用户治理：改资料、删账号与两份全量名单
+                // 用户治理：改资料、删账号与分页名单
                 // PATCH /consumers/{id} 是管理员侧专用；自助的 /profile 仍列在
                 // consumerOnlyEndpoints 里，两边不能互相顶替
+                // 原先这里还有 GET /consumers 一条：该端点已删除（不分页返回全部用户
+                // 的手机号/邮箱且无调用方），留着它只会测到"路径不存在时拦截器返回什么"，
+                // 而不是任何业务契约
                 Arguments.of("PATCH", "/api/v1/consumers/1", false),
                 Arguments.of("DELETE", "/api/v1/consumers/1", false),
-                Arguments.of("GET", "/api/v1/consumers", false),
                 Arguments.of("GET", "/api/v1/consumers/page", false),
                 Arguments.of("GET", "/api/v1/collections", false));
     }

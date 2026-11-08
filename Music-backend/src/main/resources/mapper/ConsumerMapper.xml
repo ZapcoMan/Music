@@ -141,18 +141,12 @@
         where id=#{id}
     </select>
 
-    <select id="allConsumer" resultMap="BaseResultMap">
-        select
-        <include refid="Base_Column_List"/>
-        from consumer
-    </select>
-
     <!--
       管理端筛选用户用的关键词查询。三个字段各自都可能被运维拿来找人，
       所以做成一个 OR 条件而不是只查 username。
       注意三列都是前导通配 %kw%，走不到索引——这是"按手机号找人"这类
       需求绕不开的形态，数据量上来之后要单独考虑函数索引或全文检索。
-      没有过滤条件时不加 WHERE，保持与 allConsumer 相同的执行计划。
+      没有过滤条件时不加 WHERE，等同全量扫描；分页由 PageHelper 在这一条上截断。
     -->
     <select id="selectByKeyword" resultMap="BaseResultMap">
         select
