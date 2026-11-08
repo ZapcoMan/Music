@@ -4,7 +4,8 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,20 +16,28 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     /**
-     * 文档版本与 actuator /info 共用 info.app.version 这一真源。
-     * 此前这里写死字面值，发布时必须记得和 pom、Dockerfile、application.yml 一起手改，
-     * 漏掉一处 Swagger UI 就对外显示旧版本——而它恰恰是最不容易想起来的一处。
+     * 版本读 build-info，不再读 info.app.version。
+     *
+     * 原先这里 @Value("${info.app.version}")，而 AppInfoContributor 读 build-info
+     * （唯一出处是 pom）——两条路各说各话：升版时改 pom 忘改 application.yml，
+     * Swagger UI 显示旧版本、/actuator/info 的 app 明细又取决于两个 InfoContributor
+     * 谁后写（同名 key "app" 互相覆盖），表现是"版本时对时错"而不是报错。
+     * 现在文档版本、actuator 版本、jar 名同源于 pom 一处。
      */
-    @Value("${info.app.version}")
-    private String appVersion;
+    private final ObjectProvider<BuildProperties> buildProperties;
+
+    public OpenApiConfig(ObjectProvider<BuildProperties> buildProperties) {
+        this.buildProperties = buildProperties;
+    }
 
     @Bean
     public OpenAPI customOpenAPI() {
+        BuildProperties props = buildProperties.getIfAvailable();
         return new OpenAPI()
                 .info(new Info()
                         .title("音乐网站 API 文档")
                         .description("音乐网站后台管理系统 RESTful API 接口文档")
-                        .version(appVersion)
+                        .version(props != null ? props.getVersion() : "未知（构建未生成 build-info）")
                         .contact(new Contact()
                                 .name("ShanZhu")
                                 .email("shanzhu@example.com")

@@ -42,6 +42,9 @@ public class AppInfoContributor implements InfoContributor {
         BuildProperties props = buildProperties.getIfAvailable();
         builder.withDetail("app", "Music Backend System")
                 .withDetail("description", "音乐网站后台管理系统")
+                // 这两项原本住在 application.yml 的 info.app 块里；那个块与本类
+                // 写的是同一个 key，留着谁覆盖谁不确定，现在统一由本类提供明细
+                .withDetail("author", "ShanZhu")
                 .withDetail("version", props != null ? props.getVersion() : "未知（构建未生成 build-info）")
                 .withDetail("javaVersion", System.getProperty("java.version"))
                 .withDetail("osName", System.getProperty("os.name"))

@@ -6,6 +6,75 @@
 
 ---
 
+## v3.0.0 — 2026-11-08
+
+按本文件顶部规则定为 major：删掉了一个已发布的端点，同时新增若干用户可见能力，
+并改变了两处部署与数据口径。这一轮几乎全部工作是把"看起来能用、实际不成立"的通道打通或关掉，
+细节逐条见 [docs/FIX-LOG-2026-11.md](docs/FIX-LOG-2026-11.md)。
+
+### 变更（破坏性）
+
+- **删除 `GET /api/v1/consumers`**。它不分页返回全部用户的手机号、邮箱与生日，
+  而两端前端唯一调用它的 `getAllConsumer` 本轮被删（资料页改走聚合接口），此后无调用方。
+  找用户用 `GET /api/v1/consumers/page?keyword=`，展示他人身份用 `GET /api/v1/consumers/{id}`（只回公开字段）。
+- **登出真正吊销令牌**：`DELETE /api/v1/consumers/sessions`、`DELETE /api/v1/admin/sessions`
+  会把当前令牌写入黑名单，客户端必须同时清掉本地存储，复用旧令牌一律 401。
+  原先绕过黑名单的续签端点已删除。
+- **管理端与用户端的写请求改为 JSON 提交**（注册、加/改用户、加/改歌手、加/改歌单歌曲等）。
+  后端对应端点不再接收 `application/x-www-form-urlencoded`，旧表单式调用会得到 415。
+- **上传与校验类失败的响应形状统一**：一律 HTTP 200 + `success=false` + 可读 `message`
+  （原先部分端点由 Controller 就地 `catch` 拼文案，部分抛 4xx）。
+- **Flyway V12 新增五条唯一键**（账号名、管理员名、收藏的歌曲/歌单两对、歌单-歌曲对）。
+  历史数据若违反，迁移会**大声失败并停在半途**（MySQL 的 DDL 不回滚），脚本内附四条定位 SQL；
+  这是刻意选择——不去静默删除用户数据。
+- **Flyway V13 改变数据口径**：`song_tag` / `singer_tag` 确立为标签唯一真源，
+  `song.tags` / `singer.tags` 逗号串降级为派生展示字段并按中间表重算；
+  没有代码引用的 `user_ratings` 表其数据迁入 `ranks` 后删除。
+- **容器部署不再用根目录 `db_music.sql` 初始化数据库**。两个 compose 摘掉了
+  `/docker-entrypoint-initdb.d` 挂载，库结构唯一出处是 `Music-backend/src/main/resources/db/migration`。
+  该文件仍在仓库里但已停用，恢复数据请走 `mysqldump` 现场备份。
+- **前端镜像改为非 root 运行**（`nginxinc/nginx-unprivileged`），容器内监听端口从 80 变 8080；
+  宿主端口不变（前台 8081、管理端 8080），CORS 不受影响。
+
+### 新增
+
+- `GET /api/v1/statistics/overview`（仅 admin）：资料页四个总数与三张分布图改由 SQL 侧
+  `count` / `group by` 聚合，不再把四张表整表拉进浏览器。
+- 管理端用户与歌手列表支持 `?keyword=` 服务端过滤（原先搜索框只绑了个变量，改变不了数据）。
+- 搜索历史的写入、读取、清空与按期清理全部接通（原先前端绕过封装直接 `new Axios`，
+  既无 baseURL 也无 Authorization，请求必然 401，而页面还提示"清空成功"）。
+- 标签维护端点：`PUT /api/v1/songs/{id}/tags`、`PUT /api/v1/singers/{id}/tags`、
+  `POST /api/v1/tags`，以及 `GET /api/v1/tags/hot`、`GET /api/v1/tags/songs`。
+- 重复提交评分改为更新既有行（此前撞唯一键直接 500）；平均分分母改用 `count(score)`。
+- 请求链路可观测：每个请求一个 traceId 贯穿日志与异步任务；`/actuator/info` 与
+  OpenAPI 文档版本同源 build-info（pom 一处）。
+- CI 两条：`frontend-ci.yml`（两端 lint/unit/build + 断言产物无 `.map`）、
+  `ci.yml` 新增 `mysql-migrations`（真 MySQL 8 按版本顺序跑迁移并校验 V13 语义）。
+
+### 安全与正确性加固（择要）
+
+BCrypt 强度 10→12；JWT 增加签发方与受众校验；限流与令牌黑名单在 Redis 故障时按敏感度降级
+（限流返回 503 而不是放行、黑名单读取 fail-open 但记 error）；上传补文件头签名核对，
+落盘文件名完全由服务端生成；对外错误文案不再带出服务器绝对路径；`Admin.password` 补 `@JsonIgnore`；
+生产 source map 关闭且 nginx 拦截 `.map`；CORS 改为显式枚举请求头；审计 IP 提取统一走 `IpUtils`。
+另修 26 处前端响应信封取值层级错位（含 5 处"删除永远提示失败"）、29 处静默失败与 13 处失败仍关弹窗。
+
+### 验证
+
+- 后端 `mvn -B test` **297 项全绿**（v2.0.1 时 249 项），JaCoCo 四项门禁按实测水位上调后未放宽，
+  SpotBugs High=0；两端前端 lint 0 error、单测 13+11 通过、生产构建成功且产物无 `.map`。
+- **尚未验证**（如实列出）：Actions 里前端与迁移两条流水线一次都没有真实 run 过；
+  V13 从未在真 MySQL 上执行（测试跑 H2 且禁用 Flyway）；nginx 非 root 与 compose 起库
+  未在本机实测（无 docker）；所有前端改动未在浏览器里点验（无可联调的后端运行环境）；
+  删除的 `GET /consumers` 若存在仓库外调用方，本次升级会让它 404。
+
+### 发布落点
+
+`Music-backend/pom.xml`、README 的 Version 徽章与 Tests 徽章（249→297）、本文件。
+`application.yml` 的 `info.app` 块已删除——它曾与 `AppInfoContributor` 争同一个 `/info` 明细键，
+又被 `OpenApiConfig` 当版本真源，现在版本只从 pom 经 build-info 流出；
+`Dockerfile` 也不写死 jar 名。所以这一版的落点比 v2.0.1 少两处。
+
 ## v2.0.1 — 2026-11-08
 
 纯工程收尾，**不动接口契约**：路径、动词、返回结构与权限模型与 v2.0.0 完全一致，客户端无需任何改动。

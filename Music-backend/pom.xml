@@ -11,7 +11,7 @@
 
     <groupId>com.shanzhu</groupId>
     <artifactId>Music-backend</artifactId>
-    <version>2.0.1</version>
+    <version>3.0.0</version>
 
     <name>Music-backend</name>
     <description>音乐网站后台</description>
@@ -212,10 +212,10 @@
                     <executable>true</executable>
                 </configuration>
                 <executions>
-                    <!-- 生成 META-INF/build-info.properties，让 /actuator/info 的版本
-                         只有一个出处（pom 的 version）。
-                         此前 AppInfoContributor 里写死 "1.0.0"，与 pom 的 2.0.1 长期不一致，
-                         而升版时没有任何检查会提醒这里也要改。 -->
+                    <!-- 生成 META-INF/build-info.properties，让 /actuator/info 与 OpenAPI 文档的
+                         版本只有一个出处（本文件的 version）。
+                         此前 AppInfoContributor 里写死过字面版本，与 pom 长期不一致，
+                         而升版时没有任何检查会提醒那里也要改。 -->
                     <execution>
                         <id>build-info</id>
                         <goals>

@@ -7,12 +7,11 @@ spring:
     active: @spring.profiles.active@
 
 # 应用信息
-info:
-  app:
-    name: Music Website
-    description: 基于 Spring Boot 3 + Vue 2 的音乐推荐系统
-    version: 2.0.1
-    author: ShanZhu
+#
+# 这里不再有 info.app 块。此前它和 AppInfoContributor 都往 /actuator/info 的同一个
+# key（app）写明细，谁覆盖谁取决于两个 InfoContributor 的排序；而 OpenApiConfig 又
+# 读这里的 info.app.version 当文档版本，于是版本号存在两条独立来源。
+# 现在应用元信息与版本一律来自 AppInfoContributor + build-info（真源是 pom）。
 
 # ==================== 推荐算法参数 ====================
 # 与环境无关，故放在主配置；不配置时使用代码内的默认值（见 RecommendationProperties）
