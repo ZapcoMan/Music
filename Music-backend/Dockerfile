@@ -24,7 +24,7 @@ RUN mkdir -p /app/uploads/song /app/uploads/songListPic /app/uploads/singerPic /
     && mkdir -p /app/logs
 
 # 从构建阶段复制 jar 包
-COPY --from=builder /app/target/Music-backend-2.0.0.jar app.jar
+COPY --from=builder /app/target/Music-backend-2.0.1.jar app.jar
 
 # 暴露端口
 EXPOSE 9171

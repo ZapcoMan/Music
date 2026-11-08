@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-v2.0.0-informational)
+![Version](https://img.shields.io/badge/Version-v2.0.1-informational)
 ![CI](https://github.com/ZapcoMan/Music/actions/workflows/ci.yml/badge.svg)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.3-brightgreen)
 ![Vue](https://img.shields.io/badge/Vue-2.6.11-4FC08D)
