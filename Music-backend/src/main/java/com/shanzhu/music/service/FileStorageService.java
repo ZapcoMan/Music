@@ -1,5 +1,6 @@
 package com.shanzhu.music.service;
 
+import com.shanzhu.music.exception.BusinessException;
 import com.shanzhu.music.utils.PathUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,19 +38,32 @@ public class FileStorageService {
     private static final long MAX_IMAGE_BYTES = 10L * 1024 * 1024;
     private static final long MAX_AUDIO_BYTES = 100L * 1024 * 1024;
 
+    /**
+     * 校验并落盘，返回可直接入库的相对路径。
+     *
+     * 失败一律抛 BusinessException，由 GlobalExceptionHandler 映射成
+     * HTTP 200 + success=false + 可读 message。这里刻意不用
+     * IllegalArgumentException（那个 handler 带 @ResponseStatus(400)）：
+     * 两套前端的 el-upload 只在 2xx 触发 :on-success，把"文件类型不支持"这类
+     * 可解释失败变成 4xx 会把它推到 :on-error，提示口径分裂。
+     * 换成 BusinessException 之后，六个上传端点里那九处
+     * try { save } catch { return R.error(e.getMessage()) } 才第一次有可能消失。
+     *
+     * @return 相对路径，例如 /img/songPic/1715868053-ab12cd34.jpg
+     */
     private String store(MultipartFile file,
-                         String subDir, Set<String> allowedExtensions, long maxBytes) throws IOException {
+                         String subDir, Set<String> allowedExtensions, long maxBytes) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("上传文件为空");
+            throw new BusinessException("上传文件为空");
         }
         if (file.getSize() > maxBytes) {
-            throw new IllegalArgumentException("文件超过大小上限 " + (maxBytes / 1024 / 1024) + "MB");
+            throw new BusinessException("文件超过大小上限 " + (maxBytes / 1024 / 1024) + "MB");
         }
 
         String originalName = StringUtils.cleanPath(Objects.toString(file.getOriginalFilename(), ""));
         String extension = StringUtils.getFilenameExtension(originalName);
         if (extension == null || !allowedExtensions.contains(extension.toLowerCase(Locale.ROOT))) {
-            throw new IllegalArgumentException("不支持的文件类型：" + extension);
+            throw new BusinessException("不支持的文件类型：" + extension);
         }
         String normalizedExtension = extension.toLowerCase(Locale.ROOT);
 
@@ -60,12 +74,16 @@ public class FileStorageService {
         int headLength;
         try (InputStream in = file.getInputStream()) {
             headLength = in.read(head);
+        } catch (IOException e) {
+            // 读流失败是环境或客户端问题，不是"文件内容不合法"，但仍然要给可懂的文案
+            log.warn("读取上传文件流失败 - name={}", originalName, e);
+            throw new BusinessException("文件读取失败，请重试");
         }
         if (headLength <= 0) {
-            throw new IllegalArgumentException("文件内容无法识别（空或已损坏）");
+            throw new BusinessException("文件内容无法识别（空或已损坏）");
         }
         if (!matchesContent(normalizedExtension, head)) {
-            throw new IllegalArgumentException("文件内容与扩展名不符：" + normalizedExtension);
+            throw new BusinessException("文件内容与扩展名不符：" + normalizedExtension);
         }
 
         // 落盘文件名完全由服务端生成，不沿用客户端提供的名字，从根源上排除路径穿越
@@ -76,19 +94,31 @@ public class FileStorageService {
         String dirPath = PathUtils.getClassLoadRootPath() + "/" + subDir + "/";
         File dir = new File(dirPath);
         if (!dir.exists() && !dir.mkdirs()) {
-            // 绝对路径只进日志：调用方（Controller 的 R.error(e.getMessage())）会把这段文字
-            // 原样发到前端，等于替外人画出服务端目录结构
+            // 绝对路径只进日志：这段文字会随响应体回到浏览器，等于替外人画出服务端目录结构
             log.error("创建上传目录失败 - dir={}", dirPath);
-            throw new IllegalStateException("服务器存储不可用，请稍后重试");
+            throw new BusinessException(500, "服务器存储不可用，请稍后重试");
         }
 
         File dest = new File(dir, safeName);
-        // 纵深防御：即使命名策略被改动，也要求最终路径落在预期目录内
-        if (!dest.getCanonicalPath().startsWith(dir.getCanonicalPath() + File.separator)) {
-            throw new IllegalArgumentException("非法的目标文件路径");
-        }
+        // 纵深防御：即使命名策略被改动，也要求最终路径落在预期目录内。
+        // getCanonicalPath 自己也抛 IOException（要问文件系统真实路径），所以它必须在 try 里——
+        // 本类的方法签名不声明 checked 异常，失败一律转成 BusinessException。
+        try {
+            if (!dest.getCanonicalPath().startsWith(dir.getCanonicalPath() + File.separator)) {
+                // 进到这一句说明 safeName 的生成规则被改坏了，属于服务端缺陷而非用户输入问题：
+                // 记 error 留证据，对外只说"保存失败"，不解释内部命名策略
+                log.error("落盘路径越出预期目录 - dir={}", dirPath);
+                throw new BusinessException(500, "文件保存失败，请重试");
+            }
 
-        file.transferTo(dest);
+            file.transferTo(dest);
+        } catch (IOException | IllegalStateException e) {
+            // IOException 来自规范化路径或写入本身；IllegalStateException 是
+            // transferTo 在目标已存在（File exists）或临时文件已被清理时抛的。
+            // 两者都属于服务端环境问题，不该冒成"系统异常"，也不该带出路径
+            log.error("写入上传文件失败 - path={}", dest.getAbsolutePath(), e);
+            throw new BusinessException(500, "文件保存失败，请重试");
+        }
         String relativePath = "/" + subDir + "/" + safeName;
         log.info("文件上传成功: {} ({} bytes)", relativePath, file.getSize());
         return relativePath;
@@ -156,7 +186,7 @@ public class FileStorageService {
      * @param file   上传文件
      * @param subDir 相对根目录的子目录名，如 img/songPic
      */
-    public String saveImage(MultipartFile file, String subDir) throws IOException {
+    public String saveImage(MultipartFile file, String subDir) {
         return store(file, subDir, IMAGE_EXTENSIONS, MAX_IMAGE_BYTES);
     }
 
@@ -166,7 +196,7 @@ public class FileStorageService {
      * @param file   上传文件
      * @param subDir 相对根目录的子目录名，如 song
      */
-    public String saveAudio(MultipartFile file, String subDir) throws IOException {
+    public String saveAudio(MultipartFile file, String subDir) {
         return store(file, subDir, AUDIO_EXTENSIONS, MAX_AUDIO_BYTES);
     }
 }

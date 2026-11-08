@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -217,13 +216,8 @@ public class SongListController {
             @RequestParam("file") MultipartFile avatorFile,
             @PathVariable("id") Integer id,
             HttpServletRequest httpRequest
-    ) throws IOException {
-        String storeAvatorPath;
-        try {
-            storeAvatorPath = fileStorageService.saveImage(avatorFile, "img/songListPic");
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return R.error(e.getMessage());
-        }
+    ) {
+        String storeAvatorPath = fileStorageService.saveImage(avatorFile, "img/songListPic");
         SongList songList = new SongList();
         songList.setId(id);
         songList.setPic(storeAvatorPath);

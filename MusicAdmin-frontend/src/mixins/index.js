@@ -65,8 +65,11 @@ export const mixin = {
                     type: 'success'
                 });
             }else{
+                // 用后端给的文案：FileStorageService 会区分"文件超过大小上限 10MB"
+                // "不支持的文件类型：exe""文件内容与扩展名不符"这几类原因，
+                // 一律显示"上传失败"等于把可操作的提示压成一句废话
                 _this.$notify({
-                    title: '上传失败',
+                    title: res.message || '上传失败',
                     type: 'error'
                 });
             }

@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -65,13 +64,10 @@ public class SongController {
             String lyric,
             @RequestParam("file") MultipartFile mpFile,
             HttpServletRequest httpRequest
-    ) throws IOException {
-        String storeUrlPath;
-        try {
-            storeUrlPath = fileStorageService.saveAudio(mpFile, "song");
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return R.error(e.getMessage());
-        }
+    ) {
+        // 校验与落盘都在 FileStorageService 里，失败抛 BusinessException
+        // 由全局处理器映射成 200 + success=false；这里不再各抄一份 try/catch
+        String storeUrlPath = fileStorageService.saveAudio(mpFile, "song");
 
         Integer parsedSingerId = ParseUtils.toIntegerOrNull(singerId);
         if (parsedSingerId == null) {
@@ -176,14 +172,9 @@ public class SongController {
             @RequestParam("file") MultipartFile avatorFile,
             @PathVariable("id") Integer id,
             HttpServletRequest httpRequest
-    ) throws IOException {
+    ) {
 
-        String storeAvatorPath;
-        try {
-            storeAvatorPath = fileStorageService.saveImage(avatorFile, "img/songPic");
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return R.error(e.getMessage());
-        }
+        String storeAvatorPath = fileStorageService.saveImage(avatorFile, "img/songPic");
         Song song = new Song();
         song.setId(id);
         song.setPic(storeAvatorPath);
@@ -217,13 +208,8 @@ public class SongController {
             @RequestParam("file") MultipartFile avatorFile,
             @PathVariable("id") Integer id,
             HttpServletRequest httpRequest
-    ) throws IOException {
-        String storeAvatorPath;
-        try {
-            storeAvatorPath = fileStorageService.saveAudio(avatorFile, "song");
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return R.error(e.getMessage());
-        }
+    ) {
+        String storeAvatorPath = fileStorageService.saveAudio(avatorFile, "song");
         Song song = new Song();
         song.setId(id);
         song.setUrl(storeAvatorPath);

@@ -23,7 +23,7 @@ public interface TagService {
      *
      * @param tagsCsv 逗号分隔的标签名
      * @return 规范化后的逗号串；入参为 null 时返回 null 表示不改动
-     * @throws IllegalArgumentException 含字典中不存在的标签名
+     * @throws BusinessException 含字典中不存在的标签名
      */
     String normalizeTags(String tagsCsv);
 
@@ -37,7 +37,7 @@ public interface TagService {
      *
      * @param tagNames 标签名列表；入参为 null 时返回 null 表示不改动
      * @return 规范化后的逗号串，空列表得到空串（即清空）
-     * @throws IllegalArgumentException 含字典中不存在的标签名
+     * @throws BusinessException 含字典中不存在的标签名
      */
     String normalizeTagNames(List<String> tagNames);
 

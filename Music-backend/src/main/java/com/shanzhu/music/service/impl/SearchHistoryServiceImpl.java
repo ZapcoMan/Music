@@ -1,6 +1,7 @@
 package com.shanzhu.music.service.impl;
 
 import com.shanzhu.music.entity.po.SearchHistory;
+import com.shanzhu.music.exception.BusinessException;
 import com.shanzhu.music.mapper.SearchHistoryMapper;
 import com.shanzhu.music.service.SearchHistoryService;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +49,9 @@ public class SearchHistoryServiceImpl implements SearchHistoryService {
         // 没有令牌根本走不到这个方法
         String trimmed = keywords == null ? "" : keywords.trim();
         if (trimmed.isEmpty()) {
-            throw new IllegalArgumentException("搜索关键词不能为空");
+            // BusinessException 而不是 IllegalArgumentException：后者映射成 HTTP 400，
+            // 前端 axios 会走 reject，反而看不到这句可读的提示
+            throw new BusinessException("搜索关键词不能为空");
         }
 
         SearchHistory searchHistory = new SearchHistory();

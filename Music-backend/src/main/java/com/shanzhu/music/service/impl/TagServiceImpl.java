@@ -3,6 +3,7 @@ package com.shanzhu.music.service.impl;
 import com.shanzhu.music.entity.dto.TagSaveRequest;
 import com.shanzhu.music.entity.po.Tag;
 import com.shanzhu.music.entity.vo.TaggedSongVo;
+import com.shanzhu.music.exception.BusinessException;
 import com.shanzhu.music.mapper.TagMapper;
 import com.shanzhu.music.service.TagService;
 import lombok.RequiredArgsConstructor;
@@ -84,8 +85,11 @@ public class TagServiceImpl implements TagService {
             Tag tag = tagMapper.selectByName(name);
             if (tag == null) {
                 // 不静默丢弃：字典里没有的标签名判为非法输入。
-                // 否则调用方以为设置了，实际少一个且毫无察觉
-                throw new IllegalArgumentException("标签不存在: " + name);
+                // 否则调用方以为设置了，实际少一个且毫无察觉。
+                // 用 BusinessException 而不是 IllegalArgumentException：后者会被全局
+                // 处理器映射成 HTTP 400，前端 axios 走 reject 分支， message 反而看不到；
+                // 项目里失败的可读文案统一走 200 + success=false
+                throw new BusinessException("标签不存在: " + name);
             }
             canonical.add(tag.getName());
         }

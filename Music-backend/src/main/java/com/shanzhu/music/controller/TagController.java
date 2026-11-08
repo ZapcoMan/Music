@@ -126,25 +126,23 @@ public class TagController {
             // 明确传空数组表示清空标签，缺省则拒绝，避免误清
             return R.error("tags 不能为空，清空请传空数组");
         }
-        try {
-            // 必须走歌曲自身的更新路径，而不是只重建中间表：
-            // song.tags 逗号串与缓存都在那条路径上写，绕开它就会出现
-            // "中间表已改、逗号串仍是旧值"的两轨背离（本接口初版正是如此）。
-            Song song = new Song();
-            song.setId(songId);
-            song.setTags(tagService.normalizeTagNames(tags));
-            if (!songService.update(song)) {
-                return R.error("设置失败：歌曲不存在或更新未生效");
-            }
-            // 整组替换会把旧关联删干净，改完库里只剩新值——不改前记一笔就查不回
-            // "这首歌原来挂的是哪几个标签、被谁换掉的"
-            operationLogService.logUpdate(operatorId, operatorName, operatorType, "曲库模块",
-                    "歌曲 id=" + songId + " 标签整组替换为 [" + String.join(",", tags) + "]",
-                    ipUtils.getIpAddress(httpRequest));
-            return R.ok("设置成功", tagService.songTagNames(songId).size());
-        } catch (IllegalArgumentException e) {
-            return R.error(e.getMessage());
+        // 必须走歌曲自身的更新路径，而不是只重建中间表：
+        // song.tags 逗号串与缓存都在那条路径上写，绕开它就会出现
+        // "中间表已改、逗号串仍是旧值"的两轨背离（本接口初版正是如此）。
+        // 字典里没有的标签名由 TagService 抛 BusinessException 走全局处理器，
+        // 这里不再自己 catch——异常口径统一之后，Controller 不需要知道它长什么样
+        Song song = new Song();
+        song.setId(songId);
+        song.setTags(tagService.normalizeTagNames(tags));
+        if (!songService.update(song)) {
+            return R.error("设置失败：歌曲不存在或更新未生效");
         }
+        // 整组替换会把旧关联删干净，改完库里只剩新值——不改前记一笔就查不回
+        // "这首歌原来挂的是哪几个标签、被谁换掉的"
+        operationLogService.logUpdate(operatorId, operatorName, operatorType, "曲库模块",
+                "歌曲 id=" + songId + " 标签整组替换为 [" + String.join(",", tags) + "]",
+                ipUtils.getIpAddress(httpRequest));
+        return R.ok("设置成功", tagService.songTagNames(songId).size());
     }
 
     /**
@@ -183,21 +181,17 @@ public class TagController {
         if (tags == null) {
             return R.error("tags 不能为空，清空请传空数组");
         }
-        try {
-            // 走歌手自身的更新路径：逗号串写入与缓存失效都在它身上
-            Singer singer = new Singer();
-            singer.setId(singerId);
-            singer.setTags(tagService.normalizeTagNames(tags));
-            if (!singerService.update(singer)) {
-                return R.error("设置失败：歌手不存在或更新未生效");
-            }
-            operationLogService.logUpdate(operatorId, operatorName, operatorType, "曲库模块",
-                    "歌手 id=" + singerId + " 标签整组替换为 [" + String.join(",", tags) + "]",
-                    ipUtils.getIpAddress(httpRequest));
-            return R.ok("设置成功", tagService.singerTagNames(singerId).size());
-        } catch (IllegalArgumentException e) {
-            return R.error(e.getMessage());
+        // 走歌手自身的更新路径：逗号串写入与缓存失效都在它身上
+        Singer singer = new Singer();
+        singer.setId(singerId);
+        singer.setTags(tagService.normalizeTagNames(tags));
+        if (!singerService.update(singer)) {
+            return R.error("设置失败：歌手不存在或更新未生效");
         }
+        operationLogService.logUpdate(operatorId, operatorName, operatorType, "曲库模块",
+                "歌手 id=" + singerId + " 标签整组替换为 [" + String.join(",", tags) + "]",
+                ipUtils.getIpAddress(httpRequest));
+        return R.ok("设置成功", tagService.singerTagNames(singerId).size());
     }
 
     /**

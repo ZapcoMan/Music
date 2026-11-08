@@ -28,7 +28,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -258,19 +257,14 @@ public class ConsumerController {
             @RequestAttribute("userType") String userType,
             @RequestAttribute("username") String username,
             HttpServletRequest request
-    ) throws IOException {
+    ) {
         // 管理端可代改他人头像，普通用户只能改自己的。
         // 校验放在落盘之前，否则越权请求也会先把文件写进磁盘
         if (!currentUserId.equals(id) && !"admin".equals(userType)) {
             log.warn("头像更新被拒 - 令牌用户={}, 目标用户={}", currentUserId, id);
             return R.error("无权修改他人头像");
         }
-        String storeAvatorPath;
-        try {
-            storeAvatorPath = fileStorageService.saveImage(avatorFile, "userImages");
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return R.error(e.getMessage());
-        }
+        String storeAvatorPath = fileStorageService.saveImage(avatorFile, "userImages");
         Consumer consumer = new Consumer();
         consumer.setId(id);
         consumer.setAvator(storeAvatorPath);

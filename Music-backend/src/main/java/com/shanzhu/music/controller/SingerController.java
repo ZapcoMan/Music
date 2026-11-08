@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -201,13 +200,8 @@ public class SingerController {
             @RequestParam("file") MultipartFile avatorFile,
             @PathVariable("id") Integer id,
             HttpServletRequest httpRequest
-    ) throws IOException {
-        String storeAvatorPath;
-        try {
-            storeAvatorPath = fileStorageService.saveImage(avatorFile, "img/singerPic");
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return R.error(e.getMessage());
-        }
+    ) {
+        String storeAvatorPath = fileStorageService.saveImage(avatorFile, "img/singerPic");
         Singer singer = new Singer();
         singer.setId(id);
         singer.setPic(storeAvatorPath);
