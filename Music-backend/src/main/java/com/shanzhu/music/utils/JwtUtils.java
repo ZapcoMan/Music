@@ -34,6 +34,16 @@ public class JwtUtils {
     private Long expiration;
 
     /**
+     * 令牌签发方与受众。
+     *
+     * 写成常量而不是配置项：这两个值是"本服务的身份"，与部署环境无关，
+     * 做成可覆盖的开关只会让不同环境的令牌互不通用而没人记得原因。
+     * 真要与其他服务共用密钥时，应当各自换一个密钥，而不是靠 iss/aud 区分。
+     */
+    private static final String ISSUER = "music-backend";
+    private static final String AUDIENCE = "music-clients";
+
+    /**
      * 生成密钥
      */
     private SecretKey getSecretKey() {
@@ -64,6 +74,8 @@ public class JwtUtils {
 
         return Jwts.builder()
                 .subject(username)
+                .issuer(ISSUER)
+                .audience().add(AUDIENCE).and()
                 .claim("userId", userId)
                 .claim("userType", userType)
                 .claim("ip", ip)
@@ -83,6 +95,11 @@ public class JwtUtils {
         try {
             return Jwts.parser()
                     .verifyWith(getSecretKey())
+                    // 只验签名不够：密钥一旦被另一个服务复用（同一公司内共享 JWT 密钥
+                    // 是很常见的做法），那边签发的任意令牌在本系统里同样"合法"。
+                    // 绑定签发方与受众，把令牌的作用域钉回本服务。
+                    .requireIssuer(ISSUER)
+                    .requireAudience(AUDIENCE)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
