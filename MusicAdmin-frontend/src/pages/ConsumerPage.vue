@@ -455,20 +455,24 @@ export default {
                         (d.getMonth() + 1) +
                         "-" +
                         d.getDate();
-                    let params = new URLSearchParams();
-                    params.append("username", this.registerForm.username);
-                    params.append("password", this.registerForm.password);
-                    params.append("sex", this.registerForm.sex);
-                    params.append("phoneNum", this.registerForm.phoneNum);
-                    params.append("email", this.registerForm.email);
-                    params.append("birth", datetime);
-                    params.append(
-                        "introduction",
-                        this.registerForm.introduction
-                    );
-                    params.append("location", this.registerForm.location);
-                    params.append("avator", "/img/user.jpg");
-                    setConsumer(params)
+                    // 后端 addConsumer 收的是 @RequestBody ConsumerRequest，
+                    // 这里此前发的是 URLSearchParams（x-www-form-urlencoded），
+                    // Spring 直接回 415，而 catch 只 console.log、弹窗照关，
+                    // 表现是"点了添加没反应"。改成 JSON 对象，由 axios 自动带
+                    // application/json。
+                    // avator 一并去掉：它不在 ConsumerRequest 里，注册时 service
+                    // 统一置空串，头像走单独的上传接口。
+                    let payload = {
+                        username: this.registerForm.username,
+                        password: this.registerForm.password,
+                        sex: this.registerForm.sex,
+                        phoneNum: this.registerForm.phoneNum,
+                        email: this.registerForm.email,
+                        birth: datetime,
+                        introduction: this.registerForm.introduction,
+                        location: this.registerForm.location
+                    };
+                    setConsumer(payload)
                         .then((res) => {
                             if (res.code == 20000 || res.success === true) {
                                 this.getData();
