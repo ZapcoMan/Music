@@ -25,6 +25,11 @@ public class OperationLogServiceImpl implements OperationLogService {
     private static final String STATUS_FAILED = "FAILED";
 
     /**
+     * 与 operation_log.description 列宽一致
+     */
+    private static final int DESCRIPTION_MAX = 255;
+
+    /**
      * 认证模块名，登录/登出共用
      */
     private static final String MODULE_AUTH = "认证模块";
@@ -103,9 +108,21 @@ public class OperationLogServiceImpl implements OperationLogService {
         entry.setUserType(userType);
         entry.setOperationType(operationType);
         entry.setModule(module);
-        entry.setDescription(description);
+        entry.setDescription(truncate(description));
         entry.setIpAddress(ip);
         entry.setStatus(status);
         logOperation(entry);
+    }
+
+    /**
+     * description 列是 VARCHAR(255)，超长时整行插入会被 MySQL 拒绝，而 logOperation
+     * 是旁路、只 warn 不抛——结果是代码以为记上了、库里根本没有这条。
+     * 这里保留前 252 个字符并打省略号，宁可少几个字也要让这条审计落库。
+     */
+    private static String truncate(String description) {
+        if (description == null || description.length() <= DESCRIPTION_MAX) {
+            return description;
+        }
+        return description.substring(0, DESCRIPTION_MAX - 3) + "...";
     }
 }

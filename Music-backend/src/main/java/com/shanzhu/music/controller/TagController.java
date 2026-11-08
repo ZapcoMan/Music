@@ -7,11 +7,14 @@ import com.shanzhu.music.entity.po.Tag;
 import com.shanzhu.music.entity.po.Singer;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.entity.vo.TaggedSongVo;
+import com.shanzhu.music.service.OperationLogService;
 import com.shanzhu.music.service.SingerService;
 import com.shanzhu.music.service.SongService;
 import com.shanzhu.music.service.TagService;
+import com.shanzhu.music.utils.IpUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,6 +52,8 @@ public class TagController {
     private final TagService tagService;
     private final SongService songService;
     private final SingerService singerService;
+    private final OperationLogService operationLogService;
+    private final IpUtils ipUtils;
 
     /**
      * 热门标签，供前台筛选与后台标签云使用
@@ -106,11 +111,14 @@ public class TagController {
     @PutMapping(value = "/api/v1/songs/{songId}/tags")
     @RequireUserType("admin")
     public R<Integer> updateSongTags(@RequestAttribute("userId") Integer operatorId,
+                                     @RequestAttribute("username") String operatorName,
+                                     @RequestAttribute("userType") String operatorType,
                                      @Parameter(description = "歌曲ID", required = true)
                                      @PathVariable("songId") Integer songId,
                                      // 标签走 JSON 数组而不是查询串逗号分隔：名字本身含逗号时会被拆成两个，
                                      // 列表也不该为了迁就旧的表单式入参留在 URL 上
-                                     @RequestBody(required = false) List<String> tags) {
+                                     @RequestBody(required = false) List<String> tags,
+                                     HttpServletRequest httpRequest) {
         if (songId == null) {
             return R.error("songId 不能为空");
         }
@@ -128,6 +136,11 @@ public class TagController {
             if (!songService.update(song)) {
                 return R.error("设置失败：歌曲不存在或更新未生效");
             }
+            // 整组替换会把旧关联删干净，改完库里只剩新值——不改前记一笔就查不回
+            // "这首歌原来挂的是哪几个标签、被谁换掉的"
+            operationLogService.logUpdate(operatorId, operatorName, operatorType, "曲库模块",
+                    "歌曲 id=" + songId + " 标签整组替换为 [" + String.join(",", tags) + "]",
+                    ipUtils.getIpAddress(httpRequest));
             return R.ok("设置成功", tagService.songTagNames(songId).size());
         } catch (IllegalArgumentException e) {
             return R.error(e.getMessage());
@@ -158,9 +171,12 @@ public class TagController {
     @PutMapping(value = "/api/v1/singers/{singerId}/tags")
     @RequireUserType("admin")
     public R<Integer> updateSingerTags(@RequestAttribute("userId") Integer operatorId,
+                                       @RequestAttribute("username") String operatorName,
+                                       @RequestAttribute("userType") String operatorType,
                                        @Parameter(description = "歌手ID", required = true)
                                        @PathVariable("singerId") Integer singerId,
-                                       @RequestBody(required = false) List<String> tags) {
+                                       @RequestBody(required = false) List<String> tags,
+                                       HttpServletRequest httpRequest) {
         if (singerId == null) {
             return R.error("singerId 不能为空");
         }
@@ -175,6 +191,9 @@ public class TagController {
             if (!singerService.update(singer)) {
                 return R.error("设置失败：歌手不存在或更新未生效");
             }
+            operationLogService.logUpdate(operatorId, operatorName, operatorType, "曲库模块",
+                    "歌手 id=" + singerId + " 标签整组替换为 [" + String.join(",", tags) + "]",
+                    ipUtils.getIpAddress(httpRequest));
             return R.ok("设置成功", tagService.singerTagNames(singerId).size());
         } catch (IllegalArgumentException e) {
             return R.error(e.getMessage());
@@ -190,7 +209,11 @@ public class TagController {
     @Operation(summary = "批量新增标签", description = "按名字去重写入标签字典；name 空白的条目跳过")
     @PostMapping(value = "/api/v1/tags")
     @RequireUserType("admin")
-    public R<Integer> batchAdd(@RequestBody List<TagSaveRequest> tags) {
+    public R<Integer> batchAdd(@RequestBody List<TagSaveRequest> tags,
+                               @RequestAttribute("userId") Integer operatorId,
+                               @RequestAttribute("username") String operatorName,
+                               @RequestAttribute("userType") String operatorType,
+                               HttpServletRequest httpRequest) {
         if (tags == null || tags.isEmpty()) {
             return R.error("标签列表不能为空");
         }
@@ -201,7 +224,19 @@ public class TagController {
         if (submitted == 0) {
             return R.error("没有有效的标签名");
         }
+        // 字典是共享资源，一个人加的标签会出现在所有人的标签云里，
+        // 只记数量不记名字就没人说得清这个词是谁放进去的
+        operationLogService.logAdd(operatorId, operatorName, operatorType, "曲库模块",
+                "标签字典提交 " + submitted + " 条: " + String.join(",", tagNamesOf(tags)),
+                ipUtils.getIpAddress(httpRequest));
         return R.ok("提交成功", submitted);
+    }
+
+    private static List<String> tagNamesOf(List<TagSaveRequest> tags) {
+        return tags.stream()
+                .map(TagSaveRequest::getName)
+                .filter(name -> name != null && !name.isBlank())
+                .toList();
     }
 
 }

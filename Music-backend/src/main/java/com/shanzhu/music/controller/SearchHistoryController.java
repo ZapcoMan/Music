@@ -3,7 +3,10 @@ package com.shanzhu.music.controller;
 import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.SearchHistory;
+import com.shanzhu.music.service.OperationLogService;
 import com.shanzhu.music.service.SearchHistoryService;
+import com.shanzhu.music.utils.IpUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +26,8 @@ import java.util.List;
 public class SearchHistoryController {
 
     private final SearchHistoryService searchHistoryService;
+    private final OperationLogService operationLogService;
+    private final IpUtils ipUtils;
 
     /**
      * 记录搜索历史
@@ -40,6 +45,8 @@ public class SearchHistoryController {
             @RequestParam(required = false, defaultValue = "0") Byte searchType
     ) {
         Boolean result = searchHistoryService.recordSearch(userId, keywords, searchType);
+        // 这里不另写 operation_log：search_history 这一行本身就是"谁在什么时候搜了什么"，
+        // 再抄一份进审计表只会让每次搜索多一次写，且两处迟早对不上。
         if (result) {
             return R.ok("记录成功");
         }
@@ -92,9 +99,18 @@ public class SearchHistoryController {
      */
     @DeleteMapping
     @RequireUserType("consumer")
-    public R<Boolean> clearHistory(@RequestAttribute("userId") Integer userId) {
+    public R<Boolean> clearHistory(
+            @RequestAttribute("userId") Integer userId,
+            @RequestAttribute("username") String username,
+            @RequestAttribute("userType") String userType,
+            HttpServletRequest httpRequest
+    ) {
         Boolean result = searchHistoryService.clearHistory(userId);
+        // 清空是不可逆的整表删除，删完 search_history 里什么都不剩，
+        // 只能靠审计回答"这个人是什么时候把自己的搜索记录清掉的"
         if (result) {
+            operationLogService.logDelete(userId, username, userType, "互动模块",
+                    "清空本人全部搜索历史", ipUtils.getIpAddress(httpRequest));
             return R.ok("清空成功");
         }
         return R.error("清空失败");
@@ -114,10 +130,16 @@ public class SearchHistoryController {
     @RequireUserType("consumer")
     public R<Boolean> cleanOldHistory(
             @RequestAttribute("userId") Integer userId,
-            @RequestParam(required = false, defaultValue = "30") Integer days
+            @RequestAttribute("username") String username,
+            @RequestAttribute("userType") String userType,
+            @RequestParam(required = false, defaultValue = "30") Integer days,
+            HttpServletRequest httpRequest
     ) {
         Boolean result = searchHistoryService.cleanOldHistory(userId, days);
+        // days 是这次实际生效的保留窗口，不记下来就无法判断是不是被传了个 0 全清掉了
         if (result) {
+            operationLogService.logDelete(userId, username, userType, "互动模块",
+                    "清理保留期 " + days + " 天以外的搜索历史", ipUtils.getIpAddress(httpRequest));
             return R.ok("清理成功");
         }
         return R.error("清理失败");
