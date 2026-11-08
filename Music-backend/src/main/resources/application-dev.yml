@@ -47,6 +47,12 @@ spring:
       stat-view-servlet:
         enabled: true               # 仅本地开发开启；对外部署请用 prod（该开关为 false）
         url-pattern: /druid/*
+        # 只允许本机访问。这个 servlet 不走 Spring MVC 拦截器链，JWT 那套 fail-closed
+        # 鉴权对它完全无效，一旦端口可达就是 SQL 监控与会话列表裸奔；
+        # allow 留空在 Druid 里的含义是"不限制来源"，所以必须显式写。
+        allow: 127.0.0.1
+        # 默认口令仍是 admin/admin，图的是本地开箱可用；但它已可被环境变量覆盖，
+        # 且 docker-compose.yml 现在默认起 prod 档位，不会带着这套配置对外提供服务。
         login-username: ${DRUID_LOGIN_USERNAME:admin}
         login-password: ${DRUID_LOGIN_PASSWORD:admin}
   

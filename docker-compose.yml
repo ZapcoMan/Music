@@ -56,6 +56,13 @@ services:
     container_name: music-backend
     restart: always
     environment:
+      # 显式指定运行档位。此前这里不设该变量，容器里的 jar 会按 Maven 打包时
+      # 注入的默认值落到 dev：而 dev 开着 Druid 监控台（/druid/*，默认口令
+      # admin/admin），StatViewServlet 又是独立 Servlet、绕过整条 JWT 拦截器链，
+      # 9171 还直接映射到宿主机——等于把 SQL 监控与会话列表摊开。
+      # 更矛盾的是本文件已经用 :? 强制要求生产级凭据，凭据按 prod 填、行为却按 dev 跑。
+      # 默认改为 prod，仍允许 .env 里显式覆盖成 dev 做本地联调。
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/db_music?zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:?请在 .env 中设置 DB_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
