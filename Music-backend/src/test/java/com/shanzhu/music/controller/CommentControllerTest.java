@@ -4,11 +4,16 @@ import com.shanzhu.music.BaseTest;
 import com.shanzhu.music.entity.po.Comment;
 import com.shanzhu.music.service.CommentService;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+
+import java.util.stream.Stream;
 
 /**
  * CommentController 单元测试
@@ -358,5 +363,82 @@ class CommentControllerTest extends BaseTest {
                 .andExpect(MockMvcResultMatchers.status().isMethodNotAllowed())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").value(405));
+    }
+
+    /**
+     * 评论入参的负例集合。
+     *
+     * 加这组用例的原因是 Controller 原来只有 type == null 一条判断：
+     * 正文空、正文超长、type 传越界值、以及 type 与目标 id 不配对，
+     * 全部能一路走到 insert 并落库。最后两类最糟——它们造出
+     * song_id 与 song_list_id 皆为空的评论：任何列表查询都读不到它，
+     * 但它占着自增 id，并被点赞计数与高频词统计一起扫进结果。
+     */
+    static Stream<Arguments> invalidComments() {
+        return Stream.of(
+                Arguments.of("正文为空", "0", "2", null, ""),
+                Arguments.of("正文缺失", "0", "2", null, null),
+                Arguments.of("正文超过 255 字", "0", "2", null, "x".repeat(256)),
+                Arguments.of("type 越界", "7", "2", null, "有效正文"),
+                Arguments.of("type 非法字符", "abc", "2", null, "有效正文"),
+                Arguments.of("歌曲评论缺 songId", "0", null, null, "有效正文"),
+                Arguments.of("歌单评论缺 songListId", "1", null, null, "有效正文"));
+    }
+
+    @ParameterizedTest(name = "{0} 应被拒")
+    @MethodSource("invalidComments")
+    void invalidCommentIsRejectedAndNotStored(String desc, String type, String songId,
+                                              String songListId, String content) throws Exception {
+        int before = countComments();
+
+        var request = MockMvcRequestBuilders.post("/api/v1/comments")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED);
+        // null 表示"这个参数不传"，而不是传一个空值——两者触发的分支不同：
+        // 传空串会走类型转换失败，缺参才走 @NotNull/@AssertTrue
+        if (type != null) {
+            request.param("type", type);
+        }
+        if (songId != null) {
+            request.param("songId", songId);
+        }
+        if (songListId != null) {
+            request.param("songListId", songListId);
+        }
+        if (content != null) {
+            request.param("content", content);
+        }
+
+        // @Valid 作用在表单绑定的对象上，失败抛 BindException，
+        // 由 GlobalExceptionHandler 映射成 400 + 各字段的具体原因
+        consumerMvc.perform(request)
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        Assertions.assertEquals(before, countComments(), desc + "：不应写进 comment 表");
+    }
+
+    /**
+     * 正常用例仍要过：校验放宽一档和收紧一档同样会破坏功能，
+     * 只测负例的话，把 @Size 写成 @Size(min=300) 也能让本类全绿。
+     */
+    @Test
+    @Order(31)
+    @DisplayName("测试合法评论仍可通过新校验")
+    void validCommentStillAccepted() throws Exception {
+        int before = countComments();
+
+        consumerMvc.perform(MockMvcRequestBuilders.post("/api/v1/comments")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("type", "1")
+                        .param("songListId", "3")
+                        .param("content", "255 字上限内的正常歌单评论"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true));
+
+        Assertions.assertEquals(before + 1, countComments(), "合法评论应正常落库");
+    }
+
+    private int countComments() {
+        Integer count = jdbcTemplate.queryForObject("select count(*) from comment", Integer.class);
+        return count == null ? 0 : count;
     }
 }

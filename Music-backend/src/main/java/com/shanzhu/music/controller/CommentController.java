@@ -3,8 +3,10 @@ package com.shanzhu.music.controller;
 import com.shanzhu.music.annotation.RateLimit;
 import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
+import com.shanzhu.music.entity.dto.CommentRequest;
 import com.shanzhu.music.entity.po.Comment;
 import com.shanzhu.music.service.CommentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -50,22 +52,20 @@ public class CommentController {
     @PostMapping(value = "/api/v1/comments")
     @RequireUserType("consumer")
     public R<Void> addComment(@RequestAttribute("userId") Integer userId,
-                              Byte type, Integer songId, Integer songListId, String content) {
-        // type 是 Byte，前端漏传时与 0 比较会触发拆箱 NPE
-        if (type == null) {
-            return R.error("评论类型不能为空");
-        }
-
-        // 身份只取令牌：原先 userId 由请求参数带入，任何人传别人的 id 就能替别人发评论
+                              @Valid CommentRequest request) {
+        // 身份只取令牌：原先 userId 由请求参数带入，任何人传别人的 id 就能替别人发评论。
+        // 类型区间、正文非空与长度、type 与目标 id 的配对，都已在绑定阶段由
+        // jakarta validation 完成；不通过时走 GlobalExceptionHandler 的
+        // BindException 分支，返回 400 与具体原因，不再是"评论失败"这种无信息串。
         Comment comment = new Comment();
         comment.setUserId(userId);
-        comment.setType(type);
-        comment.setContent(content);
+        comment.setType(request.getType());
+        comment.setContent(request.getContent());
 
-        if (type == 0) {
-            comment.setSongId(songId);
+        if (request.getType() == 0) {
+            comment.setSongId(request.getSongId());
         } else {
-            comment.setSongListId(songListId);
+            comment.setSongListId(request.getSongListId());
         }
 
         if (commentService.insert(comment)) {
