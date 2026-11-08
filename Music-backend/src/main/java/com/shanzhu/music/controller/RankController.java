@@ -4,8 +4,11 @@ import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.dto.RankRequest;
 import com.shanzhu.music.entity.po.Rank;
+import com.shanzhu.music.service.OperationLogService;
 import com.shanzhu.music.service.RankService;
+import com.shanzhu.music.utils.IpUtils;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +31,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class RankController {
 
     private final RankService rankService;
+    private final OperationLogService operationLogService;
+    private final IpUtils ipUtils;
 
     /**
      * 新增评价
@@ -44,13 +49,24 @@ public class RankController {
     @PostMapping(value = "/api/v1/ranks")
     @RequireUserType("consumer")
     public R<Void> add(@RequestAttribute("userId") Integer userId,
-                       @Valid RankRequest request) {
+                       @RequestAttribute("username") String username,
+                       @RequestAttribute("userType") String userType,
+                       @Valid RankRequest request,
+                       HttpServletRequest httpRequest) {
         Rank rank = new Rank();
         rank.setSongListId(request.getSongListId());
         rank.setConsumerId(userId);
         rank.setScore(request.getScore());
 
         if (rankService.save(rank)) {
+            // 评分是协同过滤与精排的直接输入，重复提交会覆盖旧分值，
+            // 不记这条就查不出"这个分是谁什么时候打的、打的是几分"。
+            // 描述刻意写成"新增或改分"：RankService#save 是 upsert，
+            // controller 拿不到本次究竟走了插入还是覆盖，
+            // 与其让日志把一个改分动作说成"新增评分"，不如把两种可能都写出来。
+            operationLogService.logAdd(userId, username, userType, "互动模块",
+                    "提交评分（新增或改分） 歌单 id=" + request.getSongListId() + " 分值=" + request.getScore(),
+                    ipUtils.getIpAddress(httpRequest));
             return R.ok("评价成功");
         }
 

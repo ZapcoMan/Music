@@ -5,6 +5,9 @@ import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Collect;
 import com.shanzhu.music.entity.po.SongList;
 import com.shanzhu.music.service.CollectService;
+import com.shanzhu.music.service.OperationLogService;
+import com.shanzhu.music.utils.IpUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,6 +39,8 @@ import java.util.List;
 public class CollectController {
 
     private final CollectService collectService;
+    private final OperationLogService operationLogService;
+    private final IpUtils ipUtils;
 
     /**
      * 添加收藏
@@ -48,9 +53,12 @@ public class CollectController {
     @PostMapping
     @RequireUserType("consumer")
     public R<Void> addCollect(@RequestAttribute("userId") Integer userId,
+                        @RequestAttribute("username") String username,
+                        @RequestAttribute("userType") String userType,
                         @RequestParam Byte type,
                         @RequestParam(required = false) Integer songId,
-                        @RequestParam(required = false) Integer songListId) {
+                        @RequestParam(required = false) Integer songListId,
+                        HttpServletRequest httpRequest) {
         Collect collect = new Collect();
         collect.setUserId(userId);
         collect.setType(type);
@@ -74,6 +82,10 @@ public class CollectController {
             collect.setSongListId(songListId);
         }
         if (collectService.insert(collect)) {
+            // 收藏行是用户私有数据，管理员侧看不到来源，只有审计能回答"这条心形谁点的"
+            operationLogService.logAdd(userId, username, userType, "互动模块",
+                    "新增收藏 " + (type == 0 ? "歌曲 id=" + songId : "歌单 id=" + songListId),
+                    ipUtils.getIpAddress(httpRequest));
             return R.ok("收藏成功");
         }
 
@@ -91,8 +103,11 @@ public class CollectController {
     @DeleteMapping
     @RequireUserType("consumer")
     public R<Boolean> deleteCollect(@RequestAttribute("userId") Integer userId,
+                                @RequestAttribute("username") String username,
+                                @RequestAttribute("userType") String userType,
                                 @RequestParam(required = false) Integer songId,
-                                @RequestParam(required = false) Integer songListId) {
+                                @RequestParam(required = false) Integer songListId,
+                                HttpServletRequest httpRequest) {
         // 两个定位符都不给时，老代码会拿 songId=null 去执行
         // "delete ... and song_id = null"，条件恒不成立 → 返回 false，
         // 调用方看到的是"删除失败"而不是"你少传了参数"。这里显式区分。
@@ -100,9 +115,20 @@ public class CollectController {
             return R.error("请指定要取消收藏的歌曲或歌单");
         }
         if (songListId != null) {
-            return R.ok(collectService.deleteByUserIdSongListId(userId, songListId));
+            boolean deleted = collectService.deleteByUserIdSongListId(userId, songListId);
+            // 没删到行（原本就没收藏）不记，否则审计里会堆出一堆没有实际写入的"取消收藏"
+            if (deleted) {
+                operationLogService.logDelete(userId, username, userType, "互动模块",
+                        "取消收藏歌单 id=" + songListId, ipUtils.getIpAddress(httpRequest));
+            }
+            return R.ok(deleted);
         }
-        return R.ok(collectService.deleteByUserIdSongId(userId, songId));
+        boolean deleted = collectService.deleteByUserIdSongId(userId, songId);
+        if (deleted) {
+            operationLogService.logDelete(userId, username, userType, "互动模块",
+                    "取消收藏歌曲 id=" + songId, ipUtils.getIpAddress(httpRequest));
+        }
+        return R.ok(deleted);
     }
 
     /**

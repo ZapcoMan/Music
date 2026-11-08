@@ -6,6 +6,9 @@ import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.dto.CommentRequest;
 import com.shanzhu.music.entity.po.Comment;
 import com.shanzhu.music.service.CommentService;
+import com.shanzhu.music.service.OperationLogService;
+import com.shanzhu.music.utils.IpUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +37,8 @@ import java.util.List;
 public class CommentController {
 
     private final CommentService commentService;
+    private final OperationLogService operationLogService;
+    private final IpUtils ipUtils;
 
     /**
      * 添加评论
@@ -52,7 +57,10 @@ public class CommentController {
     @PostMapping(value = "/api/v1/comments")
     @RequireUserType("consumer")
     public R<Void> addComment(@RequestAttribute("userId") Integer userId,
-                              @Valid CommentRequest request) {
+                              @RequestAttribute("username") String username,
+                              @RequestAttribute("userType") String userType,
+                              @Valid CommentRequest request,
+                              HttpServletRequest httpRequest) {
         // 身份只取令牌：原先 userId 由请求参数带入，任何人传别人的 id 就能替别人发评论。
         // 类型区间、正文非空与长度、type 与目标 id 的配对，都已在绑定阶段由
         // jakarta validation 完成；不通过时走 GlobalExceptionHandler 的
@@ -69,6 +77,12 @@ public class CommentController {
         }
 
         if (commentService.insert(comment)) {
+            // 评论发布后不可修改、要撤回只能删了重发，发出去时挂在哪个对象下面只有这条记录能还原；
+            // 正文不进审计，只记评论 id
+            operationLogService.logAdd(userId, username, userType, "互动模块",
+                    "发表评论 id=" + comment.getId() + " "
+                            + (request.getType() == 0 ? "歌曲 id=" + request.getSongId() : "歌单 id=" + request.getSongListId()),
+                    ipUtils.getIpAddress(httpRequest));
             return R.ok("评论成功");
         }
 
@@ -86,11 +100,20 @@ public class CommentController {
     @RequireUserType({"consumer", "admin"})
     public R<Boolean> deleteComment(@RequestAttribute("userId") Integer userId,
                                     @RequestAttribute("userType") String userType,
-                                    @PathVariable("id") Integer id) {
+                                    @RequestAttribute("username") String username,
+                                    @PathVariable("id") Integer id,
+                                    HttpServletRequest httpRequest) {
         // 归属校验下沉到 service：原先 Controller 先查再比再删，
         // "不存在""无权""删除失败"三种情况全塌成同一个 false，调用方无从分辨；
         // 现在由 service 用 BusinessException 区分前两种，成功路径仍返回 data=true
-        return R.ok("删除成功", commentService.deleteBy(id, userId, userType));
+        boolean deleted = commentService.deleteBy(id, userId, userType);
+        // 管理员删的是他人评论，属于跨归属写操作；"不存在""无权"由 service 抛异常走不到这里，
+        // 故只在行确实删掉时留痕
+        if (deleted) {
+            operationLogService.logDelete(userId, username, userType, "互动模块",
+                    "删除评论 id=" + id, ipUtils.getIpAddress(httpRequest));
+        }
+        return R.ok("删除成功", deleted);
     }
 
     /**
@@ -151,11 +174,18 @@ public class CommentController {
     @RateLimit(key = "comment:like:", timeWindow = 60, maxRequests = 30, message = "点赞过于频繁，请稍后再试")
     @PostMapping(value = "/api/v1/comments/{id}/likes")
     @RequireUserType("consumer")
-    public R<Void> like(@PathVariable("id") Integer id) {
+    public R<Void> like(@RequestAttribute("userId") Integer userId,
+                        @RequestAttribute("username") String username,
+                        @RequestAttribute("userType") String userType,
+                        @PathVariable("id") Integer id,
+                        HttpServletRequest httpRequest) {
         // up 原先直接取请求参数，客户端传多少就涨多少（一次请求即可刷到任意数值）。
         // 现按当前值自增，前端仍传 up 字段但服务端不再采纳；
         // 存在性校验、原子自增与缓存清理都在 service 里
         if (commentService.like(id)) {
+            // 点赞是计数的不可见自增，出问题时只能靠"谁在什么时间点过哪条评论"回溯
+            operationLogService.logUpdate(userId, username, userType, "互动模块",
+                    "点赞评论 id=" + id, ipUtils.getIpAddress(httpRequest));
             return R.ok("点赞成功");
         }
         return R.error("点赞失败");
