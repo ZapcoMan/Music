@@ -7,6 +7,7 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.shanzhu.music.entity.dto.ConsumerProfileRequest;
 import com.shanzhu.music.entity.dto.ConsumerRequest;
 import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.exception.BusinessException;
@@ -99,16 +100,26 @@ public class ConsumerServiceImpl implements ConsumerService {
      * @return 修改结果
      */
     @Override
-    public Boolean updateProfile(ConsumerRequest request, Integer currentUserId) {
+    public Boolean updateProfile(ConsumerProfileRequest request, Integer currentUserId) {
         // 以令牌身份为准：原实现按 username 反查用户，任何人提交他人用户名即可改其资料
         Consumer existConsumer = selectByPrimaryKey(currentUserId);
         if (existConsumer == null) {
             throw new BusinessException("用户不存在");
         }
-        Consumer consumer = toConsumer(request);
+        // 不复用 toConsumer：那条路径服务于注册，要求带 username。
+        // 这里只搬资料字段，登录凭据一律沿用库里的现值。
+        Consumer consumer = new Consumer();
         consumer.setId(currentUserId);
-        // 用户名是登录凭据，不允许通过本接口改名
         consumer.setUsername(existConsumer.getUsername());
+        consumer.setSex(request.getSex());
+        consumer.setPhoneNum(request.getPhoneNum());
+        consumer.setEmail(request.getEmail());
+        consumer.setBirth(parseBirth(request.getBirth()));
+        consumer.setIntroduction(request.getIntroduction());
+        consumer.setLocation(request.getLocation());
+        // password 为 null 就是"这次不改口令"：下面 update() 里非空才加密，
+        // mapper 的 <if test="password != null"> 也会跳过该列，两者配合才立得住。
+        consumer.setPassword(request.getPassword());
         return update(consumer);
     }
 

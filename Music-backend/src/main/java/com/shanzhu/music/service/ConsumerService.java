@@ -1,6 +1,7 @@
 package com.shanzhu.music.service;
 
 import com.github.pagehelper.PageInfo;
+import com.shanzhu.music.entity.dto.ConsumerProfileRequest;
 import com.shanzhu.music.entity.dto.ConsumerRequest;
 import com.shanzhu.music.entity.po.Consumer;
 
@@ -34,7 +35,7 @@ public interface ConsumerService {
      * @param currentUserId 令牌中的用户id
      * @return 修改结果
      */
-    Boolean updateProfile(ConsumerRequest request, Integer currentUserId);
+    Boolean updateProfile(ConsumerProfileRequest request, Integer currentUserId);
 
     /**
      * 更新前端用户

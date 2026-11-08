@@ -183,6 +183,48 @@ class ConsumerControllerTest extends BaseTest {
     }
 
     /**
+     * 改资料时不带 password，必须改得动、且原口令不受影响。
+     *
+     * 上面那条用例的 JSON 里一直带着 password，恰好绕开了本接口最常见的用法：
+     * 用户只想改签名或地区。此前 profile 复用注册用的 ConsumerRequest，
+     * 它的 @NotBlank(password) 会在请求进入 service 之前就把这种提交判成 400，
+     * 前端"留空即不发送该字段、后端保持原密码"的约定根本没有机会生效。
+     *
+     * 断言走 verifyPassword 而不是比对散列原值：selectByPrimaryKey 会命中
+     * 用户缓存，而 Consumer 的 password 带 @JsonIgnore，缓存里反序列化出来
+     * 根本没有这个字段（见 ConsumerServiceImpl#verifyPassword 的说明）。
+     */
+    @Test
+    @Order(91)
+    @DisplayName("测试修改资料时不提交密码")
+    void testUpdateProfileWithoutPassword() throws Exception {
+        String username = "nopassuser" + System.currentTimeMillis();
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/consumers/registrations")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"" + username + "\",\"password\":\"123456\"}"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true));
+
+        Consumer created = consumerService.getByUsername(username);
+        Assertions.assertNotNull(created, "前置账号应已注册");
+
+        consumerMvc.perform(MockMvcRequestBuilders.patch("/api/v1/consumers/profile")
+                .header("Authorization",
+                        jwtUtils.generateToken(created.getId(), created.getUsername(), "consumer", "127.0.0.1"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"introduction\":\"只改签名，不动密码\"}"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true));
+
+        Consumer updated = consumerService.selectByPrimaryKey(created.getId());
+        Assertions.assertEquals("只改签名，不动密码", updated.getIntroduction(),
+                "只提交 introduction 时该字段应落库");
+        Assertions.assertTrue(consumerService.verifyPassword(username, "123456"),
+                "未提交 password 时原口令必须仍然可用，不能被清空或覆盖");
+        Assertions.assertFalse(consumerService.verifyPassword(username, ""),
+                "password 缺省不应被当作\"把口令改成空串\"");
+    }
+
+    /**
      * 测试分页查询用户
      */
     @Test

@@ -5,6 +5,7 @@ import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.annotation.RateLimit;
 import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
+import com.shanzhu.music.entity.dto.ConsumerProfileRequest;
 import com.shanzhu.music.entity.dto.ConsumerRequest;
 import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.entity.vo.ConsumerLoginVo;
@@ -106,7 +107,7 @@ public class ConsumerController {
     public R<Void> updateConsumer(@RequestAttribute("userId") Integer currentUserId,
                             @RequestAttribute("username") String currentUsername,
                             @RequestAttribute("userType") String currentUserType,
-                            @Valid @RequestBody ConsumerRequest request,
+                            @Valid @RequestBody ConsumerProfileRequest request,
                             HttpServletRequest httpRequest) {
         // 身份只取令牌，生日转换与组装在 service；"用户不存在"由 service 抛 BusinessException
         if (consumerService.updateProfile(request, currentUserId)) {

@@ -111,21 +111,25 @@ export default {
             let _this = this;
             let d = new Date(this.registerForm.birth);
             let datetime = d.getFullYear() + '-' +(d.getMonth() + 1) +'-' + d.getDate();
-            let params = new URLSearchParams();
-            params.append('id',this.userId);
-            params.append('username',this.registerForm.username);
-            // 留空即不发送该字段，后端 password 为 null 时保持原密码不变；
-            // 发送空串会被当作"把密码改成空"
+            // 后端 PATCH /consumers/profile 收 @RequestBody，此前这里发
+            // URLSearchParams，请求在 Spring 侧就是 415。
+            // id 与 username 都不再发送：身份只取令牌（@RequestAttribute userId），
+            // 用户名是登录凭据，不允许通过改资料接口变更。
+            let payload = {
+                sex: this.registerForm.sex,
+                phoneNum: this.registerForm.phoneNum,
+                email: this.registerForm.email,
+                birth: datetime,
+                introduction: this.registerForm.introduction,
+                location: this.registerForm.location
+            };
+            // 留空即不发送该字段：新的 ConsumerProfileRequest 对 password 只保留
+            // @Size 约束、允许为 null，服务端据此保持原口令不变；
+            // 发送空串会被 @Size(min=6) 直接拦下，也不会被当成"把密码改成空"。
             if (this.registerForm.password) {
-                params.append('password',this.registerForm.password);
+                payload.password = this.registerForm.password;
             }
-            params.append('sex',this.registerForm.sex);
-            params.append('phoneNum',this.registerForm.phoneNum);
-            params.append('email',this.registerForm.email);
-            params.append('birth',datetime);
-            params.append('introduction',this.registerForm.introduction);
-            params.append('location',this.registerForm.location);
-            updateUserMsg(params)
+            updateUserMsg(payload)
                 .then(res => {
                     if(res.code == 20000 || res.success === true){
                         _this.$store.commit('setUsername',this.registerForm.username);
