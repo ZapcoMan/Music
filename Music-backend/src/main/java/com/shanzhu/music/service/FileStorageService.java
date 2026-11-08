@@ -76,7 +76,10 @@ public class FileStorageService {
         String dirPath = PathUtils.getClassLoadRootPath() + "/" + subDir + "/";
         File dir = new File(dirPath);
         if (!dir.exists() && !dir.mkdirs()) {
-            throw new IllegalStateException("创建上传目录失败：" + dirPath);
+            // 绝对路径只进日志：调用方（Controller 的 R.error(e.getMessage())）会把这段文字
+            // 原样发到前端，等于替外人画出服务端目录结构
+            log.error("创建上传目录失败 - dir={}", dirPath);
+            throw new IllegalStateException("服务器存储不可用，请稍后重试");
         }
 
         File dest = new File(dir, safeName);

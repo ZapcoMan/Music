@@ -70,7 +70,15 @@ public class FeatureEngineeringService {
             }
         }
         
-        log.debug("特征提取完成，成功提取 {} 首歌曲特征", songsWithFeatures.size());
+        int dropped = recallSongsWithInfo.size() - songsWithFeatures.size();
+        if (dropped > 0) {
+            // 逐首的 error 日志只说明"哪首坏了"，看不出下游被影响多少：精排是在
+            // 剩下的这批候选里排序的，候选从 30 掉到 12 这件事必须单独有一条可读记录
+            log.warn("特征提取丢弃 {} / {} 首候选，精排只在剩余候选上进行",
+                    dropped, recallSongsWithInfo.size());
+        } else {
+            log.debug("特征提取完成，成功提取 {} 首歌曲特征", songsWithFeatures.size());
+        }
         return songsWithFeatures;
     }
     
