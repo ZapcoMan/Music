@@ -127,14 +127,9 @@ CREATE TABLE IF NOT EXISTS `ranks` (
 --     缺它的话"重复评分应改分而不是插入第二行"这条路径根本撞不到唯一键，
 --     upsert 与并发冲突分支都测不到。
 
--- 用户歌单评分表（真实库存在，此前测试 schema 缺失）
-CREATE TABLE IF NOT EXISTS `user_ratings` (
-    `id` INT PRIMARY KEY AUTO_INCREMENT,
-    `user_id` INT,
-    `song_list_id` INT,
-    `score` INT,
-    `timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- user_ratings 已下线（V13）：它全仓无 PO / 无 Mapper / 无引用，与 ranks 语义重复，
+-- 历史行迁入 ranks 后 DROP。测试库原先补建过这张表，现在跟着真实结构一起删掉——
+-- 留着的话测试库比真库多一张表，任何"扫全库表清单"的用例都会在测试里通过、在线上不成立。
 
 -- 标签字典表
 CREATE TABLE IF NOT EXISTS `tag` (

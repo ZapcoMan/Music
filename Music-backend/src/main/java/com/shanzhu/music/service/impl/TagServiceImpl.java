@@ -17,6 +17,9 @@ import java.util.Set;
 
 /**
  * 标签服务实现：song_tag 为真源，song.tags 逗号串是它的派生视图。
+ *
+ * 派生视图不可手工编辑：任何绕过本类的写入（直接 UPDATE song SET tags=...）
+ * 都会让两侧重新分叉。写路径收敛之前留下的历史行由 V13 一次性按中间表重算。
  */
 @Slf4j
 @Service
