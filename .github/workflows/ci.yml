@@ -1,7 +1,10 @@
 name: CI
 
-# 后端全量校验门禁：编译 + 249 个测试 + JaCoCo 覆盖率四项阈值。
+# 后端全量校验门禁：编译 + 全量测试 + JaCoCo 覆盖率四项阈值，外加一个真 MySQL 迁移阶段。
 # 与本地 `mvn -B clean verify` 同一条命令，不额外放宽任何门禁。
+#
+# mysql-migrations 这个 job 的存在理由见它自己的注释：测试跑的是 H2 且禁用 Flyway，
+# db/migration 下的脚本一次也没被执行过。
 #
 # 监听 master 而非 main：v2.0.0 之后仓库只用 master 单一分支，main 已删除。
 # 改这里必须与 GitHub Settings → Branches 里的默认分支同步——两者不一致时，
@@ -74,3 +77,156 @@ jobs:
           name: surefire-reports
           path: Music-backend/target/surefire-reports/
           if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  # 真 MySQL 迁移阶段
+  #
+  # 为什么必须单开一个 job：后端 298 条测试跑的是 H2 + src/test/resources/schema.sql，
+  # 而且 application-test.yml 里 flyway.enabled=false —— 测试全绿一次也没有执行过
+  # db/migration 下的脚本。结构层面因此存在一整片盲区：V2 当年用 MariaDB 语法写
+  # `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`，MySQL 报 1064 让整条链断在半路，
+  # 结果 search_history / tag / song_tag / singer_tag 四张表在真实库里根本不存在，
+  # 而测试照跑照绿。本轮新加的 V13 恰好是 MySQL 方言（GROUP_CONCAT、INSERT IGNORE、
+  # 子查询重算逗号串），最需要这种验证。
+  #
+  # 本机没有 docker，所以这一层只能在 CI 里跑。
+  #
+  # 这里刻意不用 Flyway 执行器，而是按版本号顺序 source：
+  # pom 里没有 flyway-maven-plugin，为一个验证步骤引入构建插件不值得；
+  # 而本 job 要证明的是"这些 SQL 在 MySQL 8 上能不能执行、执行完语义对不对"，
+  # 顺序 source 与 Flyway 在这件事上等价（checksum 与 history 表不在验证范围内）。
+  # ---------------------------------------------------------------------------
+  mysql-migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 启动 MySQL 8 并等待就绪
+        run: |
+          docker run -d --name ci-mysql -p 3306:3306 \
+            -e MYSQL_ROOT_PASSWORD=root \
+            -e MYSQL_DATABASE=db_music \
+            mysql:8.0
+
+          for i in $(seq 1 60); do
+            if docker exec ci-mysql mysqladmin ping -uroot -proot --silent 2>/dev/null | grep -q 'alive'; then
+              echo "MySQL 已就绪"
+              break
+            fi
+            if [ "$i" = "60" ]; then
+              echo "MySQL 未就绪，容器日志如下："
+              docker logs ci-mysql
+              exit 1
+            fi
+            sleep 5
+          done
+
+      - name: 应用 V13 之前的全部迁移
+        run: |
+          # 按版本号数值切分，而不是写 `grep -v V13`：后者会把将来的 V14、V15
+          # 也一起排除在第一段之外，同时又排在单独执行 V13 之前——顺序悄悄错乱，
+          # 而且看起来还像是对的。
+          cd Music-backend/src/main/resources/db/migration
+          SPLIT_AT=13
+          for f in $(ls V*.sql | sort -V); do
+            v=$(echo "$f" | sed -E 's/^V([0-9]+)__.*/\1/')
+            if [ "$v" -lt "$SPLIT_AT" ]; then
+              echo "== 应用 $f"
+              docker exec -i ci-mysql mysql --default-character-set=utf8mb4 \
+                -uroot -proot db_music < "$f"
+            fi
+          done
+
+      - name: 造出 V13 要收敛的两种缺陷
+        run: |
+          # 逗号串与中间表漂移：挑一首确实有标签关联的歌，把 CSV 改成不可能的值。
+          # V6 的回填只覆盖 tags 为空的行，而 PUT 标签接口初版只重建中间表不写 CSV，
+          # 真实库里就是这两种来源留下的这种行。
+          #
+          # user_ratings 不需要人造数据：V1 灌的那 1 行（V8 补齐了它引用的账号）还在表里，
+          # 正好用来验证"迁入 ranks 后删表"这条路径。
+          docker exec -i ci-mysql mysql --default-character-set=utf8mb4 -uroot -proot db_music <<'SQL'
+          UPDATE song s
+             JOIN (SELECT st.song_id, GROUP_CONCAT(t.name ORDER BY t.id SEPARATOR ',') AS derived
+                     FROM song_tag st JOIN tag t ON t.id = st.tag_id
+                    GROUP BY st.song_id) x ON x.song_id = s.id
+                SET s.tags = '__stale_csv__';
+          SELECT COUNT(*) AS drifted_rows FROM song WHERE tags = '__stale_csv__';
+          SELECT COUNT(*) AS pending_ratings FROM user_ratings;
+          SQL
+
+      - name: 应用 V13 与其后的全部迁移
+        run: |
+          cd Music-backend/src/main/resources/db/migration
+          SPLIT_AT=13
+          for f in $(ls V*.sql | sort -V); do
+            v=$(echo "$f" | sed -E 's/^V([0-9]+)__.*/\1/')
+            if [ "$v" -ge "$SPLIT_AT" ]; then
+              echo "== 应用 $f"
+              docker exec -i ci-mysql mysql --default-character-set=utf8mb4 \
+                -uroot -proot db_music < "$f"
+            fi
+          done
+
+      - name: 校验收敛结果
+        run: |
+          fail=0
+          check() {
+            local desc="$1" sql="$2" expect_zero="$3"
+            local got
+            got=$(docker exec ci-mysql mysql -N --default-character-set=utf8mb4 \
+                  -uroot -proot -e "$sql" db_music 2>/dev/null | tr -d '[:space:]')
+            echo "[$desc] 结果 = ${got:-<空>}"
+            if [ "$expect_zero" = "zero" ] && [ "${got}" != "0" ]; then
+              echo "  期望 0，实际 ${got:-<空>}"; fail=1
+            fi
+            if [ "$expect_zero" = "nonzero" ] && [ "${got:-0}" = "0" ]; then
+              echo "  期望大于 0，实际 ${got:-<空>}"; fail=1
+            fi
+          }
+
+          # 漂移行必须被清零（V13 按"中间表 → 逗号串"重算）
+          check "逗号串不再残留漂移值" \
+            "SELECT COUNT(*) FROM song WHERE tags='__stale_csv__'" zero
+
+          # 必须有行等于中间表的派生值，否则说明上面那条只是碰巧没匹配到
+          check "逗号串与中间表派生值一致" \
+            "SELECT COUNT(*) FROM song s JOIN (SELECT st.song_id, GROUP_CONCAT(t.name ORDER BY t.id SEPARATOR ',') AS d FROM song_tag st JOIN tag t ON t.id=st.tag_id GROUP BY st.song_id) x ON x.song_id=s.id AND s.tags=x.d" nonzero
+
+          # user_ratings 必须已经不存在
+          check "user_ratings 已下线" \
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='db_music' AND table_name='user_ratings'" zero
+
+          # ranks 的 UNIQUE(song_list_id, consumer_id) 必须仍然成立：
+          # 迁移如果制造出重复键，这里不会是 0
+          check "ranks 无重复评分键" \
+            "SELECT COUNT(*) FROM (SELECT song_list_id, consumer_id FROM ranks GROUP BY song_list_id, consumer_id HAVING COUNT(*)>1) d" zero
+
+          # V1 灌进 user_ratings 的那 1 行（V8 补齐了它引用的账号）要么迁入 ranks，
+          # 要么因为同键已有评分被 INSERT IGNORE 保留现值——两者都算正确，
+          # 所以这里只断言"迁移后不再有指向未知账号的评分"，不硬要 ranks +1 行
+          check "ranks 的评分都能对上账号" \
+            "SELECT COUNT(*) FROM ranks r LEFT JOIN consumer c ON c.id=r.consumer_id WHERE c.id IS NULL" zero
+
+          if [ "$fail" = "1" ]; then
+            echo "迁移语义校验失败"
+            exit 1
+          fi
+          echo "真 MySQL 8 上 V1–V13 全部执行通过，收敛语义成立"
+
+      # V12 那五条唯一键是靠"撞键就大声失败"起作用的：真库种子数据若不满足，
+      # source V12 这一步会直接报错停在半途（MySQL 的 DDL 不回滚），现场就留在这里。
+      # 所以这一步不再重复跑 SQL，而是确认五个约束名确实都落进了 information_schema——
+      # 只查 uk_ 前缀的总数不可靠，V3 建的 uk_song_tag / uk_singer_tag 也会被数进来。
+      - name: 校验唯一约束已生效
+        run: |
+          got=$(docker exec ci-mysql mysql -N --default-character-set=utf8mb4 \
+                -uroot -proot -e "SELECT COUNT(DISTINCT constraint_name) FROM information_schema.key_column_usage WHERE table_schema='db_music' AND constraint_name IN ('uk_consumer_username','uk_admin_name','uk_collect_user_song','uk_collect_user_list','uk_list_song_pair')" db_music | tr -d '[:space:]')
+          echo "V12 唯一键命中数 = ${got:-<空>}（期望 5）"
+          if [ "${got}" != "5" ]; then
+            echo "V12 的唯一约束没有全部生效"
+            exit 1
+          fi
+
