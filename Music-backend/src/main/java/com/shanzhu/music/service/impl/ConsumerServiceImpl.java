@@ -18,6 +18,7 @@ import com.shanzhu.music.utils.PasswordUtils;
 import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,8 +76,16 @@ public class ConsumerServiceImpl implements ConsumerService {
         Consumer consumer = toConsumer(request);
         // 头像由上传接口单独维护，注册时先占空串，与原 Controller 行为一致
         consumer.setAvator("");
-        if (!insert(consumer)) {
-            throw new BusinessException("添加失败");
+        try {
+            if (!insert(consumer)) {
+                throw new BusinessException("添加失败");
+            }
+        } catch (DuplicateKeyException e) {
+            // 上面的 getByUsername 与 insert 之间是"先查后插"的竞态窗口，
+            // V12 的 uk_consumer_username 才是权威兜底。并发注册同名时
+            // 撞上来的是 1062，必须翻成与查重命中时同样的业务错误，
+            // 而不是让它冒成 500。
+            throw new BusinessException("用户名已存在");
         }
         return consumer;
     }

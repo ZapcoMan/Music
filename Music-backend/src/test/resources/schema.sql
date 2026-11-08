@@ -5,7 +5,8 @@
 CREATE TABLE IF NOT EXISTS `admin` (
     `id` INT PRIMARY KEY AUTO_INCREMENT,
     `name` VARCHAR(255) NOT NULL,
-    `password` VARCHAR(255) NOT NULL
+    `password` VARCHAR(255) NOT NULL,
+    CONSTRAINT `uk_admin_name` UNIQUE (`name`)
 );
 
 -- 歌手表
@@ -48,7 +49,8 @@ CREATE TABLE IF NOT EXISTS `song_list` (
 CREATE TABLE IF NOT EXISTS `list_song` (
     `id` INT PRIMARY KEY AUTO_INCREMENT,
     `song_id` INT NOT NULL,
-    `song_list_id` INT NOT NULL
+    `song_list_id` INT NOT NULL,
+    CONSTRAINT `uk_list_song_pair` UNIQUE (`song_list_id`, `song_id`)
 );
 
 -- 用户表
@@ -64,7 +66,8 @@ CREATE TABLE IF NOT EXISTS `consumer` (
     `location` VARCHAR(255),
     `avator` VARCHAR(255),
     `create_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `update_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    `update_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `uk_consumer_username` UNIQUE (`username`)
 );
 
 -- 收藏表
@@ -74,7 +77,9 @@ CREATE TABLE IF NOT EXISTS `collect` (
     `type` TINYINT NOT NULL,
     `song_id` INT,
     `song_list_id` INT,
-    `create_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `create_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `uk_collect_user_song` UNIQUE (`user_id`, `song_id`),
+    CONSTRAINT `uk_collect_user_list` UNIQUE (`user_id`, `song_list_id`)
 );
 
 -- 评论表
