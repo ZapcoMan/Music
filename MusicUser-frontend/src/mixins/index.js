@@ -1,4 +1,5 @@
 import {mapGetters} from 'vuex';
+import { parseLyric } from '../utils/lyric';
 import {likeSongOfName,getCollectOfUserId, recordSearchHistory } from '../api/index';
 
 export const mixin = {
@@ -87,43 +88,7 @@ export const mixin = {
             }
         },
         //解析歌词
-        parseLyric(text){
-            let lines = text.split("\n");                   //将歌词按行分解成数组
-            let pattern = /\[\d{2}:\d{2}.(\d{3}|\d{2})\]/g; //时间格式的正则表达式
-            let result = [];                                //返回值
-            //对于歌词格式不对的直接返回
-            if(!(/\[.+\]/.test(text))){
-                return [[0,text]]
-            }        
-            //去掉前面格式不正确的行
-            //原写法没有空数组出口：歌词只含 [by:xxx] / [offset:0] 这类无时间戳行时，
-            //lines 会被 slice 到空，lines[0] 变成 undefined，test 恒为 false，循环不退出
-            while(lines.length && !pattern.test(lines[0])){
-                lines = lines.slice(1);
-            }
-            if(!lines.length){
-                return [[0,text]]
-            }
-            //遍历每一行，形成一个每行带着俩元素的数组，第一个元素是以秒为计算单位的时间，第二个元素是歌词
-            for(let item of lines){
-                let time = item.match(pattern);  //存前面的时间段
-                let value = item.replace(pattern,'');//存后面的歌词
-                if (time == undefined || value == undefined) {
-                    continue;
-                }
-                for(let item1 of time){
-                    let t = item1.slice(1,-1).split(":");   //取出时间，换算成数组
-                    if(value!=''){
-                        result.push([parseInt(t[0],10)*60 + parseFloat(t[1]),value]);
-                    }                    
-                }                
-            }
-            //按照第一个元素--时间--排序
-            result.sort(function(a,b){
-                return a[0] - b[0];
-            });
-            return result;
-        },
+        parseLyric,
         //获取生日
         attachBirth(val){
             return val.substr(0,10);
