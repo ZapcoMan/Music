@@ -257,29 +257,38 @@
                                 <rule>
                                     <element>BUNDLE</element>
                                     <limits>
-                                        <!-- 类覆盖率最低要求 -->
+                                        <!--
+                                          门槛按实测值留 5-7 个点余量，不凭印象给整数。
+                                          本轮 mvn -B test 的实际水位：
+                                            CLASS    97.3% (72/74)      METHOD 86.2% (355/412)
+                                            LINE     76.7% (1752/2283)  BRANCH 56.5% (543/961)
+                                          原先写的是 60/50/40/30，四项都远低于实际，
+                                          等于挂了一道永远不会失败的门禁——
+                                          覆盖率再掉 20 个点，CI 也不会响。
+                                        -->
+                                        <!-- 类覆盖率最低要求（实测 97.3%） -->
                                         <limit>
                                             <counter>CLASS</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.60</minimum>
+                                            <minimum>0.90</minimum>
                                         </limit>
-                                        <!-- 方法覆盖率最低要求 -->
+                                        <!-- 方法覆盖率最低要求（实测 86.2%） -->
                                         <limit>
                                             <counter>METHOD</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.50</minimum>
+                                            <minimum>0.80</minimum>
                                         </limit>
-                                        <!-- 行覆盖率最低要求 -->
+                                        <!-- 行覆盖率最低要求（实测 76.7%） -->
                                         <limit>
                                             <counter>LINE</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.40</minimum>
+                                            <minimum>0.70</minimum>
                                         </limit>
-                                        <!-- 分支覆盖率最低要求 -->
+                                        <!-- 分支覆盖率最低要求（实测 56.5%） -->
                                         <limit>
                                             <counter>BRANCH</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.30</minimum>
+                                            <minimum>0.50</minimum>
                                         </limit>
                                     </limits>
                                 </rule>
