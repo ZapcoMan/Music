@@ -1,6 +1,7 @@
 package com.shanzhu.music.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.aop.interceptor.SimpleAsyncUncaughtExceptionHandler;
 import org.springframework.context.annotation.Bean;
@@ -9,6 +10,7 @@ import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -38,6 +40,32 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.setQueueCapacity(500);
         executor.setKeepAliveSeconds(60);
         executor.setThreadNamePrefix("audit-");
+        // 把提交任务那一刻的 traceId 带进异步线程。
+        //
+        // 审计写入走 @Async，线程池里的线程与请求线程不是同一个，MDC 是 ThreadLocal：
+        // 不做这层传递，异步那几条日志的 traceId 就是空的，
+        // "这次请求最终落了哪条审计"依然对不上——而这条链恰恰是最需要 traceId 的地方。
+        // 执行完要还原线程原本的上下文，不能留着自己带进来的值污染下一个任务。
+        executor.setTaskDecorator(runnable -> {
+            Map<String, String> submitterContext = MDC.getCopyOfContextMap();
+            return () -> {
+                Map<String, String> workerPrevious = MDC.getCopyOfContextMap();
+                if (submitterContext != null) {
+                    MDC.setContextMap(submitterContext);
+                } else {
+                    MDC.clear();
+                }
+                try {
+                    runnable.run();
+                } finally {
+                    if (workerPrevious != null) {
+                        MDC.setContextMap(workerPrevious);
+                    } else {
+                        MDC.clear();
+                    }
+                }
+            };
+        });
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardOldestPolicy());
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(10);

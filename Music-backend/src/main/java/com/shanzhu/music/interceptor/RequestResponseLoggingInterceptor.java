@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.util.ContentCachingRequestWrapper;
@@ -14,6 +15,7 @@ import org.springframework.web.util.WebUtils;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * 请求/响应日志拦截器
@@ -41,6 +43,11 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
     private static final String START_TIME_ATTRIBUTE = "startTime";
     private static final int MAX_PAYLOAD_LENGTH = 10000; // 最大日志长度
 
+    /**
+     * MDC 里的请求关联键，须与 logback pattern 中的 %X{traceId} 一致
+     */
+    private static final String TRACE_ID_KEY = "traceId";
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         // 记录开始时间
@@ -66,6 +73,12 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
         String requestId = generateRequestId();
         // 此前只把 requestId 放在局部变量里，afterCompletion 再从 attribute 取永远为 null
         request.setAttribute("requestId", requestId);
+        // 同一个 id 还要进 MDC：本类只在进出两个时刻各打一条日志，
+        // 中间 Controller、Service、MyBatis 打的那些行原先没有任何关联字段，
+        // "这次请求到底执行了哪些语句"只能靠时间戳猜。
+        // 这里用 put 而不是先 clear：线程复用时会直接覆盖上一个请求留下的值，
+        // 即使上一次异常没走到 remove，也不会串号。
+        MDC.put(TRACE_ID_KEY, requestId);
         // 查询串必须脱敏：请求头有 maskSensitiveHeaders、请求体有 maskSensitiveInfo，
         // 唯独这里原样输出，而令牌曾从 ?token= 进入，于是完整 JWT 随 INFO 日志留档 30 天。
         // 令牌读取入口已收紧，这层脱敏仍保留——防的是以后有人图方便再加一次回落，
@@ -136,6 +149,10 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
         if (duration > 3000) {
             log.warn("⚠️ 慢请求警告 - URL: {}, 耗时: {} ms", request.getRequestURI(), duration);
         }
+
+        // 请求到此结束，线程要回池子复用；不清的话下一条请求在 preHandle 之前
+        // 若打出日志（比如其它拦截器的 warning），会挂着上一条的 traceId
+        MDC.remove(TRACE_ID_KEY);
     }
 
     /**
@@ -174,10 +191,14 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * 生成请求ID
+     * 生成请求关联标识。
+     *
+     * 原来是 timestamp + Math.random()*10000：同一毫秒内两个请求取到同一个 id 的
+     * 概率约 1/10000，高并发下不是理论风险。它以前只用于打印，撞了顶多看不懂；
+     * 现在它充当跨日志行甚至跨线程的 traceId，两个请求共用一个标识比没有标识更误导。
      */
     private String generateRequestId() {
-        return String.format("%d-%d", System.currentTimeMillis(), (int) (Math.random() * 10000));
+        return UUID.randomUUID().toString();
     }
 
     /**
