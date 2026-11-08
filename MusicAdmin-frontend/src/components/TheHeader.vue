@@ -32,6 +32,7 @@
 
 <script>
 import bus from "../assets/js/bus";
+import {adminLogout} from "../api/index";
 export default {
     data(){
         return{
@@ -78,10 +79,19 @@ export default {
         },
         handleCommand(command){
             if(command == "logout"){
-                // 清除Token和用户名
-                localStorage.removeItem('adminToken');
-                localStorage.removeItem('userName');
-                this.$router.push("/");
+                // 先让后端把当前令牌放进黑名单，再清本地。
+                // 此前只删 localStorage：令牌在它自己的有效期内仍可调用，
+                // "退出登录"实际只是把界面切回登录页。
+                // 吊销失败也照样清理并跳转，不能因为后端不可达把用户
+                // 困在已登录状态、连换账号都做不到。
+                const cleanup = () => {
+                    localStorage.removeItem('adminToken');
+                    localStorage.removeItem('userName');
+                    this.$router.push("/");
+                };
+                adminLogout()
+                    .then(cleanup)
+                    .catch(cleanup);
             }
         }
     }

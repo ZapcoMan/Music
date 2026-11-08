@@ -37,6 +37,7 @@
 <script>
 import {mapGetters} from 'vuex';
 import {navMsg,loginMsg,menuList} from '../assets/data/header';
+import {consumerLogout} from '../api/index';
 
 export default {
   name: 'the-header',
@@ -125,11 +126,23 @@ export default {
       },
       goMenuList(path){
           if(path == 0){
-              // 清除Token和用户信息
-              localStorage.removeItem('userToken');
-              this.$store.commit('setLoginIn',false);
-              this.$store.commit('setIsActive',false);
-              this.$router.go(0);
+              // 同管理端：先吊销令牌，再清本地。
+              // 原实现只删了 localStorage 的 userToken——令牌在过期前依旧可用；
+              // 而 userId/username/avator 存在 sessionStorage 里没有任何清理
+              // （store/user.js 的 getter 正是从那里读身份），
+              // 于是"退出"之后页面认得的还是上一个人。
+              const cleanup = () => {
+                  localStorage.removeItem('userToken');
+                  window.sessionStorage.removeItem('userId');
+                  window.sessionStorage.removeItem('username');
+                  window.sessionStorage.removeItem('avator');
+                  this.$store.commit('setLoginIn',false);
+                  this.$store.commit('setIsActive',false);
+                  this.$router.go(0);
+              };
+              consumerLogout()
+                  .then(cleanup)
+                  .catch(cleanup);
           }else{
               this.$router.push({path:path});
           }

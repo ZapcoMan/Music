@@ -2,6 +2,9 @@ import {get,post,del,patch} from "./http";
 
 // 判断管理员是否登录成功
 export const getLoginStatus = (params) => post(`admin/sessions`,params);
+//登出：让后端把当前令牌放进黑名单。只删 localStorage 的话，
+//令牌在它自己的有效期内仍然可用，登出实际上没有生效
+export const adminLogout = () => del(`admin/sessions`);
 
 
 //============歌手相关================
