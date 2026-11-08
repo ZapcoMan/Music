@@ -1,0 +1,79 @@
+name: Frontend CI
+
+# 两套 Vue 2 前端的门禁：依赖安装（npm ci，与镜像里同一个词）+ lint + build + jest 单测。
+#
+# 为什么需要这条流水线：此前 .github/workflows 里只有后端 ci.yml，两套前端没有任何自动化检查。
+# 直接后果是这一轮修出的那批跨栈缺陷——管理端发的表单而后端收 JSON、
+# 响应信封取值层级错位、弹窗在失败时也关闭——
+# 在后端两百多条测试全绿的情况下活了很久：后端测试用 MockMvc 发 JSON，
+# 前端实际发表单，两边各自都是绿的，只有真实调用才暴露不一致。
+#
+# 但要说清这条流水线能证明什么：lint + build 只能证明语法与打包成立，
+# 上面那批契约缺陷它一条都抓不到（契约需要跨栈联调或契约测试才能抓）。
+# 它的价值是让"lint 完全没跑过""build 挂了没人知道"这两类问题不再静默。
+#
+# 监听 master：与后端 ci.yml 同一分支口径。改这里必须与
+# GitHub Settings → Branches 的默认分支同步，否则表现不是失败，而是没有 run。
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [MusicUser-frontend, MusicAdmin-frontend]
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ matrix.project }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 与两端 Dockerfile 的 builder 阶段同版本。
+      # 刻意不在这里用 node 24：镜像里是 20，CI 用更高版本会出现
+      # "CI 绿但镜像构建失败"（或反过来）的分裂结果。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+
+      - name: 安装依赖
+        # npm ci 而非 npm install：按 lock 精确复现，
+        # 与 Music*-frontend/Dockerfile 里的构建方式保持一致
+        run: npm ci --registry=https://registry.npmmirror.com
+
+      - name: 代码检查
+        # .eslintignore 此前只有一行 /*，等于把所有源码都排除在外，
+        # 这条命令永远输出 0 问题；现已收窄到只忽略构建产物与资源目录。
+        run: npm run lint
+
+      - name: 单元测试
+        # 只跑 unit。npm test 等价于 unit && e2e，
+        # 而 e2e 是 vue-cli 脚手架残留（nightwatch 0.9 + chromedriver 2 + selenium 3，
+        # 断言的目标 ".hello" 在本工程 DOM 里根本不存在），
+        # 接进 CI 只会得到一个恒红的无关信号。
+        run: npm run unit
+
+      - name: 生产构建
+        # 这一步顺带兜住 config/index.js 的 productionSourceMap：
+        # 它已被关掉，构建若产出 .map 会在下面的检查里失败
+        run: npm run build
+
+      - name: 确认产物不含 source map
+        run: |
+          if ls dist/static/js/*.map >/dev/null 2>&1; then
+            echo "dist 里出现了 .map，productionSourceMap 又被打开了"
+            ls -l dist/static/js/*.map
+            exit 1
+          fi
+          echo "无 source map"
