@@ -113,6 +113,16 @@
         LIMIT 1000
     </select>
 
+    <!-- 按主键取该行所属用户，只回一列，供删除后定位要失效的缓存键。
+         不要用 allCollect 代替：它带 LIMIT 1000，收藏行数超过上限时目标行
+         根本不在返回集里，调用方会把"没找到"当成"这行不属于任何人"，
+         于是静默跳过缓存失效。 -->
+    <select id="selectUserIdById" resultType="java.lang.Integer">
+        select user_id
+        from collect
+        where id = #{id}
+    </select>
+
     <select id="collectOfUserId" resultMap="BaseResultMap" parameterType="java.lang.Integer">
         select
         <include refid="Base_Column_List"/>

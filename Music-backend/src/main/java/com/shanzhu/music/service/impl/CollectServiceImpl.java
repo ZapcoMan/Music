@@ -66,15 +66,13 @@ public class CollectServiceImpl implements CollectService {
      */
     @Override
     public Boolean delete(Integer id) {
-        // 先查询所有用户的收藏，找到对应的userId再清除缓存
-        List<Collect> allCollects = collectMapper.allCollect();
-        Integer userId = null;
-        for (Collect collect : allCollects) {
-            if (collect.getId().equals(id)) {
-                userId = collect.getUserId();
-                break;
-            }
-        }
+        // 先按主键取该行所属用户，再去删——删完就查不到了。
+        // 原先的实现是遍历 allCollect() 找匹配 id，而那条查询带 LIMIT 1000：
+        // 收藏行数一旦超过上限，目标行就不在返回集里，userId 保持 null，
+        // 下面的缓存失效与推荐 evict 会被静默跳过——表现为收藏删了但列表与
+        // 推荐最长 12 小时仍带着已删项。现在只回一列 user_id，
+        // 既不全表扫描，也不受那个上限影响。
+        Integer userId = collectMapper.selectUserIdById(id);
         
         Boolean result = collectMapper.delete(id) > 0;
         if (result && userId != null) {

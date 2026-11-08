@@ -66,6 +66,16 @@ public interface CollectMapper {
     List<Collect> allCollect();
 
     /**
+     * 按主键查询该收藏行所属的用户id
+     * 仅供删除后定位要失效的缓存键使用；不要改成遍历 allCollect，
+     * 后者带 LIMIT 1000，行数超过上限时会漏掉目标行
+     *
+     * @param id 收藏id
+     * @return 用户id，行不存在时为 null
+     */
+    Integer selectUserIdById(@Param("id") Integer id);
+
+    /**
      * 查询某个用户的收藏列表
      *
      * @param userId 用户id
