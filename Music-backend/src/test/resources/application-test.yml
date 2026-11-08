@@ -59,3 +59,17 @@ logging:
   level:
     com.shanzhu.music: DEBUG
     org.springframework: WARN
+
+# Actuator 端点暴露——口径与 dev/prod 保持一致
+# 此前这里完全没有 management 段，测试上下文走 Spring Boot 默认的"只暴露 health"。
+# 注意：这一段并不能让测试直接 GET 到 /actuator/prometheus——
+# MockMvcBuilders.webAppContextSetup 只接管 MVC 的 RequestMappingHandlerMapping，
+# actuator 端点在独立的 ControllerEndpointHandlerMapping 上，MockMvc 看不见它。
+# 它的价值是让 exposure 口径与 dev/prod 同源，避免又一处配置漂移；
+# 指标是否装配由 ActuatorMetricsAccessTest 断 bean 来验证。
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator

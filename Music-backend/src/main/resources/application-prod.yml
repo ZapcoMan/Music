@@ -144,7 +144,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus  # 只开放必要端点
+        # 补齐了 micrometer-registry-prometheus 之后 prometheus 才是真的可用端点。
+        # 注意可达性：WebMvcConfig 只把 /actuator/health 排除在 JWT 拦截器之外，
+        # 因此 /actuator/prometheus 与 /actuator/metrics 仍需携带有效令牌才能读——
+        # 这是有意的：指标里有查询计数、JVM 与端点耗时，公网可抓等于信息泄露。
+        # 抓取端配 authorization 头即可（Prometheus 的 static_configs 支持
+        # authorization / basic_auth）；若改为只在内网暴露，再单独放开白名单并配网络策略。
+        include: health,info,metrics,prometheus
       base-path: /actuator
   endpoint:
     health:

@@ -112,6 +112,19 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!--
+          Prometheus 指标注册表。
+          prod 配置一直把 prometheus 列在 exposure.include 里、并打开了
+          management.prometheus.metrics.export.enabled，但这个依赖从来没加过：
+          Boot 3 的 actuator starter 并不自带它，于是 /actuator/prometheus
+          实际是 404，配置看起来"指标已就绪"而管线一根都不存在。
+          版本由 spring-boot-starter-parent 的 BOM 管理，不写死。
+        -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
         <!--springdoc-openapi API文档-->
         <dependency>
             <groupId>org.springdoc</groupId>
