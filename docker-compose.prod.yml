@@ -16,7 +16,12 @@ services:
     # "127.0.0.1:13306:3306" 并配合 SSH 隧道
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./db_music.sql:/docker-entrypoint-initdb.d/db_music.sql
+      # 不再挂载 ./db_music.sql：库结构唯一出处是 Music-backend/src/main/resources/db/migration，
+      # 由后端启动时的 Flyway 负责建表与升级。
+      # 生产档尤其危险——initdb.d 只在数据卷为空时执行一次，也就是说这份旧快照
+      # 只影响全新部署的第一跳，之后的升级全靠 Flyway；两套结构叠在同一个卷上，
+      # 出问题时既看不出该信谁，也没法重现。
+      # 升级口径：先备份 mysql-data 卷，再滚到带新迁移的镜像，由 Flyway 向前迁移。
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci

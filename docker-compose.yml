@@ -17,7 +17,13 @@ services:
     #   - "127.0.0.1:13306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./db_music.sql:/docker-entrypoint-initdb.d/db_music.sql
+      # 不再挂载 ./db_music.sql 到 /docker-entrypoint-initdb.d。
+      # 库结构的唯一出处是 Music-backend/src/main/resources/db/migration，由后端启动时
+      # Flyway 建库。此前那份 dump 是 V1 时代的整库快照（仍建 user_ratings、不含 V2–V13
+      # 任何变更），挂在这里等于第二个出处：新库先导入旧快照、Flyway 再重放，
+      # 两侧只靠"重放恰好幂等"侥幸一致，而一旦某个脚本与 dump 不兼容，
+      # validate 只会报 checksum/missing migration，不会告诉你真实结构是谁给的。
+      # MYSQL_DATABASE 仍然建空库，Flyway 从 V1 起填表。
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
