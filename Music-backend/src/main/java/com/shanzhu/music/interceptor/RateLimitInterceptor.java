@@ -9,11 +9,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -79,10 +81,20 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         // 计数与判定必须原子。原实现是 get -> 判空 -> set(1, ttl)，
         // 并发请求会同时读到 null 并各自把计数写回 1，限流窗口被直接绕过；
         // 且 currentCount 强转 Integer，而 increment 返回 Long，存在类型漂移风险。
-        Long currentCount = redisTemplate.opsForValue().increment(key);
-        if (currentCount == null) {
-            // Redis 异常时不阻断业务
-            return true;
+        long currentCount;
+        try {
+            Long counted = redisTemplate.opsForValue().increment(key);
+            if (counted == null) {
+                // 正常不会发生，留作 API 契约变化的兜底，走同一条降级
+                return degradeOnRedisUnavailable(rateLimit, request, response, ip, "计数返回空值");
+            }
+            currentCount = counted;
+        } catch (DataAccessException e) {
+            // Redis 不可达。不能让它冒成 500：那既不告诉调用方真实原因，
+            // 也不表达"这是依赖故障"还是"业务失败"。降级方向交给注解决定。
+            log.error("限流计数失败 - Redis 不可用: key={}, URI={}, 原因={}",
+                    key, request.getRequestURI(), e.getMessage());
+            return degradeOnRedisUnavailable(rateLimit, request, response, ip, "连接异常");
         }
 
         if (currentCount == 1L) {
@@ -106,5 +118,27 @@ public class RateLimitInterceptor implements HandlerInterceptor {
                 ip, request.getRequestURI(), currentCount, rateLimit.maxRequests());
 
         return true;
+    }
+
+    /**
+     * Redis 不可用时的降级：放开还是拒绝，由注解的 failOpen 决定。
+     *
+     * 拒绝时回 503 而不是复用 429：429 的意思是"你请求太快"，
+     * 而此刻的真实原因是服务端自己的依赖故障。混在一起，调用方会以为
+     * 退避重试就能过，实际上等多久都一样。
+     */
+    private boolean degradeOnRedisUnavailable(RateLimit rateLimit, HttpServletRequest request,
+                                              HttpServletResponse response, String ip, String reason)
+            throws IOException {
+        if (rateLimit.failOpen()) {
+            log.warn("限流降级放行(failOpen) - IP={}, URI={}, 原因={}",
+                    ip, request.getRequestURI(), reason);
+            return true;
+        }
+        response.setContentType("application/json;charset=UTF-8");
+        response.setStatus(503);
+        response.getWriter().write(JSON.toJSONString(
+                R.error(503, "服务暂时不可用，请稍后再试")));
+        return false;
     }
 }
