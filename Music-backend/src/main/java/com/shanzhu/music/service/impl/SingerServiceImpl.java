@@ -43,10 +43,22 @@ public class SingerServiceImpl implements SingerService {
 
     /**
      * 添加歌手（延时双删缓存）
+     *
+     * 这里的事务不是可选的：本方法写 singer 表，又经 tagService.replaceSingerTags
+     * 写 singer_tag 中间表，而后者自带 @Transactional(REQUIRED)。外层没有事务时
+     * 它会自己开一个并提交，于是两张表永远落在两个原子单元里——singer 行先自动
+     * 提交，标签替换随后失败就会留下"有歌手、无标签"的半状态，且无法回滚。
+     * 加上外层事务后 replaceSingerTags 加入同一事务，两侧一次写定。
+     *
+     * 顺带修正缓存时序：deleteWithDelay 的第二次删除挂在 afterCommit 上，
+     * 没有事务时只能走"立即排期"的分支，排期起点仍在数据可见之前。
+     * 歌曲侧（SongServiceImpl）早就是这套写法，此处此前与之不对称。
+     *
      * @param singer 歌手信息
      * @return 结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean insert(Singer singer) {
         // 与歌曲侧同一套约定：tags 为 null 表示不改动，规范化后再落库，
         // 中间表由 tagService 重建，两侧不会各写各的
@@ -71,6 +83,7 @@ public class SingerServiceImpl implements SingerService {
      * @return 结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean update(Singer singer) {
         if (singer.getTags() != null) {
             singer.setTags(tagService.normalizeTags(singer.getTags()));
