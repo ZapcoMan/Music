@@ -62,7 +62,7 @@ spring:
     validate-on-migrate: true
     baseline-on-migrate: false
     table: flyway_schema_history
-    repair: true
+    # 同 dev：不存在 spring.flyway.repair 这个属性，已删除，不要按它推断行为。
 
 # MyBatis配置
 mybatis:

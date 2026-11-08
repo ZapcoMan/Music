@@ -90,7 +90,9 @@ spring:
     validate-on-migrate: true
     baseline-on-migrate: false
     table: flyway_schema_history
-    repair: true
+    # 原先这里写着 repair: true，但它不是 Spring Boot 的 Flyway 配置项
+    # （FlywayProperties 没有该属性），写了不生效，只会让读者误以为
+    # checksum 漂移会被自动修好。真需要 repair 时得显式调用 Flyway API。
 
 # MyBatis配置
 mybatis:
