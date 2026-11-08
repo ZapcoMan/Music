@@ -54,17 +54,17 @@ class AdminWriteAuthMatrixTest extends BaseTest {
                 Arguments.of("DELETE", "/api/v1/singers/1", false),
                 Arguments.of("POST", "/api/v1/singers/1/picture", true),
                 // 曲库：歌单
-                Arguments.of("POST", "/api/v1/songList/add", false),
-                Arguments.of("POST", "/api/v1/songList/update", false),
-                Arguments.of("DELETE", "/api/v1/songList/delete", false),
-                Arguments.of("POST", "/api/v1/songList/updateSongListPic", true),
+                Arguments.of("POST", "/api/v1/song-lists", false),
+                Arguments.of("PATCH", "/api/v1/song-lists/1", false),
+                Arguments.of("DELETE", "/api/v1/song-lists/1", false),
+                Arguments.of("POST", "/api/v1/song-lists/1/picture", true),
                 // 歌单与歌曲的关联
                 Arguments.of("POST", "/api/v1/listSong/add", false),
                 Arguments.of("DELETE", "/api/v1/listSong/delete", false),
                 // 标签
-                Arguments.of("POST", "/api/v1/tag/song/update", false),
-                Arguments.of("POST", "/api/v1/tag/singer/update", false),
-                Arguments.of("POST", "/api/v1/tag/batchAdd", false),
+                Arguments.of("PUT", "/api/v1/songs/1/tags", false),
+                Arguments.of("PUT", "/api/v1/singers/1/tags", false),
+                Arguments.of("POST", "/api/v1/tags", false),
                 // 用户治理：删除账号与两份全量名单
                 Arguments.of("DELETE", "/api/v1/consumers/1", false),
                 Arguments.of("GET", "/api/v1/consumers", false),
@@ -100,6 +100,9 @@ class AdminWriteAuthMatrixTest extends BaseTest {
             case "GET" -> MockMvcRequestBuilders.get(path);
             case "DELETE" -> MockMvcRequestBuilders.delete(path);
             case "PATCH" -> MockMvcRequestBuilders.patch(path);
+            // 标签整体替换走 PUT（见 TagController），矩阵必须能发出这个动词，
+            // 否则落到 default 分支抛"矩阵未覆盖的 HTTP 方法"，测的是测试自己
+            case "PUT" -> MockMvcRequestBuilders.put(path);
             case "POST" -> multipart
                     ? MockMvcRequestBuilders.multipart(path)
                     : MockMvcRequestBuilders.post(path);
@@ -123,6 +126,7 @@ class AdminWriteAuthMatrixTest extends BaseTest {
                 Arguments.of("PATCH", "/api/v1/consumers/profile", false),
                 Arguments.of("POST", "/api/v1/consumers/1/avatar", true),
                 Arguments.of("POST", "/api/v1/rank/add", false),
+                Arguments.of("GET", "/api/v1/song-lists/recommended", false),
                 Arguments.of("POST", "/api/v1/search-history/record", false),
                 Arguments.of("DELETE", "/api/v1/search-history/clear", false),
                 Arguments.of("DELETE", "/api/v1/search-history/clean-old", false));

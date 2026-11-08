@@ -8,7 +8,6 @@ import com.shanzhu.music.entity.po.SongList;
 import com.shanzhu.music.mapper.SongListMapper;
 import com.shanzhu.music.service.SongListService;
 import com.shanzhu.music.service.ranking.RankingService;
-import com.shanzhu.music.utils.ParseUtils;
 import com.shanzhu.music.utils.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import com.shanzhu.music.service.ranking.RecommendationCache;
@@ -182,7 +181,8 @@ public class SongListServiceImpl implements SongListService {
      */
     @Override
     public List<SongList> likeTitle(String title) {
-        return songListMapper.likeTitle(title);
+        // 模糊匹配模式属于查询实现细节，调用方传的是用户输入的关键词本身
+        return songListMapper.likeTitle("%" + title + "%");
     }
 
     /**
@@ -193,14 +193,13 @@ public class SongListServiceImpl implements SongListService {
      */
     @Override
     public List<SongList> likeStyle(String style) {
-        return songListMapper.likeStyle(style);
+        return songListMapper.likeStyle("%" + style + "%");
     }
 
     @Override
-    public List<Song> queryRecommendedSongById(String id) {
-        Integer userId = ParseUtils.toIntegerOrNull(id);
+    public List<Song> queryRecommendedSongById(Integer userId) {
         if (userId == null) {
-            log.warn("推荐请求的用户ID不合法，返回空列表，id={}", id);
+            log.warn("推荐请求缺少用户ID，返回空列表");
             return List.of();
         }
 

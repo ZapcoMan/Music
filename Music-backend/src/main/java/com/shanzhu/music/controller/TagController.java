@@ -15,10 +15,11 @@ import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,10 +33,15 @@ import java.util.List;
  * batchInsertSongTags 这些方法长期没有任何 Java 调用方，
  * 标签系统基本停留在 TAG_SYSTEM_OPTIMIZATION.md 文档里 ——
  * 数据在库里（V6 已补齐 song_tag/singer_tag），但后台无法维护它。
+ *
+ * 本类不写类级 @RequestMapping：标签字典在 /api/v1/tags 下，而歌曲标签、歌手标签
+ * 是别人名下的子资源（/api/v1/songs/{id}/tags、/api/v1/singers/{id}/tags），
+ * 把三类路径套进同一个 /tag 前缀会让 URL 层级骗人，
+ * 所以与 singers / songs 那批同构，在每个方法上写全路径。
+ * 角色标注不受影响：拦截器和端点守卫都是先查方法、再查所在类，与路径前缀无关。
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/tag")
 @RequireUserType({"consumer", "admin"})
 @RequiredArgsConstructor
 @io.swagger.v3.oas.annotations.tags.Tag(name = "标签管理", description = "歌曲标签查询与维护接口")
@@ -53,7 +59,7 @@ public class TagController {
      * @return 标签列表，按关联歌曲数倒序
      */
     @Operation(summary = "热门标签", description = "按关联歌曲数倒序返回标签")
-    @GetMapping(value = "/hot")
+    @GetMapping(value = "/api/v1/tags/hot")
     public R<List<Tag>> hot(@Parameter(description = "数量上限", example = "10") @RequestParam(defaultValue = "10") int limit) {
         // 上限夹到 50：这个接口出现在首页一类的公开路径上，不该被用来整表拉取
         return R.ok(tagService.hotTags(Math.min(Math.max(limit, 1), 50)));
@@ -66,8 +72,9 @@ public class TagController {
      * @return 标签名列表，取自中间表这一真源
      */
     @Operation(summary = "查询歌曲标签", description = "从 song_tag 中间表读取，避免逗号串滞后")
-    @GetMapping(value = "/ofSong")
-    public R<List<String>> ofSong(@Parameter(description = "歌曲ID", required = true) Integer songId) {
+    @GetMapping(value = "/api/v1/songs/{songId}/tags")
+    public R<List<String>> ofSong(@Parameter(description = "歌曲ID", required = true)
+                                  @PathVariable("songId") Integer songId) {
         return R.ok(tagService.songTagNames(songId));
     }
 
@@ -79,7 +86,7 @@ public class TagController {
      * @return 歌曲及其 matchCount
      */
     @Operation(summary = "按标签查歌曲", description = "返回结果携带 matchCount，可解释命中多少个偏好标签")
-    @GetMapping(value = "/songs")
+    @GetMapping(value = "/api/v1/tags/songs")
     public R<List<TaggedSongVo>> songs(@RequestParam List<Integer> tagIds,
                                        @RequestParam(defaultValue = "20") int limit) {
         if (tagIds == null || tagIds.isEmpty()) {
@@ -89,23 +96,27 @@ public class TagController {
     }
 
     /**
-     * 设置某首歌的标签（整体替换）
+     * 设置某首歌的标签（整组替换）
      *
      * @param songId 歌曲id
-     * @param tags   逗号分隔的标签名
+     * @param tags   标签名数组，空数组表示清空
      * @return 生效的标签数量
      */
-    @Operation(summary = "设置歌曲标签", description = "先删后插重建关联，并同步 song.tags 逗号串")
-    @PostMapping(value = "/song/update")
+    @Operation(summary = "设置歌曲标签", description = "整组替换：先删后插重建关联，并同步 song.tags 逗号串")
+    @PutMapping(value = "/api/v1/songs/{songId}/tags")
     @RequireUserType("admin")
     public R<Integer> updateSongTags(@RequestAttribute("userId") Integer operatorId,
-                                     Integer songId, String tags) {
+                                     @Parameter(description = "歌曲ID", required = true)
+                                     @PathVariable("songId") Integer songId,
+                                     // 标签走 JSON 数组而不是查询串逗号分隔：名字本身含逗号时会被拆成两个，
+                                     // 列表也不该为了迁就旧的表单式入参留在 URL 上
+                                     @RequestBody(required = false) List<String> tags) {
         if (songId == null) {
             return R.error("songId 不能为空");
         }
         if (tags == null) {
-            // 明确传空串表示清空标签，缺省则拒绝，避免误清
-            return R.error("tags 不能为空，清空请传空串");
+            // 明确传空数组表示清空标签，缺省则拒绝，避免误清
+            return R.error("tags 不能为空，清空请传空数组");
         }
         try {
             // 必须走歌曲自身的更新路径，而不是只重建中间表：
@@ -113,7 +124,7 @@ public class TagController {
             // "中间表已改、逗号串仍是旧值"的两轨背离（本接口初版正是如此）。
             Song song = new Song();
             song.setId(songId);
-            song.setTags(tagService.normalizeTags(tags));
+            song.setTags(tagService.normalizeTagNames(tags));
             if (!songService.update(song)) {
                 return R.error("设置失败：歌曲不存在或更新未生效");
             }
@@ -130,34 +141,37 @@ public class TagController {
      * @return 标签名列表，取自 singer_tag 中间表
      */
     @Operation(summary = "查询歌手标签", description = "从 singer_tag 中间表读取，避免逗号串滞后")
-    @GetMapping(value = "/ofSinger")
-    public R<List<String>> ofSinger(@Parameter(description = "歌手ID", required = true) Integer singerId) {
+    @GetMapping(value = "/api/v1/singers/{singerId}/tags")
+    public R<List<String>> ofSinger(@Parameter(description = "歌手ID", required = true)
+                                    @PathVariable("singerId") Integer singerId) {
         return R.ok(tagService.singerTagNames(singerId));
     }
 
     /**
-     * 设置某位歌手的标签（整体替换）
+     * 设置某位歌手的标签（整组替换）
      *
      * @param singerId 歌手id
-     * @param tags     逗号分隔的标签名，空串表示清空
+     * @param tags     标签名数组，空数组表示清空
      * @return 生效的标签数量
      */
-    @Operation(summary = "设置歌手标签", description = "先删后插重建关联，并同步 singer.tags 逗号串")
-    @PostMapping(value = "/singer/update")
+    @Operation(summary = "设置歌手标签", description = "整组替换：先删后插重建关联，并同步 singer.tags 逗号串")
+    @PutMapping(value = "/api/v1/singers/{singerId}/tags")
     @RequireUserType("admin")
     public R<Integer> updateSingerTags(@RequestAttribute("userId") Integer operatorId,
-                                       Integer singerId, String tags) {
+                                       @Parameter(description = "歌手ID", required = true)
+                                       @PathVariable("singerId") Integer singerId,
+                                       @RequestBody(required = false) List<String> tags) {
         if (singerId == null) {
             return R.error("singerId 不能为空");
         }
         if (tags == null) {
-            return R.error("tags 不能为空，清空请传空串");
+            return R.error("tags 不能为空，清空请传空数组");
         }
         try {
             // 走歌手自身的更新路径：逗号串写入与缓存失效都在它身上
             Singer singer = new Singer();
             singer.setId(singerId);
-            singer.setTags(tagService.normalizeTags(tags));
+            singer.setTags(tagService.normalizeTagNames(tags));
             if (!singerService.update(singer)) {
                 return R.error("设置失败：歌手不存在或更新未生效");
             }
@@ -174,7 +188,7 @@ public class TagController {
      * @return 新增条数
      */
     @Operation(summary = "批量新增标签", description = "按名字去重写入标签字典")
-    @PostMapping(value = "/batchAdd")
+    @PostMapping(value = "/api/v1/tags")
     @RequireUserType("admin")
     public R<Integer> batchAdd(@RequestBody List<Tag> tags) {
         if (tags == null || tags.isEmpty()) {

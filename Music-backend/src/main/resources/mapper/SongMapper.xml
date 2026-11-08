@@ -23,8 +23,13 @@
         id,singer_id,name,introduction,tags,create_time,update_time,pic,url
     </sql>
 
+    <!-- 面向查询接口的列。tags 必须在内：song.tags 由 V2 迁移创建、V6 回填，
+         写路径（insert/update 与 PUT /songs/{id}/tags）一直在写这一列，
+         但本列表此前漏了它，导致歌曲详情与列表返回的 tags 恒为 null——
+         即"标签存得进去、读不回来"。召回专用的 Recall_Column_List 不在此列，
+         它有意不带 lyric/tags。 -->
     <sql id="Blob_Column_List">
-        id,singer_id,name,introduction,create_time,update_time,pic,lyric,url
+        id,singer_id,name,introduction,tags,create_time,update_time,pic,lyric,url
     </sql>
 
     <!-- 召回专用列：不含 lyric（正文可达数 KB，召回候选集不需要），

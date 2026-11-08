@@ -147,7 +147,7 @@ class SongListServiceImplTest extends BaseTest {
         probe.setStyle("流行");
         songListService.insert(probe);
         try {
-            List<SongList> songLists = songListService.likeTitle("%流行%");
+            List<SongList> songLists = songListService.likeTitle("流行");
             assertNotNull(songLists, "查询结果不应为空");
             assertTrue(songLists.size() >= 1, "应该至少找到1个包含'流行'的歌单");
             System.out.println("模糊查询结果数: " + songLists.size());
@@ -163,10 +163,20 @@ class SongListServiceImplTest extends BaseTest {
     @Order(8)
     @DisplayName("测试根据风格查询")
     void testSongListOfStyle() {
-        // SongListService 中对应的方法是 likeStyle
-        List<SongList> songLists = songListService.likeStyle("%华语%");
-        assertNotNull(songLists, "查询结果不应为空");
-        System.out.println("华语风格歌单数量: " + songLists.size());
+        // 测试库的歌单表是空的，只断 notNull 等于永远为真；自建一条风格探针才有可断的东西
+        // SongListService 中对应的方法是 likeStyle，模糊模式已由 service 负责拼接
+        SongList probe = new SongList();
+        probe.setTitle("风格探针歌单");
+        probe.setStyle("华语");
+        probe.setIntroduction("用例探针");
+        songListService.insert(probe);
+        try {
+            List<SongList> songLists = songListService.likeStyle("华语");
+            assertTrue(songLists.stream().anyMatch(item -> probe.getId().equals(item.getId())),
+                    "按风格模糊查询应命中刚创建的探针歌单");
+        } finally {
+            songListService.delete(probe.getId());
+        }
     }
 
     /**

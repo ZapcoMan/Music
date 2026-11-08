@@ -26,6 +26,20 @@ public interface TagService {
     String normalizeTags(String tagsCsv);
 
     /**
+     * 校验并规范化标签名列表：去空白、去重、逐个确认存在于标签字典。
+     *
+     * <p>与 {@link #normalizeTags(String)} 是同一套校验，区别只在入参形态：
+     * 资源式接口用 JSON 数组传标签，逗号不再充当分隔符，
+     * 否则标签名本身含逗号时会被拆成两个而误判为非法。
+     * 返回值仍是逗号串，因为 song.tags / singer.tags 的存储形态就是它。
+     *
+     * @param tagNames 标签名列表；入参为 null 时返回 null 表示不改动
+     * @return 规范化后的逗号串，空列表得到空串（即清空）
+     * @throws IllegalArgumentException 含字典中不存在的标签名
+     */
+    String normalizeTagNames(List<String> tagNames);
+
+    /**
      * 用规范化后的标签串重建某首歌的 song_tag 关联（先删后插）。
      *
      * @param songId  歌曲id

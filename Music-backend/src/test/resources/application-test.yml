@@ -30,6 +30,13 @@ spring:
 mybatis:
   type-aliases-package: com.shanzhu.music.entity
   mapper-locations: classpath:mapper/*.xml
+  configuration:
+    # 与 dev/prod 对齐。此前测试环境没有这一行，下划线列映射不到驼峰属性，
+    # 于是裸 SQL 结果里的 match_count、singer_id 等列在测试中恒为 null，生产却不是；
+    # 用例只能把 null 当期望值写进断言，等于把配置漂移固化成测试口径。
+    # 另注：src/main/resources/application-test.yml 会被本文件按 classpath 优先级遮蔽，
+    # 测试配置实际只有这一份生效。
+    map-underscore-to-camel-case: true
 
 # PageHelper 配置
 pagehelper:

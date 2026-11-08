@@ -32,15 +32,15 @@ export const allSong =() => get(`songs`);
 
 //============歌单相关================
 //查询歌单
-export const getAllSongList =() => get(`songList/allSongList`);
+export const getAllSongList =() => get(`song-lists`);
 //分页查询歌单
-export const getSongListByPage =(pageNum, pageSize) => get(`songList/allSongListByPage?pageNum=${pageNum}&pageSize=${pageSize}`);
+export const getSongListByPage =(pageNum, pageSize) => get(`song-lists/page?pageNum=${pageNum}&pageSize=${pageSize}`);
 //添加歌单
-export const setSongList = (params) => post(`songList/add`,params);
+export const setSongList = (params) => post(`song-lists`,params);
 //编辑歌单
-export const updateSongList = (params) => post(`songList/update`,params);
+export const updateSongList = (params) => patch(`song-lists/${params.id}`,params);
 //删除歌单
-export const delSongList = (id) => del(`songList/delete?id=${id}`);
+export const delSongList = (id) => del(`song-lists/${id}`);
 
 //============歌单的歌曲相关============
 //根据歌单id查询歌曲列表

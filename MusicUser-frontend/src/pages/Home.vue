@@ -158,10 +158,10 @@ export default {
         .catch((e) => this.showRequestError(e));
     },
     getRecommendedsongsList() {
-     const userId = JSON.parse(window.sessionStorage.getItem('userId'))
-      console.log('userId : '+ userId)
+      // 不再从 sessionStorage 取 userId 传参：推荐结果属于谁由令牌决定，
+      // 后端 GET /song-lists/recommended 只认 Authorization 头里的身份
       //获取推荐歌曲
-      getRecommendedsongsList(userId)
+      getRecommendedsongsList()
         .then((res) => {
           // 处理后端返回 R<List<Song>>
           if (res.code === 20000 || res.success === true) {

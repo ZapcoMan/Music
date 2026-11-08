@@ -17,12 +17,12 @@ export const likeSongOfName =(keywords) => get(`songs?keyword=${keywords}`);
 
 //============歌单相关================
 //查询歌单
-export const getAllSongList =() => get(`songList/allSongList`);
+export const getAllSongList =() => get(`song-lists`);
 //返回标题包含文字的歌单列表
-export const getSongListOfLikeTitle = (keywords) => get(`songList/likeTitle?title=${keywords}`);
+export const getSongListOfLikeTitle = (keywords) => get(`song-lists?keyword=${keywords}`);
 //根据风格模糊查询歌单列表
-export const getSongListOfLikeStyle = (style) => get(`songList/likeStyle?style=${style}`);
-export const getRecommendedsongsList = (id) => post(`songList/queryRecommendedSongListById?id=${id}`)
+export const getSongListOfLikeStyle = (style) => get(`song-lists?style=${style}`);
+export const getRecommendedsongsList = () => get(`song-lists/recommended`)
 
 //============歌单的歌曲相关============
 //根据歌单id查询歌曲列表

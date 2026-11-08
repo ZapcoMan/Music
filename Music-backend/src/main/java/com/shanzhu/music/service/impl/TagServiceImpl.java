@@ -28,16 +28,42 @@ public class TagServiceImpl implements TagService {
         if (tagsCsv == null) {
             return null;
         }
-        // 去空白、去重，并保持输入顺序
-        Set<String> names = new LinkedHashSet<>();
+        List<String> names = new ArrayList<>();
         for (String raw : tagsCsv.split(",")) {
-            String name = raw.trim();
+            names.add(raw.trim());
+        }
+        return canonicalize(names);
+    }
+
+    @Override
+    public String normalizeTagNames(List<String> tagNames) {
+        if (tagNames == null) {
+            return null;
+        }
+        List<String> names = new ArrayList<>();
+        for (String raw : tagNames) {
+            // 数组入参没有分隔符语义，null 元素按空白项跳过而不是拼进校验
+            names.add(raw == null ? "" : raw.trim());
+        }
+        return canonicalize(names);
+    }
+
+    /**
+     * 两种入参形态共用的校验主体：去空白、去重、保持输入顺序、逐个确认在字典里。
+     *
+     * @param names 已去掉首尾空白的标签名，允许出现空项（由逗号串的空白段带来）
+     * @return 规范化后的逗号串
+     */
+    private String canonicalize(List<String> names) {
+        // 去空白、去重，并保持输入顺序
+        Set<String> distinct = new LinkedHashSet<>();
+        for (String name : names) {
             if (!name.isEmpty()) {
-                names.add(name);
+                distinct.add(name);
             }
         }
         List<String> canonical = new ArrayList<>();
-        for (String name : names) {
+        for (String name : distinct) {
             Tag tag = tagMapper.selectByName(name);
             if (tag == null) {
                 // 不静默丢弃：字典里没有的标签名判为非法输入。

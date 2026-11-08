@@ -75,7 +75,16 @@ public interface SongListService {
      */
     List<SongList> likeStyle(String style);
 
-     List<Song> queryRecommendedSongById(String id);
+    /**
+     * 按用户id查询推荐歌曲
+     *
+     * 只接受 Integer：调用方的身份来自令牌而不是请求参数，历史上那个 String 版重载
+     * 是为了兼容"前端把 id 塞在表单里"才存在的，RESTful 化后没有调用方，已删除。
+     *
+     * @param userId 用户id
+     * @return 推荐歌曲列表
+     */
+    List<Song> queryRecommendedSongById(Integer userId);
     
     /**
      * 分页查询所有歌单
