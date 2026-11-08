@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shanzhu.music.mapper.StatisticsMapper">
+
+    <!--
+      资料页的概览查询。
+
+      四条 count 是 InnoDB 的 count(*) 全索引扫描，本仓库的表规模（千行级）在毫秒内；
+      真到了亿级要换成定时预算并缓存，而不是把"查全表"的旧写法搬回来。
+
+      分组查询一律排除 NULL 与空串：这类值既归不进性别码，也匹配不到任何地区/风格
+      标签，留在结果里只是让前端多绕一圈。副作用是各分组之和可能小于总数，
+      这与管理端页面原来的口径一致（此前 setSex 也只数 0/1）。
+    -->
+
+    <select id="countConsumer" resultType="java.lang.Long">
+        select count(*) from consumer
+    </select>
+
+    <select id="countSong" resultType="java.lang.Long">
+        select count(*) from song
+    </select>
+
+    <select id="countSinger" resultType="java.lang.Long">
+        select count(*) from singer
+    </select>
+
+    <select id="countSongList" resultType="java.lang.Long">
+        select count(*) from song_list
+    </select>
+
+    <select id="groupConsumerSex" resultType="com.shanzhu.music.entity.vo.StatCountVo">
+        select sex as label, count(*) as total
+        from consumer
+        where sex is not null
+        group by sex
+        order by sex
+    </select>
+
+    <select id="groupSingerSex" resultType="com.shanzhu.music.entity.vo.StatCountVo">
+        select sex as label, count(*) as total
+        from singer
+        where sex is not null
+        group by sex
+        order by sex
+    </select>
+
+    <select id="groupSingerLocation" resultType="com.shanzhu.music.entity.vo.StatCountVo">
+        select location as label, count(*) as total
+        from singer
+        where location is not null
+          and location &lt;&gt; ''
+        group by location
+        order by count(*) desc
+    </select>
+
+    <select id="groupSongListStyle" resultType="com.shanzhu.music.entity.vo.StatCountVo">
+        select style as label, count(*) as total
+        from song_list
+        where style is not null
+          and style &lt;&gt; ''
+        group by style
+        order by count(*) desc
+    </select>
+
+</mapper>

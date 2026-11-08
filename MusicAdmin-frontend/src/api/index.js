@@ -82,3 +82,7 @@ export const getCommentOfSongListId = (songListId) => get(`/song-lists/${songLis
 //删除评论
 export const deleteComment = (id) => del(`comments/${id}`);
 
+//===============统计===================
+//资料页概览：总数与分布在 SQL 侧聚合，不再把四张表整表拉进浏览器
+export const getStatisticsOverview = () => get(`statistics/overview`);
+

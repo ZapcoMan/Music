@@ -81,7 +81,7 @@
     </div>
 </template>
 <script>
-import {getAllConsumer,allSong,getAllSinger,getAllSongList} from '../api/index';
+import {getStatisticsOverview} from '../api/index';
 export default {
     data(){
         return {
@@ -89,7 +89,6 @@ export default {
             songCount: 0,           //歌曲总数
             singerCount: 0,         //歌手数量
             songListCount: 0,        //歌单数量
-            consumer: [],            //所有用户
             consumerSex:{           //按性别分类的用户数
                 columns: ['性别','总数'],
                 rows: [
@@ -139,79 +138,66 @@ export default {
             }
         }
     },
-    created() {
-
-    },
     mounted() {
-        this.getConsumer();
-        this.getSong();
-        this.getSinger();
-        this.getSongList();
+        this.getOverview();
     },
     methods: {
-        getConsumer() {                     //用户总数
-            getAllConsumer().then(res => {
-                // 后端统一返回 R 后，数据本体在 res.data；此前 res 本身就是数组
-                const list = res.data || [];
-                this.consumer = list;
-                this.consumerCount = list.length;
-                this.consumerSex.rows[0]['总数'] = this.setSex(1,this.consumer);
-                this.consumerSex.rows[1]['总数'] = this.setSex(0,this.consumer);
-            })
+        /**
+         * 四个总数与三张分布图都取自后端的 count/group by。
+         *
+         * 此前这里分四个请求拉 consumers / songs / singers / song-lists 的不分页版本，
+         * 只为在前端数一下长度——全部用户的手机号、邮箱因此整表出现在网络响应与浏览器内存里，
+         * 首屏还要等四次往返。现在出参只有几十个数字。
+         */
+        getOverview() {
+            getStatisticsOverview().then(res => {
+                const d = res.data || {};
+                this.consumerCount = d.consumerTotal || 0;
+                this.songCount = d.songTotal || 0;
+                this.singerCount = d.singerTotal || 0;
+                this.songListCount = d.songListTotal || 0;
+                // 性别码到中文标签的映射属于图表口径，留在页面里而不是写进 SQL
+                this.consumerSex.rows[0]['总数'] = this.countOf(d.consumerSex, '1');   //男
+                this.consumerSex.rows[1]['总数'] = this.countOf(d.consumerSex, '0');   //女
+                this.singerSex.rows[0]['总数'] = this.countOf(d.singerSex, '0');       //女
+                this.singerSex.rows[1]['总数'] = this.countOf(d.singerSex, '1');       //男
+                this.singerSex.rows[2]['总数'] = this.countOf(d.singerSex, '2');       //组合
+                this.singerSex.rows[3]['总数'] = this.countOf(d.singerSex, '3');       //不明
+                // 地区与风格在库里是"中国台湾""华语,流行"这类组合串，
+                // 同一个值可以落进多个桶——与改造前的 includes 口径一致
+                this.country.rows.forEach(row => {
+                    row['总数'] = this.containsCount(d.singerLocation, row['国籍']);
+                });
+                this.songStyle.rows.forEach(row => {
+                    row['总数'] = this.containsCount(d.songListStyle, row['风格']);
+                });
+            }).catch(err => {
+                // 统计失败必须可见：原先四个请求都没有 catch，接口一挂页面就显示四个 0，
+                // 看上去像"库里真的没有数据"
+                this.$message({
+                    type: 'error',
+                    message: (err && err.userMessage) || '统计数据加载失败',
+                });
+            });
         },
-        setSex(sex,val) {              //根据性别获取用户数
+        countOf(groups, label) {              //按分组原值取该标签的行数
             let count = 0;
-            for(let item of val){
-                if(sex == item.sex){
-                    count++;
+            (groups || []).forEach(item => {
+                if (String(item.label) === label) {
+                    count += item.total || 0;
                 }
-            }
+            });
             return count;
         },
-        getSong() {                      //歌曲总数
-            allSong().then(res => {
-                this.songCount = (res.data || []).length;
-            })
-        },
-        getSinger() {                      //歌手数量
-            getAllSinger().then(res => {
-                const list = res.data || [];
-                this.singerCount = list.length;
-                this.singerSex.rows[0]['总数'] = this.setSex(0,list);
-                this.singerSex.rows[1]['总数'] = this.setSex(1,list);
-                this.singerSex.rows[2]['总数'] = this.setSex(2,list);
-                this.singerSex.rows[3]['总数'] = this.setSex(3,list);
-                for(let item of list){
-                    this.getByCountry(item.location);
+        containsCount(groups, keyword) {      //把分组原值按"包含"归进图表桶
+            let count = 0;
+            (groups || []).forEach(item => {
+                // 空值后端已过滤，这里再兜一层：库里历史脏数据不该让整个统计抛错
+                if (item.label && item.label.indexOf(keyword) > -1) {
+                    count += item.total || 0;
                 }
-            })
-        },
-
-        getSongList() {                    //歌单数量
-            getAllSongList().then(res => {
-                const list = res.data || [];
-                this.songListCount = list.length;
-                for(let item of list){
-                    this.getByStyle(item.style);
-                }
-            })
-        },
-        getByStyle(style) {              //根据歌单风格获取数量
-            // style 在库里可为空，直接 .includes 会抛 TypeError 打断整个统计
-            if (!style) return;
-            for(let item of this.songStyle.rows){
-                if(style.includes(item['风格'])){
-                    item['总数']++;
-                }
-            }
-        },
-        getByCountry(location) {              //根据国籍获取数量
-            if (!location) return;
-            for(let item of this.country.rows){
-                if(location.includes(item['国籍'])){
-                    item['总数']++;
-                }
-            }
+            });
+            return count;
         }
     }
 }
