@@ -333,15 +333,19 @@ export default {
             let d = this.registerForm.birth;
             let datetime =
                 d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
-            let params = new URLSearchParams();
-            params.append("name", this.registerForm.name);
-            params.append("sex", this.registerForm.sex);
-            params.append("pic", "/img/singerPic/hhh.jpg");
-            params.append("birth", datetime);
-            params.append("location", this.registerForm.location);
-            params.append("introduction", this.registerForm.introduction);
+            // 后端 SingerController#addSinger 收 @RequestBody SingerRequest，
+            // 这里此前用 URLSearchParams 发 x-www-form-urlencoded，必然 415。
+            // pic 一并去掉：它不在 SingerRequest 里，歌手头像走单独的
+            // POST /singers/{id}/picture 上传接口。
+            let payload = {
+                name: this.registerForm.name,
+                sex: this.registerForm.sex,
+                birth: datetime,
+                location: this.registerForm.location,
+                introduction: this.registerForm.introduction
+            };
 
-            setSinger(params)
+            setSinger(payload)
                 .then((res) => {
                     if (res.code == 20000 || res.success === true) {
                         this.getData();
@@ -372,15 +376,22 @@ export default {
             let d = new Date(this.form.birth);
             let datetime =
                 d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
-            let params = new URLSearchParams();
-            params.append("id", this.form.id);
-            params.append("name", this.form.name);
-            params.append("sex", this.form.sex);
-            params.append("birth", datetime);
-            params.append("location", this.form.location);
-            params.append("introduction", this.form.introduction);
+            // 同 addSinger，改成 JSON 才与后端 @RequestBody 对得上。
+            // 这里还顺带修掉一个连带问题：api/index.js 的 updateSinger 是
+            // patch(`singers/${params.id}`, params)，而 URLSearchParams 上没有
+            // id 属性（要用 .get('id')），拼出来的 URL 是 /singers/undefined，
+            // 后端 @PathVariable Integer id 收到的是字面量 "undefined"。
+            // 换成普通对象后 params.id 才是真值。
+            let payload = {
+                id: this.form.id,
+                name: this.form.name,
+                sex: this.form.sex,
+                birth: datetime,
+                location: this.form.location,
+                introduction: this.form.introduction
+            };
 
-            updateSinger(params)
+            updateSinger(payload)
                 .then((res) => {
                     if (res.code == 20000 || res.success === true) {
                         this.getData();
