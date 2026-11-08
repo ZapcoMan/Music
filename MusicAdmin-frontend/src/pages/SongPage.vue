@@ -329,7 +329,7 @@ export default {
                     }
                 }
             };
-            req.open("post", `${_this.$store.state.API_HOST}/song/manage/add`, false);
+            req.open("post", `${_this.$store.state.API_HOST}/songs`, false);
             // 原生 XHR 不经过 axios 请求拦截器，须自行携带 Token，否则鉴权后此处恒为 401
             req.setRequestHeader("Authorization", localStorage.getItem("adminToken") || "");
             req.send(form);
@@ -375,7 +375,7 @@ export default {
             };
         },
         uploadUrl(id) {
-            return `${this.$store.state.API_HOST}/song/manage/updateSongPic?id=${id}`;
+            return `${this.$store.state.API_HOST}/songs/${id}/picture`;
         },
         //删除一名歌手
         deleteRow() {
@@ -434,7 +434,7 @@ export default {
         },
         //更新歌曲url
         uploadSongUrl(id) {
-            return `${this.$store.state.API_HOST}/song/manage/updateSongUrl?id=${id}`;
+            return `${this.$store.state.API_HOST}/songs/${id}/audio`;
         },
         //切换播放歌曲
         setSongUrl(url, name) {

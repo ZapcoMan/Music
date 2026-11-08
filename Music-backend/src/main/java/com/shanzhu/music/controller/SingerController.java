@@ -6,8 +6,10 @@ import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.dto.SingerRequest;
 import com.shanzhu.music.entity.po.Singer;
+import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.entity.vo.UploadPicVo;
 import com.shanzhu.music.service.SingerService;
+import com.shanzhu.music.service.SongService;
 import com.shanzhu.music.service.FileStorageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ import java.util.List;
 public class SingerController {
 
     private final SingerService singerService;
+    private final SongService songService;
     private final FileStorageService fileStorageService;
 
     /**
@@ -132,6 +135,20 @@ public class SingerController {
     @GetMapping(params = "sex")
     public R<List<Singer>> singerOfSex(Integer sex) {
         return R.ok(singerService.singerOfSex(sex));
+    }
+
+    /**
+     * 查询某位歌手的歌曲
+     *
+     * 原先挂在 SongController 的 /song/manage/singer/detail?singerId= 上：
+     * 读的是"某个歌手的歌曲集合"，资源归属在歌手一侧，所以按子资源表达。
+     *
+     * @param id 歌手id
+     * @return 歌曲列表
+     */
+    @GetMapping(value = "/{id}/songs")
+    public R<List<Song>> singerSongs(@PathVariable("id") Integer id) {
+        return R.ok(songService.songOfSingerId(id));
     }
 
     /**

@@ -9,11 +9,11 @@ export const getSingerOfSex = (sex) => get(`singers?sex=${sex}`);
 
 //============歌曲相关================
 //根据歌手id查询歌曲
-export const songOfSingerId =(id) => get(`song/manage/singer/detail?singerId=${id}`);
+export const songOfSingerId =(id) => get(`singers/${id}/songs`);
 //根据歌曲id查询歌曲对象
-export const songOfSongId =(id) => get(`song/manage/detail?songId=${id}`);
+export const songOfSongId =(id) => get(`songs/${id}`);
 //根据歌手名字模糊查询歌曲
-export const likeSongOfName =(keywords) => get(`song/manage/likeSongOfName?songName=${keywords}`);
+export const likeSongOfName =(keywords) => get(`songs?keyword=${keywords}`);
 
 //============歌单相关================
 //查询歌单

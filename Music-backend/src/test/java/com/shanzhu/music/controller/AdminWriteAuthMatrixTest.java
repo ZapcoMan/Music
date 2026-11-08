@@ -43,11 +43,11 @@ class AdminWriteAuthMatrixTest extends BaseTest {
     static Stream<Arguments> adminEndpoints() {
         return Stream.of(
                 // 曲库：歌曲
-                Arguments.of("POST", "/api/v1/song/manage/add", true),
-                Arguments.of("POST", "/api/v1/song/manage/update", false),
-                Arguments.of("DELETE", "/api/v1/song/manage/delete", false),
-                Arguments.of("POST", "/api/v1/song/manage/updateSongPic", true),
-                Arguments.of("POST", "/api/v1/song/manage/updateSongUrl", true),
+                Arguments.of("POST", "/api/v1/songs", true),
+                Arguments.of("PATCH", "/api/v1/songs/1", false),
+                Arguments.of("DELETE", "/api/v1/songs/1", false),
+                Arguments.of("POST", "/api/v1/songs/1/picture", true),
+                Arguments.of("POST", "/api/v1/songs/1/audio", true),
                 // 曲库：歌手
                 Arguments.of("POST", "/api/v1/singers", false),
                 Arguments.of("PATCH", "/api/v1/singers/1", false),

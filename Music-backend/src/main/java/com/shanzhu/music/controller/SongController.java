@@ -20,12 +20,13 @@ import java.util.List;
 /**
  * 歌曲 控制层
  *
- * 前缀带 /manage 一层而非直接挂 /song：/song/* 已被 WebMvcConfig 排除用于免登录访问
- * 静态音频文件（<audio> 标签无法携带 Authorization 头），若业务接口也留在该层，
- * 增删改与文件上传会一并处于未认证状态。下沉一层后业务接口全部落在鉴权之内。
+ * 业务接口挂在 /api/v1/songs 下，与免登录的静态音频前缀彻底分开：
+ * /song/* 由 WebMvcConfig 排除用于 <audio> 直接取流（该标签发不出 Authorization 头），
+ * 上一轮曾把业务接口下沉到 /song/manage/* 来躲开这条白名单，那只是中间态——
+ * 现在两者字面不同域（/api/v1/songs 与 /song/{文件}），不再依赖"避开某个前缀"来保证鉴权。
  */
 @RestController
-@RequestMapping("/api/v1/song/manage")
+@RequestMapping("/api/v1/songs")
 // 类级角色域兜底：本类未单独标注的方法（详情、列表、搜索等读接口）一律要求已登录，
 // 具体到方法的 @RequireUserType("admin") 优先级更高，不会被这里放宽。
 @RequireUserType({"consumer", "admin"})
@@ -46,7 +47,7 @@ public class SongController {
      * @param mpFile       歌曲文件
      * @return 添加结果
      */
-    @PostMapping(value = "/add")
+    @PostMapping
     @RequireUserType("admin")
     public R<UploadSongVo> addSong(
             String singerId,
@@ -87,17 +88,6 @@ public class SongController {
     }
 
     /**
-     * 根据歌手id查询歌曲
-     *
-     * @param singerId 歌手id
-     * @return 歌曲列表
-     */
-    @GetMapping(value = "/singer/detail")
-    public R<List<Song>> songOfSingerId(Integer singerId) {
-        return R.ok(songService.songOfSingerId(singerId));
-    }
-
-    /**
      * 修改歌曲
      *
      * @param id           主键
@@ -106,9 +96,10 @@ public class SongController {
      * @param lyric        歌词
      * @return 修改结果
      */
-    @PostMapping(value = "/update")
+    @PatchMapping(value = "/{id}")
     @RequireUserType("admin")
-    public R<Void> updateSong(Integer id, String name, String introduction, String lyric) {
+    public R<Void> updateSong(@PathVariable("id") Integer id,
+                             String name, String introduction, String lyric) {
         //保存到歌手的对象中
         Song song = new Song();
         song.setId(id);
@@ -130,9 +121,9 @@ public class SongController {
      * @param id 歌曲id
      * @return 删除结果
      */
-    @DeleteMapping(value = "/delete")
+    @DeleteMapping(value = "/{id}")
     @RequireUserType("admin")
-    public R<Boolean> deleteSinger(Integer id) {
+    public R<Boolean> deleteSong(@PathVariable("id") Integer id) {
         return R.ok(songService.delete(id));
     }
 
@@ -143,11 +134,11 @@ public class SongController {
      * @param id         歌曲id
      * @return 更新结果
      */
-    @RequestMapping(value = "/updateSongPic", method = RequestMethod.POST)
+    @PostMapping(value = "/{id}/picture")
     @RequireUserType("admin")
     public R<UploadPicVo> updateSongPic(
             @RequestParam("file") MultipartFile avatorFile,
-            @RequestParam("id") Integer id
+            @PathVariable("id") Integer id
     ) throws IOException {
 
         String storeAvatorPath;
@@ -177,11 +168,11 @@ public class SongController {
      * @param id         歌曲id
      * @return 更新结果
      */
-    @PostMapping(value = "/updateSongUrl")
+    @PostMapping(value = "/{id}/audio")
     @RequireUserType("admin")
     public R<UploadSongVo> updateSongUrl(
             @RequestParam("file") MultipartFile avatorFile,
-            @RequestParam("id") Integer id
+            @PathVariable("id") Integer id
     ) throws IOException {
         String storeAvatorPath;
         try {
@@ -206,34 +197,34 @@ public class SongController {
     /**
      * 根据歌曲id查询歌曲对象
      *
-     * @param songId 歌曲id
+     * @param id 歌曲id
      * @return 歌曲
      */
-    @GetMapping(value = "/detail")
-    public R<Song> detail(Integer songId) {
-        return R.ok(songService.selectByPrimaryKey(songId));
+    @GetMapping(value = "/{id}")
+    public R<Song> detail(@PathVariable("id") Integer id) {
+        return R.ok(songService.selectByPrimaryKey(id));
     }
 
     /**
-     * 根据歌手名字精确查询歌曲
+     * 按歌名精确查询歌曲
      *
-     * @param songName 歌手名
+     * @param songName 歌名
      * @return 歌曲列表
      */
-    @GetMapping(value = "/songOfSongName")
+    @GetMapping(params = "songName")
     public R<List<Song>> songOfSongName(String songName) {
         return R.ok(songService.songOfName(songName));
     }
 
     /**
-     * 根据歌手名字模糊查询歌曲
+     * 按关键词模糊搜索歌曲
      *
-     * @param songName 歌手名称
+     * @param keyword 搜索关键词
      * @return 歌曲列表
      */
-    @GetMapping(value = "/likeSongOfName")
-    public R<List<Song>> likeSongOfName(String songName) {
-        return R.ok(songService.likeSongOfName(songName));
+    @GetMapping(params = "keyword")
+    public R<List<Song>> likeSongOfName(String keyword) {
+        return R.ok(songService.likeSongOfName(keyword));
     }
 
     /**
@@ -241,7 +232,7 @@ public class SongController {
      *
      * @return 歌曲列表
      */
-    @GetMapping(value = "/allSong")
+    @GetMapping
     public R<List<Song>> allSong() {
         return R.ok(songService.allSong());
     }
@@ -253,7 +244,7 @@ public class SongController {
      * @param pageSize 每页大小，默认10
      * @return 分页结果
      */
-    @GetMapping(value = "/allSongByPage")
+    @GetMapping(value = "/page")
     public R<PageInfo<Song>> allSongByPage(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize

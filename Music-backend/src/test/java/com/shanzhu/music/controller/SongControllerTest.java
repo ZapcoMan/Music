@@ -22,6 +22,14 @@ class SongControllerTest extends BaseTest {
     @org.springframework.beans.factory.annotation.Autowired
     private com.shanzhu.music.service.SongService songService;
 
+    /**
+     * @Order(1) 添加成功后记下的歌曲 id 与歌手 id。
+     * 本类原先多处写死 id=1 或 songId=1：曲库是空的，id 从自增开始，
+     * 写死的值要么指向别的用例刚建/刚删的行，要么指向根本不存在的行。
+     */
+    private static Integer addedSongId;
+    private static final int ADDED_SINGER_ID = 1;
+
     @Test
     @Order(1)
     @DisplayName("测试添加歌曲")
@@ -34,7 +42,7 @@ class SongControllerTest extends BaseTest {
                 "test audio content".getBytes()
         );
 
-        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/song/manage/add")
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/songs")
                 .file(file)
                 .param("singerId", "1")
                 .param("name", "测试歌曲")
@@ -44,42 +52,71 @@ class SongControllerTest extends BaseTest {
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.avator").exists());
+
+        addedSongId = songOfName("测试歌曲").getId();
+    }
+
+    /**
+     * 按歌名精确取回一行，供各用例引用真实 id
+     */
+    private com.shanzhu.music.entity.po.Song songOfName(String name) {
+        return songService.allSong().stream()
+                .filter(song -> name.equals(song.getName()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("测试前提：曲库中应有《" + name + "》"));
     }
 
     @Test
     @Order(2)
-    @DisplayName("测试根据歌手id查询歌曲")
+    @DisplayName("测试查询某位歌手的歌曲")
     void testSongOfSingerId() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/song/manage/singer/detail")
-                .param("singerId", "1"))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/singers/" + ADDED_SINGER_ID + "/songs"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray())
+                // 只有断"包含刚建的那首"才真正验证了按歌手过滤这件事；
+                // 只断 isArray 的话，返回空数组也算通过
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data[?(@.id == " + addedSongId + ")]").isNotEmpty());
     }
 
     @Test
     @Order(3)
     @DisplayName("测试修改歌曲")
     void testUpdateSong() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/song/manage/update")
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/songs/" + addedSongId)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .param("id", "1")
                 .param("name", "修改后的歌曲名")
                 .param("introduction", "修改后的简介")
                 .param("lyric", "修改后的歌词"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true));
+
+        // 只断 success 的话，"改到别的行"或"一个字段都没写进去"都测不出来
+        com.shanzhu.music.entity.po.Song updated = songService.selectByPrimaryKey(addedSongId);
+        org.junit.jupiter.api.Assertions.assertEquals("修改后的歌曲名", updated.getName(), "歌名应已更新");
+        org.junit.jupiter.api.Assertions.assertEquals("修改后的简介", updated.getIntroduction(), "简介应已更新");
     }
 
     @Test
     @Order(4)
     @DisplayName("测试删除歌曲")
     void testDeleteSong() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/v1/song/manage/delete")
-                .param("id", "1"))
+        // 删除目标由本用例自己创建：原先写死 id=1，删的是碰巧存在（或根本不存在）的行，
+        // 而断言只有 $.data exists —— 业务成功与"data=false 也算存在"在它眼里没区别
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "to-delete.mp3", "audio/mpeg", "x".getBytes());
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/songs")
+                .file(file)
+                .param("singerId", String.valueOf(ADDED_SINGER_ID))
+                .param("name", "待删除歌曲"));
+        Integer doomedId = songOfName("待删除歌曲").getId();
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/v1/songs/" + doomedId))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.success").exists())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data").exists());
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").value(true));
+
+        org.junit.jupiter.api.Assertions.assertNull(songService.selectByPrimaryKey(doomedId),
+                "删除后应查不到这首歌曲");
     }
 
 
@@ -91,9 +128,9 @@ class SongControllerTest extends BaseTest {
         // 这里断言的是 #22 那批补上的扩展名白名单确实生效 ——
         // 校验在落盘之前，所以不会产生垃圾文件
         byte[] bytes = new byte[]{0x4d, 0x5a, 0x01, 0x02};
-        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/song/manage/updateSongPic")
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/songs/1/picture")
                 .file(new MockMultipartFile("file", "evil.exe", "application/octet-stream", bytes))
-                .param("id", "1"))
+                )
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false));
     }
@@ -107,9 +144,9 @@ class SongControllerTest extends BaseTest {
         // 这里断言的是 #22 那批补上的扩展名白名单确实生效 ——
         // 校验在落盘之前，所以不会产生垃圾文件
         byte[] bytes = new byte[]{0x4d, 0x5a, 0x01, 0x02};
-        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/song/manage/updateSongUrl")
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/songs/1/audio")
                 .file(new MockMultipartFile("file", "evil.exe", "application/octet-stream", bytes))
-                .param("id", "1"))
+                )
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false));
     }
@@ -118,8 +155,7 @@ class SongControllerTest extends BaseTest {
     @Order(7)
     @DisplayName("测试查询歌曲详情")
     void testDetail() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/song/manage/detail")
-                .param("songId", String.valueOf(anExistingSongId())))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/songs/" + anExistingSongId()))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 // 本用例原先写死 songId=1 并只断 200，而 @Order(4) 的删除用例已经把 id=1
                 // 删掉了——它其实一直在查一首不存在的歌，却从没红过。
@@ -143,27 +179,32 @@ class SongControllerTest extends BaseTest {
     @Order(8)
     @DisplayName("测试根据歌曲名精确查询")
     void testSongOfSongName() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/song/manage/songOfSongName")
-                .param("songName", "泡沫"))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/songs")
+                .param("songName", "修改后的歌曲名"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray())
+                // 查的是本类 @Order(3) 改过名的那一首：只断 isArray 时返回空数组也算通过
+                .andExpect(MockMvcResultMatchers
+                        .jsonPath("$.data[?(@.name == '修改后的歌曲名')]").isNotEmpty());
     }
 
     @Test
     @Order(9)
-    @DisplayName("测试根据歌曲名模糊查询")
+    @DisplayName("测试根据关键词模糊搜索歌曲")
     void testLikeSongOfName() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/song/manage/likeSongOfName")
-                .param("songName", "泡沫"))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/songs")
+                .param("keyword", "修改后"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray())
+                .andExpect(MockMvcResultMatchers
+                        .jsonPath("$.data[?(@.name == '修改后的歌曲名')]").isNotEmpty());
     }
 
     @Test
     @Order(10)
     @DisplayName("测试查询所有歌曲")
     void testAllSong() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/song/manage/allSong"))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/songs"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray());
     }
@@ -172,7 +213,7 @@ class SongControllerTest extends BaseTest {
     @Order(11)
     @DisplayName("测试分页查询所有歌曲")
     void testAllSongByPage() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/song/manage/allSongByPage")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/songs/page")
                 .param("pageNum", "1")
                 .param("pageSize", "10"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -188,7 +229,7 @@ class SongControllerTest extends BaseTest {
      * 处于未认证状态。基类的 mockMvc 预置了管理员令牌，这类"鉴权缺失"缺陷永远不会
      * 让任何用例变红，所以此处现场构造一个不带默认请求的 MockMvc。
      *
-     * 断 401 而非 404 还顺带证明 /song/manage/** 命中的是 Controller 而不是静态资源
+     * 断 401 而非 404 还顺带证明 /api/v1/songs 命中的是 Controller 而不是静态资源
      * 处理器：若被资源映射抢走，这里会是 404。
      */
     @Test
@@ -199,7 +240,7 @@ class SongControllerTest extends BaseTest {
         MockMultipartFile file = new MockMultipartFile(
                 "file", "anonymous.mp3", "audio/mpeg", "x".getBytes());
 
-        anonymous.perform(MockMvcRequestBuilders.multipart("/api/v1/song/manage/add")
+        anonymous.perform(MockMvcRequestBuilders.multipart("/api/v1/songs")
                         .file(file)
                         .param("singerId", "1")
                         .param("name", "匿名上传"))
@@ -236,7 +277,7 @@ class SongControllerTest extends BaseTest {
         MockMultipartFile file = new MockMultipartFile(
                 "file", "not-mine.mp3", "audio/mpeg", "x".getBytes());
 
-        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/song/manage/add")
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/songs")
                         .file(file)
                         .param("singerId", "1")
                         .param("name", "越权添加")
