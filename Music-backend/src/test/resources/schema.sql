@@ -117,8 +117,15 @@ CREATE TABLE IF NOT EXISTS `ranks` (
     `id` INT PRIMARY KEY AUTO_INCREMENT,
     `song_list_id` INT NOT NULL,
     `consumer_id` INT NOT NULL,
-    `score` INT NOT NULL
+    `score` INT,
+    CONSTRAINT `uk_ranks_list_consumer` UNIQUE (`song_list_id`, `consumer_id`)
 );
+-- 与真实 DDL 对齐的两处（V1__InitDateBase.sql 的 ranks 定义）：
+--   · score 原本写成 NOT NULL，而真实库是 NULL DEFAULT NULL。
+--     正因为测试库不允许空分，"空分行被计入平均分母"这个缺陷在测试里永远复现不了。
+--   · 原本没有 UNIQUE(song_list_id, consumer_id)，真实库有。
+--     缺它的话"重复评分应改分而不是插入第二行"这条路径根本撞不到唯一键，
+--     upsert 与并发冲突分支都测不到。
 
 -- 用户歌单评分表（真实库存在，此前测试 schema 缺失）
 CREATE TABLE IF NOT EXISTS `user_ratings` (

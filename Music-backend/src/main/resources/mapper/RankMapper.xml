@@ -42,6 +42,23 @@
         </trim>
     </insert>
 
+    <!-- 某用户对某歌单的既有评分。唯一键保证至多一行，取一行即可。 -->
+    <select id="selectByConsumerAndSongList" resultMap="BaseResultMap">
+        select id, song_list_id, consumer_id, score
+        from ranks
+        where consumer_id = #{consumerId}
+          and song_list_id = #{songListId}
+    </select>
+
+    <!-- 改分走这条 UPDATE。此前没有它：ranks 带 UNIQUE(song_list_id, consumer_id)，
+         Mapper 又只有 insert/delete，第二次提交只能撞唯一键变成"评价失败"。 -->
+    <update id="updateScoreByConsumerAndSongList" parameterType="com.shanzhu.music.entity.po.Rank">
+        update ranks
+        set score = #{score}
+        where consumer_id = #{consumerId}
+          and song_list_id = #{songListId}
+    </update>
+
     <!-- 删除歌单时级联清理其评分，否则残留评分会继续参与相似度与均值统计 -->
     <delete id="deleteBySongListId" parameterType="java.lang.Integer">
         delete from ranks
@@ -61,7 +78,11 @@
     </select>
 
     <select id="selectRankNum" resultType="java.lang.Integer" parameterType="java.lang.Integer">
-        select COALESCE(count(id),0) as num
+        <!-- 分母用 count(score) 而不是 count(id)：score 列可以为 NULL（V1 建表时未加约束），
+             而 sum(score) 会忽略 NULL —— 原先两者口径不一致，
+             一条空分行会被计入分母却不计入分子，等于无声把平均分拉低，
+             且从响应里完全看不出发生过什么。 -->
+        select COALESCE(count(score),0) as num
         from ranks
         where song_list_id = #{songListId}
     </select>

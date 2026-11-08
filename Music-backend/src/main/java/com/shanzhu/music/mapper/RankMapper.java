@@ -22,6 +22,27 @@ public interface RankMapper {
     Integer insert(Rank rank);
 
     /**
+     * 查某用户对某歌单的既有评分
+     * ranks 有 UNIQUE(song_list_id, consumer_id)，所以这里最多一行
+     *
+     * @param consumerId 用户id
+     * @param songListId 歌单id
+     * @return 既有评分，没有时为 null
+     */
+    Rank selectByConsumerAndSongList(@Param("consumerId") Integer consumerId,
+                                    @Param("songListId") Integer songListId);
+
+    /**
+     * 覆盖某用户对某歌单的评分
+     * 改分走的是一条 UPDATE：原先 Mapper 没有这个方法，第二次提交只能撞唯一键，
+     * 用户以为"评价失败"，实际是分数从来没被改过
+     *
+     * @param rank 评价信息（consumerId + songListId 定位，score 为新值）
+     * @return 影响行数
+     */
+    Integer updateScoreByConsumerAndSongList(Rank rank);
+
+    /**
      * 查总分
      *
      * @param songListId 歌单

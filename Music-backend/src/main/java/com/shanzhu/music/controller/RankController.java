@@ -2,8 +2,11 @@ package com.shanzhu.music.controller;
 
 import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
+import com.shanzhu.music.entity.dto.RankRequest;
 import com.shanzhu.music.entity.po.Rank;
 import com.shanzhu.music.service.RankService;
+import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,15 +40,17 @@ public class RankController {
      * @param score      评价
      * @return 结果
      */
+    @Operation(summary = "提交评分", description = "为指定歌单打分，取值 1-10；同一用户重复提交视为改分")
     @PostMapping(value = "/api/v1/ranks")
     @RequireUserType("consumer")
-    public R<Void> add(@RequestAttribute("userId") Integer userId, Integer songListId, Integer score) {
+    public R<Void> add(@RequestAttribute("userId") Integer userId,
+                       @Valid RankRequest request) {
         Rank rank = new Rank();
-        rank.setSongListId(songListId);
+        rank.setSongListId(request.getSongListId());
         rank.setConsumerId(userId);
-        rank.setScore(score);
+        rank.setScore(request.getScore());
 
-        if (rankService.insert(rank)) {
+        if (rankService.save(rank)) {
             return R.ok("评价成功");
         }
 
@@ -62,8 +67,9 @@ public class RankController {
      * @param songListId 歌单id
      * @return 结果
      */
+    @Operation(summary = "查询歌单平均分", description = "返回 1-10 分制的平均值；无人评分时给量纲中点")
     @GetMapping(value = "/api/v1/song-lists/{songListId}/rank")
-    public R<Integer> rankOfSongListId(@PathVariable("songListId") Integer songListId) {
+    public R<Double> rankOfSongListId(@PathVariable("songListId") Integer songListId) {
         return R.ok(rankService.rankOfSongListId(songListId));
     }
 
