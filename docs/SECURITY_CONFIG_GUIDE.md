@@ -302,7 +302,7 @@ curl -X POST http://localhost:8080/admin/login/status \
 
 ### 4. 测试受保护接口(带 Token)
 ```bash
-curl -X GET http://localhost:8080/singer/allSinger \
+curl -X GET http://localhost:9171/api/v1/singers \
   -H "Authorization: eyJhbGciOiJIUzI1NiJ9..."
 ```
 
@@ -321,7 +321,9 @@ curl -X GET http://localhost:8080/singer/allSinger \
 // 可能需要限制某些接口的访问
 .authorizeHttpRequests(auth -> auth
     // 公开接口
-    .requestMatchers("/admin/login/**", "/consumer/login", "/consumer/add").permitAll()
+    // 本项目不用 Spring Security 的 matcher 表达免登录入口：
+    // 登录与注册由 JwtAuthenticationInterceptor#ANONYMOUS_ENTRIES 按 (方法, 路径) 放行，
+    // 静态资源与 /manage 由 WebMvcConfig#excludePathPatterns 排除（那里不区分 HTTP 方法）。
     // 管理员接口需要特定角色
     .requestMatchers("/admin/**").hasRole("ADMIN")
     // 其他接口需要认证

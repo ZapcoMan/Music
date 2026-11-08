@@ -88,11 +88,14 @@ CREATE TABLE IF NOT EXISTS `search_history` (
 
 #### SearchHistoryController.java
 REST API接口：
-- `POST /search-history/record`: 记录搜索历史
-- `GET /search-history/recent`: 获取最近搜索历史
-- `GET /search-history/keywords`: 获取最近搜索关键词
-- `DELETE /search-history/clear`: 清空搜索历史
-- `DELETE /search-history/clean-old`: 清理过期历史
+- `POST /api/v1/search-history`: 记录搜索历史
+- `GET /api/v1/search-history`: 获取最近搜索历史
+- `GET /api/v1/search-history/keywords`: 获取最近搜索关键词
+- `DELETE /api/v1/search-history`: 清空搜索历史
+- `DELETE /api/v1/search-history/expired`: 清理过期历史
+
+这组接口一律**不接收 userId**：搜索历史按令牌归属读写，用户身份来自 Authorization 头。
+整组只允许 consumer 角色（管理员令牌打它是 403，不是 200——管理端从不调用它）。
 
 ### 2.5 召回策略实现
 
@@ -131,19 +134,17 @@ REST API接口：
 在 `MusicUser-frontend/src/api/index.js` 中添加：
 ```javascript
 // 记录搜索历史
-export const recordSearchHistory = (params) => post(`/search-history/record`, params);
+export const recordSearchHistory = (params) => post(`/search-history`, params);
 
-// 获取最近搜索历史
-export const getRecentSearchHistory = (userId, limit = 20) => 
-    get(`/search-history/recent?userId=${userId}&limit=${limit}`);
+// 获取最近搜索历史（不再传 userId，身份由令牌决定；baseURL 已含 /api/v1）
+export const getRecentSearchHistory = (limit = 20) => get(`/search-history?limit=${limit}`);
 
 // 获取最近搜索关键词
-export const getRecentSearchKeywords = (userId, limit = 10) => 
-    get(`/search-history/keywords?userId=${userId}&limit=${limit}`);
+export const getRecentSearchKeywords = (limit = 10) =>
+    get(`/search-history/keywords?limit=${limit}`);
 
 // 清空搜索历史
-export const clearSearchHistory = (userId) => 
-    Axios({ method: 'delete', url: `/search-history/clear?userId=${userId}` });
+export const clearSearchHistory = () => Axios({ method: 'delete', url: `/search-history` });
 ```
 
 ### 3.2 搜索页面增强

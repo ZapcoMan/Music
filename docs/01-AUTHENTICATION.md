@@ -84,7 +84,7 @@ name=admin&password=123456
 
 #### 前台用户登录
 ```bash
-POST http://localhost:9171/consumer/login
+POST http://localhost:9171/api/v1/consumers/sessions
 Content-Type: application/x-www-form-urlencoded
 
 username=testuser&password=123456
@@ -123,7 +123,7 @@ Authorization: eyJhbGciOiJIUzI1NiJ9...
 
 ```bash
 curl -H "Authorization: eyJhbGciOiJIUzI1NiJ9..." \
-     http://localhost:9171/song/manage/allSong
+     http://localhost:9171/api/v1/songs
 ```
 ```
 

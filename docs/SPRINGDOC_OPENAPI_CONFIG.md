@@ -66,10 +66,10 @@ springdoc:
 ### 2. ConsumerController (前台用户管理)
 - `@Tag`: 前台用户管理
 - 主要接口:
-  - POST `/consumer/add` - 注册用户
-  - GET `/consumer/selectByPrimaryKey` - 查询用户详情
-  - GET `/consumer/allConsumer` - 查询所有用户
-  - GET `/consumer/allConsumerByPage` - 分页查询用户
+  - POST `/api/v1/consumers/registrations` - 注册用户
+  - GET `/api/v1/consumers/{id}` - 查询用户公开信息
+  - GET `/api/v1/consumers` - 查询所有用户
+  - GET `/api/v1/consumers/page` - 分页查询用户
 
 ## 如何使用注解
 
