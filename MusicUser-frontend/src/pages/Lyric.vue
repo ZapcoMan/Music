@@ -111,7 +111,8 @@ export default {
             this.lyr = this.lyric;
           })
           .catch((err) => {
-            console.log(err);
+            console.error(err);
+            this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
           });
       } else {
             this.lyr = this.lyric;

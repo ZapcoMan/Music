@@ -95,7 +95,8 @@ export default {
                 this.tableData.push(o);
             })
             .catch(err => {
-                console.log(err);
+                console.error(err);
+                this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
             });
         },
         //删除一条评论
@@ -110,7 +111,8 @@ export default {
                 }
             })
             .catch(err => {
-                console.log(err);
+                console.error(err);
+                this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
             });
             this.delVisible = false;
         },

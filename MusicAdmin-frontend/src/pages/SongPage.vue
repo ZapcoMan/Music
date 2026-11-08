@@ -316,24 +316,37 @@ export default {
                 form.set("lyric", "[00:00:00]暂无歌词");
             }
             var req = new XMLHttpRequest();
-            req.onreadystatechange = function () {
-                //req.readyState == 4 获取到返回的完整数据
-                //req.status == 200 和后台正常交互完成
-                if (req.readyState == 4 && req.status == 200) {
-                    let res = JSON.parse(req.response);
-                    if (res.code == 20000 || res.success === true) {
-                        _this.getData();
-                        _this.notify(res.message || "保存成功", "success");
-                    } else {
-                        _this.notify(res.message || "保存失败", "error");
-                    }
-                }
-            };
-            req.open("post", `${_this.$store.state.API_HOST}/songs`, false);
+            // 改成异步：原先 async=false 会阻塞浏览器主线程，
+            // 而且关闭弹窗只能盲目放在 send 之后
+            req.open("post", `${_this.$store.state.API_HOST}/songs`, true);
             // 原生 XHR 不经过 axios 请求拦截器，须自行携带 Token，否则鉴权后此处恒为 401
             req.setRequestHeader("Authorization", localStorage.getItem("adminToken") || "");
+            req.onreadystatechange = function () {
+                if (req.readyState != 4) {
+                    return;
+                }
+                // 原先整个回调被 "req.status == 200" 包住：415、403、500 与网络失败
+                // 既不提示也不刷新，弹窗又在 send 之后无条件关闭，
+                // 表现就是"点了保存没反应"。现在成功失败两条路都给出回音。
+                var payload = null;
+                try {
+                    payload = JSON.parse(req.response);
+                } catch (parseError) {
+                    payload = null;
+                }
+                var message = payload && payload.message;
+                var written = payload && (payload.code == 20000 || payload.success === true);
+                if (req.status >= 200 && req.status < 300 && written) {
+                    _this.getData();
+                    _this.notify(message || "保存成功", "success");
+                    _this.centerDialogVisible = false;
+                } else if (req.status === 401) {
+                    _this.notify("登录状态已失效，请重新登录", "error");
+                } else {
+                    _this.notify(message || "保存失败（HTTP " + req.status + "）", "error");
+                }
+            };
             req.send(form);
-            _this.centerDialogVisible = false;
         },
         //弹出编辑页面
         handleEdit(row) {
@@ -358,14 +371,17 @@ export default {
                     if (res.code === 20000 || res.success === true) {
                         this.getData();
                         this.notify(res.message || "修改成功", "success");
+                        // 只在后端确认成功后才关弹窗：原先这一行在 promise 之外，415/403/断网也照关，
+                        // 用户看到弹窗正常关闭却不知道什么都没写进库。
+                        this.editVisible = false;
                     } else {
                         this.notify(res.message || "修改失败", "error");
                     }
                 })
                 .catch((err) => {
-                    console.log(err);
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 });
-            this.editVisible = false;
         },
         //更新图片
         // el-upload 走原生 XHR，不经过 axios 请求拦截器，需自行携带 Token
@@ -385,14 +401,17 @@ export default {
                     if (res.data === true) {
                         this.getData();
                         this.notify("删除成功", "success");
+                        // 只在后端确认成功后才关弹窗：原先这一行在 promise 之外，415/403/断网也照关，
+                        // 用户看到弹窗正常关闭却不知道什么都没写进库。
+                        this.delVisible = false;
                     } else {
                         this.notify("删除失败", "error");
                     }
                 })
                 .catch((err) => {
-                    console.log(err);
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 });
-            this.delVisible = false;
         },
         //解析歌词
         parseLyric(text) {

@@ -83,7 +83,8 @@ export default {
                     this.introduction = me.introduction;
                 })
                 .catch(err => {
-                    console.log(err);
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 })
         },
         //获取我的收藏列表
@@ -98,7 +99,8 @@ export default {
                         }
                     })
                 .catch(err => {
-                    console.log(err);
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 })
         },
         //通过歌曲id获取歌曲信息
@@ -109,7 +111,8 @@ export default {
                         this.collectList.push(res.data);
                     })
                 .catch(err => {
-                    console.log(err);
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 })
         }
     }

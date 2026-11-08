@@ -37,7 +37,8 @@ export const mixin = {
                         this.$store.commit('setListOfSongs',list);
                     }
                 }).catch(err => {
-                    console.log(err)
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 })
                 
                 // 记录搜索历史

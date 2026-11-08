@@ -108,7 +108,8 @@ export default {
 
                 })
                 .catch(err => {
-                    console.log(err);
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 })
         },
         saveMsg(){

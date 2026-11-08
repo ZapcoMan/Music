@@ -91,7 +91,8 @@ export default {
                     this.$store.commit('setListOfSongs',this.songLists);
                 })
                 .catch(err =>{
-                    console.log(err)
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 })
         },
         //根据歌曲id获取歌曲信息
@@ -102,7 +103,8 @@ export default {
                     this.songLists.push(res.data);
                 })
                 .catch(err =>{
-                    console.log(err)
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 })
         },
         //获取歌单评分
@@ -113,7 +115,8 @@ export default {
                     this.average = (res.data || 0)/2;
                 })
                 .catch(err =>{
-                    console.log(err)
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 })
         },
         //提交评分

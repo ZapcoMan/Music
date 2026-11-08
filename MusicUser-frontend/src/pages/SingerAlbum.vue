@@ -72,7 +72,8 @@ export default {
                     this.$store.commit("setListOfSongs", res);
                 })
                 .catch((err) => {
-                    console.log(err);
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 });
         },
         //获取性别

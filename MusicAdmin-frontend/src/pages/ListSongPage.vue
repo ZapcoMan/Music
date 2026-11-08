@@ -185,7 +185,8 @@ export default {
                     this.tableData.push(res.data);
                 })
                 .catch((err) => {
-                    console.log(err);
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 });
         },
         //添加歌曲前的准备，获取到歌曲id
@@ -226,14 +227,17 @@ export default {
                     if (res.code == 20000 || res.success === true) {
                         this.getData();
                         this.notify(res.message || "添加成功", "success");
+                        // 只在后端确认成功后才关弹窗：原先这一行在 promise 之外，415/403/断网也照关，
+                        // 用户看到弹窗正常关闭却不知道什么都没写进库。
+                        _this.centerDialogVisible = false;
                     } else {
                         this.notify(res.message || "添加失败", "error");
                     }
                 })
                 .catch((err) => {
-                    console.log(err);
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 });
-            _this.centerDialogVisible = false;
         },
         //删除一条歌曲
         deleteRow() {
@@ -243,14 +247,17 @@ export default {
                     if (res.data === true) {
                         this.getData();
                         this.notify("删除成功", "success");
+                        // 只在后端确认成功后才关弹窗：原先这一行在 promise 之外，415/403/断网也照关，
+                        // 用户看到弹窗正常关闭却不知道什么都没写进库。
+                        this.delVisible = false;
                     } else {
                         this.notify("删除失败", "error");
                     }
                 })
                 .catch((err) => {
-                    console.log(err);
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 });
-            this.delVisible = false;
         },
     },
 };

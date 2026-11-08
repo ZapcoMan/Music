@@ -132,7 +132,8 @@ export default {
                     this.tableData.push(res.data);
                 })
                 .catch((err) => {
-                    console.log(err);
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 });
         },
         //删除一条歌曲
@@ -147,7 +148,8 @@ export default {
                     }
                 })
                 .catch((err) => {
-                    console.log(err);
+                    console.error(err);
+                    this.notify((err && err.userMessage) || '请求失败，请稍后重试', 'error');
                 });
             this.delVisible = false;
         },

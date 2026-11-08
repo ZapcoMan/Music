@@ -33,6 +33,39 @@ axios.interceptors.request.use(
     }
 );
 
+// 后端在 400/401/403/413/415/429 与兜底 500 上都带中文 message
+// （见 GlobalExceptionHandler、JwtAuthenticationInterceptor、RateLimitInterceptor），
+// 此前拦截器只认 401，其余状态码连同 message 一起被丢在 reject 之外。
+const STATUS_HINT = {
+    403: '没有权限执行该操作',
+    404: '请求的接口不存在',
+    405: '该接口不支持此操作',
+    413: '文件超出大小限制',
+    415: '请求格式不被后端接受',
+    429: '操作过于频繁，请稍后再试'
+};
+
+/**
+ * 把可读的失败原因归一到一个字段上。
+ *
+ * 页面里的 catch 此前只有 console.log(err)，而 err 的形状有两种
+ * （超时没有 response；4xx 带 response），逐处自己解析不现实。
+ * 这里统一挂到 err.userMessage，调用方直接 notify 即可。
+ */
+function attachUserMessage(error) {
+    const target = error.response || error;
+    if (error.response) {
+        const body = error.response.data;
+        target.userMessage =
+            (body && body.message) ||
+            STATUS_HINT[error.response.status] ||
+            '操作失败，请稍后重试';
+    } else {
+        target.userMessage = '网络异常，请检查连接后重试';
+    }
+    return target;
+}
+
 //响应拦截器
 axios.interceptors.response.use(
     response => response,
@@ -47,7 +80,7 @@ axios.interceptors.response.use(
                 }
             });
         }
-        return Promise.reject(error.response || error);
+        return Promise.reject(attachUserMessage(error));
     }
 );
 
