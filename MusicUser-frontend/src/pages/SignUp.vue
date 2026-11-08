@@ -88,17 +88,22 @@ export default {
             let _this = this;
             let d = this.registerForm.birth;
             let datetime = d.getFullYear() + '-' +(d.getMonth() + 1) +'-' + d.getDate();
-            let params = new URLSearchParams();
-            params.append('username',this.registerForm.username);
-            params.append('password',this.registerForm.password);
-            params.append('sex',this.registerForm.sex);
-            params.append('phoneNum',this.registerForm.phoneNum);
-            params.append('email',this.registerForm.email);
-            params.append('birth',datetime);
-            params.append('introduction',this.registerForm.introduction);
-            params.append('location',this.registerForm.location);
-            params.append('avator','/img/user.jpg');
-            SignUp(params)
+            // 后端 POST /consumers/registrations 收 @RequestBody ConsumerRequest，
+            // 这里此前发 URLSearchParams（x-www-form-urlencoded），Spring 直接 415，
+            // 注册主路径因此一直是断的，页面只会显示"注册失败"。
+            // avator 去掉：它不在 ConsumerRequest 里，注册时 service 统一置空串，
+            // 头像走单独的上传接口。
+            let payload = {
+                username: this.registerForm.username,
+                password: this.registerForm.password,
+                sex: this.registerForm.sex,
+                phoneNum: this.registerForm.phoneNum,
+                email: this.registerForm.email,
+                birth: datetime,
+                introduction: this.registerForm.introduction,
+                location: this.registerForm.location
+            };
+            SignUp(payload)
                 .then(res => {
                     if(res.code == 20000 || res.success === true){
                         _this.notify(res.message || '注册成功','success');
