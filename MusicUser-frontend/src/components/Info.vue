@@ -91,16 +91,20 @@ export default {
             // 编辑页需要手机号、邮箱等私密字段，改用只返回本人资料的 /consumer/profile
             getMyProfile()
                 .then(res =>{
-                    this.registerForm.username = res.username;
-                    // 不再回填 res.password：那是 BCrypt 哈希，
+                    // GET /consumers/profile 返回 R<Consumer>，载荷在 res.data。
+                    // 此前直接取 res.username 这类信封上不存在的键，
+                    // 资料表单打开时是空的——用户看不到现值，只能整张重填。
+                    const me = res.data;
+                    this.registerForm.username = me.username;
+                    // 不回填 me.password：那是 BCrypt 哈希，
                     // 填进表单后再提交会把哈希当作用户新密码二次加密写库，
                     // 结果就是该账号再也登录不上。密码框保持为空表示"不修改密码"。
-                    this.registerForm.sex = res.sex;
-                    this.registerForm.phoneNum = res.phoneNum;
-                    this.registerForm.email = res.email;
-                    this.registerForm.birth = res.birth;
-                    this.registerForm.introduction = res.introduction;
-                    this.registerForm.location = res.location;
+                    this.registerForm.sex = me.sex;
+                    this.registerForm.phoneNum = me.phoneNum;
+                    this.registerForm.email = me.email;
+                    this.registerForm.birth = me.birth;
+                    this.registerForm.introduction = me.introduction;
+                    this.registerForm.location = me.location;
 
                 })
                 .catch(err => {

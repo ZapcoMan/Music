@@ -86,7 +86,11 @@ export default {
             getUserOfId(id)
             .then(res => {
                 let o = item;
-                o.name = res.username;
+                // 载荷在 R.data 里。此前写的是 res.username——信封对象上没有这个键，
+                // 管理端评论列表的作者名一栏因此一直是空的。
+                // 账号可能已注销（该端点对这种情况返回空载荷），给出可读占位。
+                const publicInfo = res.data;
+                o.name = publicInfo ? publicInfo.username : "已注销用户";
                 this.tempData.push(o);
                 this.tableData.push(o);
             })

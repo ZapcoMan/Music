@@ -419,7 +419,8 @@ export default {
         deleteRow() {
             delSinger(this.idx)
                 .then((res) => {
-                    if (res === true) {
+                    // 布尔值在 res.data，同 ConsumerPage：原写法恒判失败
+                    if (res.data === true) {
                         this.getData();
                         this.notify("删除成功", "success");
                     } else {

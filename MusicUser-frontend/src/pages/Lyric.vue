@@ -85,28 +85,30 @@ export default {
       if (songId != null && songId != "") {
         songOfSongId(songId)
           .then((res) => {
-            if (res == "") {
+            // GET /songs/{id} 返回 R<Song>，载荷在 res.data。
+            // 此前有两层错位：判空拿整个信封去比 ""（永不成立），
+            // 而后面取的都是信封上不存在的键，提交进 store 的
+            // id/url/pic/name/lyric 全是 undefined，parseLyric(undefined) 还会抛。
+            const song = res.data;
+            if (song == null || song === "") {
               return;
             }
 
-            // this.toplay(res.id, res.url, res.pic, 0, res.name, res.lyric);
-            this.$store.commit("setId", res.id);
+            this.$store.commit("setId", song.id);
             this.$store.commit(
               "setUrl",
-              this.$store.state.configure.HOST + res.url
+              this.$store.state.configure.HOST + song.url
             );
             this.$store.commit(
               "setPicUrl",
-              this.$store.state.configure.HOST + res.pic
+              this.$store.state.configure.HOST + song.pic
             );
             this.$store.commit("setListIndex", 0);
-            this.$store.commit("setTitle", this.replaceFName(res.name));
-            this.$store.commit("setArtist", this.replaceLName(res.name));
-            this.$store.commit("setLyric", this.parseLyric(res.lyric));
+            this.$store.commit("setTitle", this.replaceFName(song.name));
+            this.$store.commit("setArtist", this.replaceLName(song.name));
+            this.$store.commit("setLyric", this.parseLyric(song.lyric));
             this.$store.commit("setIsActive", false);
             this.lyr = this.lyric;
-
-            // this.lyr = this.parseLyric(res.lyric);
           })
           .catch((err) => {
             console.log(err);

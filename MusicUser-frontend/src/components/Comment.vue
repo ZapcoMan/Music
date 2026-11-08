@@ -151,8 +151,14 @@
       getUsers(id) {
         getUserOfId(id)
           .then((res) => {
-            this.userPic.push(res.avator);
-            this.userName.push(res.username);
+            // GET /consumers/{id} 返回 R<ConsumerPublicVo>，载荷在 res.data；
+            // 此前直接取 res.avator，取到的是信封上不存在的键，
+            // 评论区推出来的一直是 undefined。
+            // 该端点对已注销账号刻意返回空载荷（见 ConsumerController 的说明），
+            // 所以这里必须容错，不能假定 data 一定有值。
+            const publicInfo = res.data;
+            this.userPic.push(publicInfo ? publicInfo.avator : "");
+            this.userName.push(publicInfo ? publicInfo.username : "已注销用户");
           })
           .catch((_err) => {
             this.notify("出错了", "error");

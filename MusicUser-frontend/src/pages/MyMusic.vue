@@ -66,16 +66,21 @@ export default {
             // 本人资料走 /consumer/profile：身份取自令牌，不再按 id 查询
             getMyProfile()
                 .then(res =>{
-                    this.avator = res.avator;
-                    this.username = res.username;
-                    if(res.sex==0){
+                    // GET /consumers/profile 返回 R<Consumer>，载荷在 res.data。
+                    // 此前取的是信封上的键：头像与昵称都是 undefined，
+                    // 而 res.sex 既不是 0 也不是 1，两个分支都不进，
+                    // 性别一栏一直显示初始占位值。
+                    const me = res.data;
+                    this.avator = me.avator;
+                    this.username = me.username;
+                    if(me.sex==0){
                         this.userSex = '女';
-                    }else if (res.sex==1){
+                    }else if (me.sex==1){
                         this.userSex = '男';
                     }
-                    this.birth = this.attachBirth(res.birth);
-                    this.location = res.location;
-                    this.introduction = res.introduction;
+                    this.birth = this.attachBirth(me.birth);
+                    this.location = me.location;
+                    this.introduction = me.introduction;
                 })
                 .catch(err => {
                     console.log(err);

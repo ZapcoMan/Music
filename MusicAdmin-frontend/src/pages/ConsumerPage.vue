@@ -566,7 +566,10 @@ export default {
         deleteRow() {
             delConsumer(this.idx)
                 .then((res) => {
-                    if (res === true) {
+                    // 删除接口返回 R<Boolean>，布尔值在 res.data。
+                    // 直接比 res === true 拿的是信封对象，永不成立——
+                    // 后端已经删掉了，界面却每次都报"删除失败"。
+                    if (res.data === true) {
                         this.getData();
                         this.notify("删除成功", "success");
                     } else {
