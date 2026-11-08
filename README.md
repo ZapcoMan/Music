@@ -2,12 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/Version-v1.1.0-informational)
+![Version](https://img.shields.io/badge/Version-v2.0.0-informational)
 ![CI](https://github.com/ZapcoMan/Music/actions/workflows/ci.yml/badge.svg)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.3-brightgreen)
 ![Vue](https://img.shields.io/badge/Vue-2.6.11-4FC08D)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-orange)
-![Tests](https://img.shields.io/badge/Tests-146%20passed%2C%200%20skipped-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-249%20passed%2C%200%20skipped-brightgreen)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue)
 ![License](https://img.shields.io/badge/License-Apache%202.0-red)
 
@@ -349,7 +349,7 @@ Music/
 | **歌单** | `/songList` | 歌单 CRUD、推荐算法 |
 | **收藏** | `/collect` | 收藏/取消收藏 |
 | **评论** | `/comment` | 评论、点赞、高频词 |
-| **评分** | `/rank` | 歌单评分 |
+| **评分** | `/api/v1/ranks`、`/api/v1/song-lists/{songListId}/rank` | 提交歌单评分 / 查该歌单均分 |
 | **关联** | `/listSong` | 歌单-歌曲关联 |
 
 ### 认证方式

@@ -6,15 +6,25 @@
 
 ---
 
-## 未发布（v2.0.0 预备）
+## v2.0.0 — 2026-11-08
 
-属破坏性变更，故下一版为 major：返回契约与权限模型都改了，旧调用方式不再成立。
+属破坏性变更，故下一版为 major：返回契约、权限模型与**全部接口路径**都改了，旧调用方式不再成立。
 
 ### 变更（破坏性）
 
+- **接口整体 RESTful 化**：所有业务接口挂到 `/api/v1` 之下，动词式路径改为资源式——
+  `/song/manage/add` → `POST /api/v1/songs`、`/consumer/login` → `POST /api/v1/consumers/sessions`（登出是同一字面的 DELETE）、
+  `/consumer/add` → `POST /api/v1/consumers/registrations`、`/comment/commentOfSongId?songId=` → `GET /api/v1/songs/{songId}/comments`，
+  id 一律进路径、集合过滤改用查询参数（`?keyword=` `?style=` `?sex=`）、部分更新用 PATCH、标签整体替换用 PUT。
+  静态资源 `/song/*`、`/img/**`、`/userImages/**` **不在**该前缀下：`<audio>`/`<img>` 发不出 Authorization 头，
+  且库里存的历史 URL 就是 `/song/1715868205989` 这种形态。
+  上一版为躲白名单临时下沉出的 `/song/manage` 中间层随之消失。
+  前端仍是**一个地址来源**：`VUE_APP_API_BASE_URL` 给 origin，`http.js` 从它派生
+  `HOST`（静态资源）与 `API_HOST`（业务接口），部署不需要新增变量。
+  **不提供任何兼容层**：调用旧路径的第三方客户端会拿到 404。
 - **返回结构统一为 `R<T>`**：`Object` 返回 5 处、裸 `List<PO>`/`Boolean`/`PO` 23 处、raw `R` 17 处全部消除，`R` 删除 `dataMap` 第二条载体，`R.success(T)` 补上漏掉的 `setSuccess`。前端 27 处取值点随之改为 `res.data`，Home/SongPage 里"兼容两种形态"的双分支兜底一并删除。
-- **权限模型改为默认拒绝**：37 个写接口全部显式声明角色域（`@RequireUserType` 由 22 处增至 38 处，注解 `value` 改为数组以表达 `{consumer, admin}` 这类集合）；拦截器对未声明角色的写接口直接 403；新增守卫测试扫描全部写接口，漏标注即变红。`/comment/allComment` 补 admin——此前任何消费者令牌可一次拉走全站评论。
-- **`/song` 业务接口下沉至 `/song/manage/*`**，白名单由 `/song/**` 收窄为 `/song/*`；静态音频仍匿名可取。
+- **权限模型改为默认拒绝，且覆盖读写全部端点**：`@RequireUserType` 由 22 处增至 38 处（注解 `value` 改为数组以表达 `{consumer, admin}`），拦截器对**任何**未声明角色域的 Controller 方法直接 403——不只是写接口。33 个此前"已登录即可、不限角色"的读接口补上类级声明；`/comment/allComment` 补 admin，此前任何消费者令牌可一次拉走全站评论。守卫测试 `EndpointRoleGuardTest` 扫描全部端点，漏标注即变红。
+- **评论发布后不可修改**：按产品口径连作者本人也不能改写，因此 `POST /comment/update`、`CommentService.update`、`CommentMapper.update` 及那段可整行重写 `content`/`user_id` 的 `<update>` 全部删除，而不是加一层校验；要撤回就删了重发。两套前端本就没有编辑入口，用户侧无可见变化。
 
 ### 安全修复
 
@@ -27,6 +37,13 @@
 - 限流 key 不再拼接原始 URI（URL 变体可各建一个计数器从而绕过限流）；URI 仍留在日志中用于定位。
 - prod `multipart` 上限由 1024MB 收紧为 100MB/110MB，与 `FileStorageService` 的应用层上限对齐。
 - 删除 `getSongsBySimilarTags` / `getSongsByStyle` 及其 XML：两处 `ORDER BY RAND()` 全仓无任何调用点，属不可达死代码。
+- **第二次登录被拒的缺陷**：`Consumer.password` 带 `@JsonIgnore`（防凭据外泄），而 Redis 值序列化器正是 Jackson，于是缓存里的用户对象没有密码字段；`verifyPassword` 却走带缓存的 `getByUsername`——首次登录读库成功并回填缓存，此后同一账号变成拿 `null` 做 BCrypt 比对，表现为"能用一阵子，然后突然登不进去"。口令校验改为始终问数据库，缓存只服务资料展示。既有用例先试正确口令、再试错误口令，恰好绕开了这条路径。
+- **注册查重同样不问缓存**：用户名唯一性判断必须由权威存储给出，否则账号删除或缓存滞后时，一个其实可用的用户名会被误报"已存在"。
+- **改资料与改密码后清缓存**：`ConsumerServiceImpl.update` 此前完全不碰缓存，改完密码旧哈希还能再活 24 小时，用户会看到"新密码登不进去、旧密码仍然能用"；现在按 id 与按 username 的两份一起清。
+- **点赞改数据库原子自增**：原先在 Controller 里"读出 `up` → +1 → 回写"，两个并发请求读到同一个值互相覆盖、计数被吞；且点赞从不清理评论列表缓存，新点赞数要等 2 小时才可见。现在 `COALESCE(up,0)+1` 一条 UPDATE 完成，并按宿主清 `song:` / `songlist:` 两份列表缓存。
+- **删除歌手的 N+1**：原实现循环逐首 `songService.delete`，N 首歌产生 5N 条 SQL 且全在同一事务内；改为按歌手批量清理（引用先行、歌曲随后，因为子查询依赖 `select id from song`）。同时补上"删歌手会留下指向不存在歌手的孤儿歌曲"这一级联缺失。
+- **歌曲标签写得进读不出**：`SongMapper` 的 `Blob_Column_List` 漏了 `tags`，而详情、列表、搜索这 7 个面向用户的查询全用它——`PUT /songs/{id}/tags` 交付的其实是半个功能。列已补齐（召回专用的 `Recall_Column_List` 有意不带 `tags` 与 `lyric`，保持原样）。
+- **测试环境与生产配置对齐**：测试 profile 缺 `mybatis.configuration.map-underscore-to-camel-case`（dev/prod 都有），于是 `match_count`、`singer_id` 这类下划线列在测试里映射不进、恒为 null，用例只能把 null 写成期望值，等于把配置漂移固化成测试口径。更隐蔽的是 `src/main/resources/application-test.yml` 被 `src/test` 下同名文件整体遮蔽，两份连 H2 的 `MODE=MySQL` 都已漂移。
 
 ### 前端工程
 
@@ -35,9 +52,26 @@
 - `:key="index"` 换稳定业务 id 共 12 处；`TheAside`/`TheHeader` 匿名监听器改为具名并在 `beforeDestroy` 解除；`LoginIn`/`SignUp` 的跳转定时器补 `clearTimeout`。
 - 根 `.gitignore` 的 `.env` 规则会吞掉新建设置文件，已逐文件精确放行（不通配，避免连带放行后端口令文件）。
 
-### 测试
+### 测试与质量
 
-用例 142 → **215**：管理接口鉴权矩阵 44 项（22 端点 × 匿名 401 / 消费者 403）、消费者端点矩阵 20 项、写接口角色守卫 1 项、令牌载体回归 5 项、`R` 单一载体与 `success` 标志 2 项；删除 3 项测试已不存在的 `dataMap` 链式 API 的用例。
+- 用例 142 → **249**：管理接口鉴权矩阵 66 项（端点 × 匿名 401 / 消费者 403 / 管理员越权 403）、
+  端点角色声明守卫 1 项（扫描**全部**业务端点，不再只看写接口）、令牌载体回归 5 项、
+  `R` 单一载体与 `success` 标志 12 项、级联删除与推荐融合各自补齐。
+- **覆盖率**：`LINE 75.50%`（1664/2204）、`BRANCH 56.91%`（519/912），上一版为 60.98% / 36.75%；
+  四项 JaCoCo 门禁（CLASS 60% / METHOD 50% / LINE 40% / BRANCH 30%）全部达标，未为变绿放宽任何阈值。
+- **静态扫描接入**：SpotBugs 4.8.6.4 绑到 `verify`，`threshold=High` 下报告 0 项；
+  `spotbugs-exclude.xml` 只排除 Lombok `@Data` 的结构型误报（`EI_EXPOSE_REP` / `EI_EXPOSE_REP2`），
+  并在文件头写明"不得用它来压真实缺陷"。
+- **系统性清除假绿**：本项目业务失败也返回 200，因此"只断 `status 200` / `$.success` exists"的用例等于没测，
+  本轮共改造与新增约 50 项为真断言（断 `data` 内容、断回查数据库、断越权后行仍在）。
+  其中三例最能说明问题：`testLoginSuccess` 提交的是种子哈希根本不接受的口令，
+  这条"成功"用例从来没测过成功；`SongControllerTest.testDetail` 查的是本类前一个 `@Order` 刚删掉的歌曲；
+  `ConsumerControllerTest.testUpdateConsumer` 用写死 `userId=35` 的令牌打接口，而测试库的 `consumer` 表是空的，
+  服务端一直返回"用户不存在"，用例却照样通过。
+- **测试隔离机制化**：`BaseTest` 的 `consumerMvc` 上移并统一预置令牌；每个用例前清 `music:*` 缓存，
+  使本地跑法与 CI 的冷缓存跑法对齐——此前测试库自增 id 每轮从 1 重新开始、而本机 Redis 跨轮存活，
+  上一轮的 `music:consumer:3` 会被这一轮当成本轮数据读出，表现为"本地偶发红、CI 全绿"。
+- 三种跑法全绿后才定版：反序字母序（复现 CI 的 Linux 目录枚举顺序，专抓类间顺序耦合）、默认顺序、`mvn -B clean verify`。
 
 ---
 
