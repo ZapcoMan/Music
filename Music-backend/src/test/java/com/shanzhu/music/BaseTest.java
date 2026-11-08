@@ -91,21 +91,29 @@ public class BaseTest {
     }
 
     /**
-     * 每个用例前清空本应用的缓存命名空间，让本地跑法与 CI 的冷缓存跑法对齐。
+     * 每个用例前清空本应用的缓存与限流计数器，让本地跑法与 CI 的冷缓存跑法对齐。
      *
-     * 不清的后果已经出现：测试库的自增 id 每轮都从 1 重新开始，而本机 Redis 是跨轮存活的，
+     * 不清缓存的后果已经出现：测试库的自增 id 每轮都从 1 重新开始，而本机 Redis 是跨轮存活的，
      * 上一轮写进 music:consumer:3 的用户会被这一轮的 selectByPrimaryKey(3) 原样读出，
      * 用例拿到的是"别人家的行"——表现就是本地偶发红、CI 全绿（或反过来）。
      *
-     * 键模式固定 music:*：这是 CacheKeys 里全部业务缓存的公共前缀，不会误伤同机其他应用；
-     * 已吊销令牌黑名单在 jwt:blacklist: 下，它不是缓存，清掉等于把登出过的令牌放回来。
+     * 限流计数器（rate:*）同样要清，理由不同但更容易出事：它按"注解前缀 + 身份"累计，
+     * 同一身份在整轮测试里共用一个 60 秒窗口。评论接口 10 次/60 秒，
+     * 一个类里多几条用例就先撞上 429，之后断言测的是限流而不是被测逻辑。
+     * 清理发生在每个用例之前，因此专门验证限流的用例依然成立——
+     * 那类用例是在一次调用里连续打满窗口，不依赖跨用例残留。
+     *
+     * 键模式只有 music:* 与 rate:*：分别是业务缓存与限流的命名空间，不会误伤同机其他应用。
+     * 已吊销令牌黑名单在 jwt:blacklist: 下，它不是缓存，清掉等于把登出过的令牌放回来，绝不动。
      *
      * KEYS 在大集合上会阻塞 Redis，所以这条路只写在测试里，不进生产代码。
      */
     private void evictAppCache() {
-        Set<String> keys = redisTemplate.keys("music:*");
-        if (keys != null && !keys.isEmpty()) {
-            redisTemplate.delete(keys);
+        for (String pattern : new String[]{"music:*", "rate:*"}) {
+            Set<String> keys = redisTemplate.keys(pattern);
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+            }
         }
     }
 }

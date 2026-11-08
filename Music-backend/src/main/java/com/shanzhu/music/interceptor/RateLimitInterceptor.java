@@ -29,6 +29,12 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private final RedisTemplate<String, Object> redisTemplate;
     private final IpUtils ipUtils;
 
+    /**
+     * 所有计数器的公共命名空间。业务缓存在 music: 下、令牌黑名单在 jwt:blacklist: 下，
+     * 限流键原先直接以注解里的 key 开头，混在裸前缀里既难清理也难辨认。
+     */
+    private static final String RATE_KEY_NAMESPACE = "rate:";
+
     // API限流全局开关
     @Value("${rate-limit.enabled:true}")
     private boolean rateLimitEnabled;
@@ -68,15 +74,21 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         Object userIdAttr = request.getAttribute("userId");
         String identity = userIdAttr != null ? "user:" + userIdAttr : "ip:" + ip;
 
-        // 限流 key = 注解前缀 + 身份，不再拼原始 URI。
+        // 限流 key = 统一前缀 + 注解前缀 + 身份，不拼原始 URI。
         //
-        // 注解前缀（comment:add:、login:admin: 等）本身已经按接口划分，拼 URI 对固定路径
-        // 不增加任何区分度；但它会让同一接口的 URL 变体各自建键——大小写、尾部斜杠、
+        // 统一前缀 rate: 的作用不是好看：注解里的 key（comment:add:、login:admin: 等）
+        // 各不相同、没有公共前缀，测试基类清缓存时只能清 music:*，
+        // 限流计数因此跨用例、跨测试类累计——一组 8 条负例就能把
+        // 10 次/60 秒的窗口打满，之后断言测的是限流而不是被测逻辑。
+        // 有了 rate:，一次 rate:* 就能把所有计数器归零。
+        //
+        // 注解前缀本身已经按接口划分，拼 URI 对固定路径不增加任何区分度；
+        // 但它会让同一接口的 URL 变体各自建键——大小写、尾部斜杠、
         // 百分号编码、矩阵参数都能造出一个新计数器，攻击者由此绕过限流。
         // 已核实现有 10 个 @RateLimit 全部挂在字面路径上、无 {PathVariable}，
         // 因此去掉 URI 不改变任何既有接口的计数行为。
         // URI 仍保留在日志里，用于排查是哪个入口触发了限流。
-        String key = rateLimit.key() + identity;
+        String key = RATE_KEY_NAMESPACE + rateLimit.key() + identity;
 
         // 计数与判定必须原子。原实现是 get -> 判空 -> set(1, ttl)，
         // 并发请求会同时读到 null 并各自把计数写回 1，限流窗口被直接绕过；
