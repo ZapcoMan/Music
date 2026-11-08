@@ -293,11 +293,11 @@ public class ConsumerServiceImpl implements ConsumerService {
      * @return 分页结果
      */
     @Override
-    public PageInfo<Consumer> allConsumerByPage(int pageNum, int pageSize) {
+    public PageInfo<Consumer> allConsumerByPage(int pageNum, int pageSize, String keyword) {
         // 开启分页；上限由 PageLimits 兜住——配置层的 max-page-size 对这条路不生效
         PageHelper.startPage(pageNum, PageLimits.clamp(pageSize));
-        // 执行查询
-        List<Consumer> list = consumerMapper.allConsumer();
+        // 执行查询：keyword 为空时 selectByKeyword 不加 WHERE，与原先全量等价
+        List<Consumer> list = consumerMapper.selectByKeyword(keyword);
         // 封装分页结果
         return new PageInfo<>(list);
     }

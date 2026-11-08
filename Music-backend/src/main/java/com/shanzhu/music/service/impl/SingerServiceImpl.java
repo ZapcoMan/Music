@@ -262,11 +262,11 @@ public class SingerServiceImpl implements SingerService {
      * @return 分页结果
      */
     @Override
-    public PageInfo<Singer> allSingerByPage(int pageNum, int pageSize) {
+    public PageInfo<Singer> allSingerByPage(int pageNum, int pageSize, String keyword) {
         // 开启分页；上限由 PageLimits 兜住——配置层的 max-page-size 对这条路不生效
         PageHelper.startPage(pageNum, PageLimits.clamp(pageSize));
-        // 执行查询
-        List<Singer> list = singerMapper.allSinger();
+        // 执行查询：keyword 为空时不加过滤条件，与原先的全量分页等价
+        List<Singer> list = singerMapper.selectByKeyword(keyword);
         // 封装分页结果
         return new PageInfo<>(list);
     }

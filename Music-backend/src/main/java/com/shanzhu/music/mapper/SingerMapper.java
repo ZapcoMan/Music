@@ -2,6 +2,7 @@ package com.shanzhu.music.mapper;
 
 import com.shanzhu.music.entity.po.Singer;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -49,6 +50,15 @@ public interface SingerMapper {
      * @return 歌手列表
      */
     List<Singer> allSinger();
+
+    /**
+     * 按关键词模糊查询歌手，供管理端筛选与分页共用。
+     * keyword 为空时不加过滤条件，与 allSinger 等价。
+     *
+     * @param keyword 姓名、地区或简介的模糊词
+     * @return 匹配的歌手列表
+     */
+    List<Singer> selectByKeyword(@Param("keyword") String keyword);
 
     /**
      * 根据歌手名字模糊查询列表

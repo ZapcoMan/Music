@@ -197,6 +197,8 @@ export default {
             })
         },
         getByStyle(style) {              //根据歌单风格获取数量
+            // style 在库里可为空，直接 .includes 会抛 TypeError 打断整个统计
+            if (!style) return;
             for(let item of this.songStyle.rows){
                 if(style.includes(item['风格'])){
                     item['总数']++;
@@ -204,6 +206,7 @@ export default {
             }
         },
         getByCountry(location) {              //根据国籍获取数量
+            if (!location) return;
             for(let item of this.country.rows){
                 if(location.includes(item['国籍'])){
                     item['总数']++;

@@ -2,6 +2,7 @@ package com.shanzhu.music.mapper;
 
 import com.shanzhu.music.entity.po.Consumer;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -49,6 +50,15 @@ public interface ConsumerMapper {
      * @return 前台用户
      */
     List<Consumer> allConsumer();
+
+    /**
+     * 按关键词模糊查询前台用户，供管理端筛选与分页共用。
+     * keyword 为空时等价于全量查询，与 allConsumer 的区别只在于本方法专为分页起点使用。
+     *
+     * @param keyword 账号、电话或邮箱的模糊词
+     * @return 匹配的用户列表
+     */
+    List<Consumer> selectByKeyword(@Param("keyword") String keyword);
 
     /**
      * 根据账号查询

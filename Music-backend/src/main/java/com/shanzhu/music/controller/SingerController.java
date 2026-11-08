@@ -140,9 +140,12 @@ public class SingerController {
     @GetMapping(value = "/page")
     public R<PageInfo<Singer>> allSingerByPage(
             @RequestParam(defaultValue = "1") int pageNum,
-            @RequestParam(defaultValue = "10") int pageSize
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String keyword
     ) {
-        PageInfo<Singer> pageInfo = singerService.allSingerByPage(pageNum, pageSize);
+        // keyword 交给服务端过滤：管理端那个输入框原先只被 v-model 绑着，
+        // 既没有 watch 也没有请求绑定，能改变页面状态却改变不了数据
+        PageInfo<Singer> pageInfo = singerService.allSingerByPage(pageNum, pageSize, keyword);
         return R.ok(pageInfo);
     }
 

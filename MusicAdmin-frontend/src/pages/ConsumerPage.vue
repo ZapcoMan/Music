@@ -9,7 +9,13 @@
                     v-model="select_word"
                     placeholder="筛选相关用户"
                     class="handle-input"
+                    clearable
+                    @keyup.enter.native="handleSearch"
+                    @clear="handleSearch"
                 ></el-input>
+                <el-button type="primary" size="small" @click="handleSearch"
+                    >筛选</el-button
+                >
                 <br /><br />
                 <el-button
                     type="danger"
@@ -435,7 +441,9 @@ export default {
         },
         //查询所有用户（服务端分页）
         getData() {
-            getConsumerByPage(this.currentPage, this.pageSize).then((res) => {
+            // select_word 交给服务端过滤：它原先只是被 v-model 绑着，
+            // 既没有 watch 也没有请求绑定，输入后列表毫无变化
+            getConsumerByPage(this.currentPage, this.pageSize, this.select_word).then((res) => {
                 if (res.code === 20000 || res.success === true) {
                     this.tableData = res.data.list;
                     this.total = res.data.total;
@@ -443,6 +451,12 @@ export default {
                     this.notify(res.message || '获取用户列表失败', 'error');
                 }
             });
+        },
+        //按关键词重新查询：必须回到第一页，
+        //否则"在第 5 页搜一个只命中 2 条的关键词"会得到一张空表
+        handleSearch() {
+            this.currentPage = 1;
+            this.getData();
         },
         //添加用户
         addConsumer() {

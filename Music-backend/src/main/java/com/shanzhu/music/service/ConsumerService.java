@@ -92,5 +92,5 @@ public interface ConsumerService {
      * @param pageSize 每页大小
      * @return 分页结果
      */
-    PageInfo<Consumer> allConsumerByPage(int pageNum, int pageSize);
+    PageInfo<Consumer> allConsumerByPage(int pageNum, int pageSize, String keyword);
 }

@@ -235,9 +235,14 @@ public class ConsumerController {
     @RequireUserType("admin")
     public R<PageInfo<Consumer>> allConsumerByPage(
             @Parameter(description = "页码", example = "1") @RequestParam(defaultValue = "1") int pageNum,
-            @Parameter(description = "每页大小", example = "10") @RequestParam(defaultValue = "10") int pageSize
+            @Parameter(description = "每页大小", example = "10") @RequestParam(defaultValue = "10") int pageSize,
+            @Parameter(description = "关键词，匹配账号/电话/邮箱；留空即不过滤")
+            @RequestParam(required = false) String keyword
     ) {
-        PageInfo<Consumer> pageInfo = consumerService.allConsumerByPage(pageNum, pageSize);
+        // 筛选必须在服务端做：管理端此前那个输入框绑了 select_word
+        // 但没有任何请求绑定它——它能改变页面状态，改变不了数据，
+        // 看起来像功能，实际是装饰。
+        PageInfo<Consumer> pageInfo = consumerService.allConsumerByPage(pageNum, pageSize, keyword);
         return R.ok(pageInfo);
     }
 

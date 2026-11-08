@@ -93,6 +93,6 @@ public interface SingerService {
      * @param pageSize 每页大小
      * @return 分页结果
      */
-    PageInfo<Singer> allSingerByPage(int pageNum, int pageSize);
+    PageInfo<Singer> allSingerByPage(int pageNum, int pageSize, String keyword);
 
 }

@@ -112,12 +112,17 @@ class SingerServiceImplTest extends BaseTest {
     @Order(5)
     @DisplayName("测试分页查询歌手")
     void testAllSingerByPage() {
-        PageInfo<Singer> pageInfo = singerService.allSingerByPage(1, 2);
+        PageInfo<Singer> pageInfo = singerService.allSingerByPage(1, 2, null);
         assertNotNull(pageInfo, "分页结果不应为空");
         assertTrue(pageInfo.getTotal() >= 3, "总记录数应该至少3条");
         assertEquals(2, pageInfo.getSize(), "每页大小应该是2");
         assertTrue(pageInfo.getList().size() <= 2, "当前页数据不应超过2条");
         System.out.println("分页查询 - 总数: " + pageInfo.getTotal() + ", 当前页: " + pageInfo.getPageNum());
+
+        // keyword 为空等价于全量，非空才加 WHERE；管理端筛选走的就是这条
+        PageInfo<Singer> filtered = singerService.allSingerByPage(1, 10, "周");
+        assertTrue(filtered.getTotal() >= 1, "按关键词筛选应至少命中一条");
+        assertTrue(filtered.getTotal() < pageInfo.getTotal(), "筛选结果应少于全量");
     }
 
     /**

@@ -10,8 +10,8 @@ export const adminLogout = () => del(`admin/sessions`);
 //============歌手相关================
 //查询歌手
 export const getAllSinger =() => get(`singers`);
-//分页查询歌手
-export const getSingerByPage =(pageNum, pageSize) => get(`singers/page?pageNum=${pageNum}&pageSize=${pageSize}`);
+//分页查询歌手（keyword 交给服务端过滤姓名/地区/简介）
+export const getSingerByPage =(pageNum, pageSize, keyword) => get(`singers/page?pageNum=${pageNum}&pageSize=${pageSize}&keyword=${encodeURIComponent(keyword || '')}`);
 //添加歌手
 export const setSinger = (params) => post(`singers`,params);
 //编辑歌手
@@ -56,8 +56,8 @@ export const delListSong = (songId,songListId) => del(`song-lists/${songListId}/
 //============用户相关================
 //查询用户
 export const getAllConsumer =() => get(`consumers`);
-//分页查询用户
-export const getConsumerByPage =(pageNum, pageSize) => get(`consumers/page?pageNum=${pageNum}&pageSize=${pageSize}`);
+//分页查询用户（keyword 交给服务端过滤账号/电话/邮箱）
+export const getConsumerByPage =(pageNum, pageSize, keyword) => get(`consumers/page?pageNum=${pageNum}&pageSize=${pageSize}&keyword=${encodeURIComponent(keyword || '')}`);
 //添加用户
 export const setConsumer = (params) => post(`consumers/registrations`,params);
 //编辑用户（管理员侧端点：目标用户取自路径 id，故 id 单独作第一个参数，

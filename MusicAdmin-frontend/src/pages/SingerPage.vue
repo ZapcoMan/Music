@@ -9,7 +9,11 @@
                     v-model="select_word"
                     placeholder="请输入歌手名"
                     class="handle-input"
+                    clearable
+                    @keyup.enter.native="handleSearch"
+                    @clear="handleSearch"
                 ></el-input>
+                <el-button type="primary" size="small" @click="handleSearch">筛选</el-button>
                 <br /><br />
                 <el-button type="danger" size="small" style="font-size: 14px" @click="delAll"
                     ><i
@@ -319,7 +323,9 @@ export default {
         },
         //查询所有歌手（服务端分页）
         getData() {
-            getSingerByPage(this.currentPage, this.pageSize).then((res) => {
+            // select_word 交给服务端过滤：它原先只是被 v-model 绑着，
+            // 没有 watch 也没有请求绑定，输入后列表毫无变化
+            getSingerByPage(this.currentPage, this.pageSize, this.select_word).then((res) => {
                 if (res.code === 20000 || res.success === true) {
                     this.tableData = res.data.list;
                     this.total = res.data.total;
@@ -327,6 +333,12 @@ export default {
                     this.notify(res.message || '获取歌手列表失败', 'error');
                 }
             });
+        },
+        //按关键词重新查询：必须回到第一页，
+        //否则在后面的页码上搜一个只命中一条的词，看到的会是空表
+        handleSearch() {
+            this.currentPage = 1;
+            this.getData();
         },
         //添加歌手
         addSinger() {

@@ -120,6 +120,27 @@
         from singer
     </select>
 
+    <!--
+      管理端筛选歌手用的关键词查询。与 allSinger 的区别只在这个多一个可选条件，
+      全量端点仍走 allSinger，避免把"筛选"语义塞进所有人共用的那条查询。
+      三列都是前导通配 %kw%，走不到索引；keyword 为空时不加 WHERE，
+      执行计划与 allSinger 一致。order by id 保证翻页行序稳定
+      （MySQL 对无 ORDER BY 的重复扫描不保证顺序一致，PageHelper 翻页会漏行或重复）。
+    -->
+    <select id="selectByKeyword" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from singer
+        <where>
+            <if test="keyword != null and keyword != ''">
+                name like concat('%', #{keyword}, '%')
+                or location like concat('%', #{keyword}, '%')
+                or introduction like concat('%', #{keyword}, '%')
+            </if>
+        </where>
+        order by id
+    </select>
+
     <select id="singerOfName" resultMap="BaseResultMap" parameterType="java.lang.String">
         select
         <include refid="Base_Column_List"/>
