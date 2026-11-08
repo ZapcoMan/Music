@@ -198,24 +198,4 @@ public class JwtUtils {
         long remaining = (claims.getExpiration().getTime() - System.currentTimeMillis()) / 1000L;
         return Math.max(0L, remaining);
     }
-
-    /**
-     * 刷新Token
-     *
-     * @param token 原Token
-     * @return 新Token
-     */
-    public String refreshToken(String token) {
-        Claims claims = getClaimsFromToken(token);
-        if (claims == null) {
-            return null;
-        }
-
-        Integer userId = claims.get("userId", Integer.class);
-        String username = claims.getSubject();
-        String userType = claims.get("userType", String.class);
-        String ip = claims.get("ip", String.class);
-
-        return generateToken(userId, username, userType, ip);
-    }
 }
