@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.method.HandlerMethod;
@@ -89,7 +90,23 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
 
         // 检查Token是否在Redis中被禁用(用于登出场景)
         String redisKey = CacheKeys.TOKEN_BLACKLIST + token;
-        if (redisUtils.hasKey(redisKey)) {
+        boolean revoked;
+        try {
+            // hasKey 返回的是 Boolean，直接放进 if 会在 null 时拆箱抛 NPE；
+            // spring-data-redis 在部分管道异常下确实会给出 null 而不是抛错
+            revoked = Boolean.TRUE.equals(redisUtils.hasKey(redisKey));
+        } catch (DataAccessException e) {
+            // 这里刻意 fail-open，方向与限流那边相反，原因是代价不对称：
+            // 关成拒绝的话，Redis 一挂，所有已登录请求当场全部不可用——
+            // 本应用每个业务接口都要经过这条黑名单；
+            // 放开的话，风险只是"已经登出的令牌多活一会儿"，
+            // 而它仍然受签名校验与自身过期时间约束，窗口有界。
+            // 前提是这个降级必须被看见：用 error 级日志，便于接告警，不能悄悄发生。
+            log.error("令牌黑名单不可用，本次按未吊销放行 - uri={}, 原因={}",
+                    request.getRequestURI(), e.getMessage());
+            revoked = false;
+        }
+        if (revoked) {
             log.warn("JWT认证失败 - Token已被禁用");
             return reject(response, HttpServletResponse.SC_UNAUTHORIZED, "Token已被禁用,请重新登录");
         }

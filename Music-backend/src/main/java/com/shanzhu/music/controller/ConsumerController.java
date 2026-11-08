@@ -72,9 +72,12 @@ public class ConsumerController {
         if (token == null || token.isBlank()) {
             return R.error("缺少令牌");
         }
-        tokenBlacklistService.revoke(token);
+        // 同 AdminController：Redis 不可用时吊销会失败，
+        // 本地已退出这一点是真的，但服务端没拉黑也必须说清楚，不能报一个"已退出登录"掩盖过去
+        boolean revoked = tokenBlacklistService.revoke(token);
         operationLogService.logLogout(userId, username, userType, ipUtils.getIpAddress(request));
-        return R.ok("已退出登录");
+        return R.ok(revoked ? "已退出登录"
+                : "已退出登录，但服务端暂时无法吊销该令牌，它在自然过期前仍可能有效");
     }
 
     /**

@@ -60,9 +60,12 @@ public class AdminController {
         if (token == null || token.isBlank()) {
             return R.error("缺少令牌");
         }
-        tokenBlacklistService.revoke(token);
+        // 本地会话一定清掉了；但若 Redis 不可用，服务端没能把它拉黑，
+        // 就必须如实说明——否则拿着泄漏令牌的人以为对方已经安全退出
+        boolean revoked = tokenBlacklistService.revoke(token);
         operationLogService.logLogout(userId, username, userType, ipUtils.getIpAddress(request));
-        return R.ok("已退出登录");
+        return R.ok(revoked ? "已退出登录"
+                : "已退出登录，但服务端暂时无法吊销该令牌，它在自然过期前仍可能有效");
     }
 
     /**
