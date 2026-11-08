@@ -1,6 +1,8 @@
 package com.shanzhu.music.service;
 
+import com.shanzhu.music.entity.dto.TagSaveRequest;
 import com.shanzhu.music.entity.po.Tag;
+import com.shanzhu.music.entity.vo.TaggedSongVo;
 
 import java.util.List;
 
@@ -63,6 +65,28 @@ public interface TagService {
      * @return 标签列表
      */
     List<Tag> hotTags(int limit);
+
+    /**
+     * 按标签集合取歌曲，结果携带 matchCount 供可解释的命中说明。
+     *
+     * 这条原先由 Controller 直接调 TagMapper，属于 web 层穿透到持久层；
+     * limit 的区间夹取（1..100）是业务规则，一起搬进来，
+     * 否则换一种调用方式就能绕过上限把整表连歌词一起拉走。
+     *
+     * @param tagIds 标签id集合，调用方须保证非空
+     * @param limit  期望条数，实现内会夹到 1-100
+     * @return 带命中数的歌曲视图列表
+     */
+    List<TaggedSongVo> selectSongsByTagIds(List<Integer> tagIds, int limit);
+
+    /**
+     * 批量写入标签字典，按名字去重。
+     *
+     * @param requests 标签请求，name 为空的条目会被跳过而不是报错
+     * @return 实际提交条数（不等于新增条数：重复项由字典表去重忽略，
+     *         INSERT IGNORE 的返回值在重复时仍等于提交条数，不能当新增数用）
+     */
+    int batchAdd(List<TagSaveRequest> requests);
 
     /**
      * 用规范化标签串重建某位歌手的标签关联（先删后插）。

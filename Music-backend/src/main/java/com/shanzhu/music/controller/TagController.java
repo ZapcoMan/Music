@@ -2,13 +2,13 @@ package com.shanzhu.music.controller;
 
 import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
+import com.shanzhu.music.entity.dto.TagSaveRequest;
 import com.shanzhu.music.entity.po.Tag;
 import com.shanzhu.music.entity.po.Singer;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.entity.vo.TaggedSongVo;
 import com.shanzhu.music.service.SingerService;
 import com.shanzhu.music.service.SongService;
-import com.shanzhu.music.mapper.TagMapper;
 import com.shanzhu.music.service.TagService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -48,7 +47,6 @@ import java.util.List;
 public class TagController {
 
     private final TagService tagService;
-    private final TagMapper tagMapper;
     private final SongService songService;
     private final SingerService singerService;
 
@@ -89,10 +87,12 @@ public class TagController {
     @GetMapping(value = "/api/v1/tags/songs")
     public R<List<TaggedSongVo>> songs(@RequestParam List<Integer> tagIds,
                                        @RequestParam(defaultValue = "20") int limit) {
+        // 空集合直接给明确的客户端错误，而不是让 service 返回空列表
+        // 让人误以为"这些标签下没有歌"
         if (tagIds == null || tagIds.isEmpty()) {
             return R.error("tagIds 不能为空");
         }
-        return R.ok(tagMapper.selectSongsByTagIds(tagIds, Math.min(Math.max(limit, 1), 100)));
+        return R.ok(tagService.selectSongsByTagIds(tagIds, limit));
     }
 
     /**
@@ -187,32 +187,21 @@ public class TagController {
      * @param tags 标签列表，name 必填，type 取 0风格1情感2场景3语言4其他
      * @return 新增条数
      */
-    @Operation(summary = "批量新增标签", description = "按名字去重写入标签字典")
+    @Operation(summary = "批量新增标签", description = "按名字去重写入标签字典；name 空白的条目跳过")
     @PostMapping(value = "/api/v1/tags")
     @RequireUserType("admin")
-    public R<Integer> batchAdd(@RequestBody List<Tag> tags) {
+    public R<Integer> batchAdd(@RequestBody List<TagSaveRequest> tags) {
         if (tags == null || tags.isEmpty()) {
             return R.error("标签列表不能为空");
         }
-        List<Tag> valid = new ArrayList<>();
-        for (Tag tag : tags) {
-            if (tag == null || tag.getName() == null || tag.getName().isBlank()) {
-                continue;
-            }
-            tag.setName(tag.getName().trim());
-            if (tag.getType() == null) {
-                tag.setType((byte) 4);   // 4 其它：字典里 type 允许缺省，落到最宽的一类
-            }
-            valid.add(tag);
-        }
-        if (valid.isEmpty()) {
+        // 校验与落库都在 TagService#batchAdd：原先这两步写在 Controller 里，
+        // 还直接接了持久层对象 List<Tag> 并就地改写它的 name/type——
+        // web 层因此可以往实体里塞任意字段，其中一部分会被当成列写进库。
+        int submitted = tagService.batchAdd(tags);
+        if (submitted == 0) {
             return R.error("没有有效的标签名");
         }
-        // INSERT IGNORE 的返回值不能当"新增条数"用：实测重复项被忽略时它仍返回提交条数，
-        // 直接透给调用方会谎报。这里只报提交条数，是否真正入库由字典表自身去重保证。
-        tagMapper.batchInsertIgnore(valid);
-        log.info("批量新增标签 - 提交 {} 条（按名字去重，重复项忽略）", valid.size());
-        return R.ok("提交成功", valid.size());
+        return R.ok("提交成功", submitted);
     }
 
 }

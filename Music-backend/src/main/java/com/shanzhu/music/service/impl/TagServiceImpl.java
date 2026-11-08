@@ -1,6 +1,8 @@
 package com.shanzhu.music.service.impl;
 
+import com.shanzhu.music.entity.dto.TagSaveRequest;
 import com.shanzhu.music.entity.po.Tag;
+import com.shanzhu.music.entity.vo.TaggedSongVo;
 import com.shanzhu.music.mapper.TagMapper;
 import com.shanzhu.music.service.TagService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,18 @@ import java.util.Set;
 public class TagServiceImpl implements TagService {
 
     private final TagMapper tagMapper;
+
+    /**
+     * 按标签查歌的条数上限。夹取放在服务层而不是 Controller，
+     * 是为了让"换一种调用方式"也绕不过去。
+     */
+    private static final int SONGS_BY_TAG_MAX = 100;
+
+    /**
+     * 标签类型缺省值：4 其它。字典表允许 type 为空，
+     * 但留空的那条在标签云按类型筛选时谁也筛不到，等于写进去就失效。
+     */
+    private static final byte DEFAULT_TYPE = 4;
 
     @Override
     public String normalizeTags(String tagsCsv) {
@@ -114,6 +128,43 @@ public class TagServiceImpl implements TagService {
     @Override
     public List<Tag> hotTags(int limit) {
         return tagMapper.selectHotTags(limit);
+    }
+
+    @Override
+    public List<TaggedSongVo> selectSongsByTagIds(List<Integer> tagIds, int limit) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return List.of();
+        }
+        int capped = Math.min(Math.max(limit, 1), SONGS_BY_TAG_MAX);
+        return tagMapper.selectSongsByTagIds(tagIds, capped);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchAdd(List<TagSaveRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            return 0;
+        }
+        List<Tag> valid = new ArrayList<>();
+        for (TagSaveRequest request : requests) {
+            if (request == null || request.getName() == null || request.getName().isBlank()) {
+                continue;
+            }
+            Tag tag = new Tag();
+            tag.setName(request.getName().trim());
+            // type 缺省落到 4（其他）：字典表允许该列为空，但一旦留空，
+            // 标签云按类型筛选时这条就谁也筛不到，等于写进去就失效
+            tag.setType(request.getType() != null ? request.getType() : DEFAULT_TYPE);
+            valid.add(tag);
+        }
+        if (valid.isEmpty()) {
+            return 0;
+        }
+        // INSERT IGNORE 的返回值不能当"新增条数"用：实测重复项被忽略时它仍返回提交条数，
+        // 直接透给调用方会谎报。这里只报提交条数，是否真正入库由字典表自身去重保证。
+        tagMapper.batchInsertIgnore(valid);
+        log.info("批量新增标签 - 提交 {} 条（按名字去重，重复项忽略）", valid.size());
+        return valid.size();
     }
 
     @Override
