@@ -6,9 +6,12 @@ import com.shanzhu.music.common.R;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.entity.vo.UploadPicVo;
 import com.shanzhu.music.entity.vo.UploadSongVo;
+import com.shanzhu.music.service.OperationLogService;
 import com.shanzhu.music.service.SongService;
 import com.shanzhu.music.service.FileStorageService;
+import com.shanzhu.music.utils.IpUtils;
 import com.shanzhu.music.utils.ParseUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -35,6 +38,8 @@ public class SongController {
 
     private final SongService songService;
     private final FileStorageService fileStorageService;
+    private final OperationLogService operationLogService;
+    private final IpUtils ipUtils;
 
     /**
      * 添加歌曲
@@ -50,12 +55,16 @@ public class SongController {
     @PostMapping
     @RequireUserType("admin")
     public R<UploadSongVo> addSong(
+            @RequestAttribute("userId") Integer operatorId,
+            @RequestAttribute("username") String operatorName,
+            @RequestAttribute("userType") String operatorType,
             String singerId,
             String name,
             String introduction,
             String pic,
             String lyric,
-            @RequestParam("file") MultipartFile mpFile
+            @RequestParam("file") MultipartFile mpFile,
+            HttpServletRequest httpRequest
     ) throws IOException {
         String storeUrlPath;
         try {
@@ -79,6 +88,12 @@ public class SongController {
 
         //保存歌曲成功
         if (songService.insert(song)) {
+            // 曲库改动必须留痕：此前 27 个写端点里只有认证与用户资料两类接了审计，
+            // 歌曲新增/修改/删除在 operation_log 里一条都不记，
+            // 事后无法回答"这首歌是谁什么时候传上来的"
+            operationLogService.logAdd(operatorId, operatorName, operatorType,
+                    "曲库模块", "新增歌曲 " + name + " (id=" + song.getId() + ")",
+                    ipUtils.getIpAddress(httpRequest));
             UploadSongVo uploadSongVo = new UploadSongVo();
             uploadSongVo.setAvator(storeUrlPath);
             return R.ok(uploadSongVo);
@@ -98,8 +113,12 @@ public class SongController {
      */
     @PatchMapping(value = "/{id}")
     @RequireUserType("admin")
-    public R<Void> updateSong(@PathVariable("id") Integer id,
-                             String name, String introduction, String lyric) {
+    public R<Void> updateSong(@RequestAttribute("userId") Integer operatorId,
+                              @RequestAttribute("username") String operatorName,
+                              @RequestAttribute("userType") String operatorType,
+                              @PathVariable("id") Integer id,
+                              String name, String introduction, String lyric,
+                              HttpServletRequest httpRequest) {
         //保存到歌手的对象中
         Song song = new Song();
         song.setId(id);
@@ -109,6 +128,9 @@ public class SongController {
 
         //修改成功
         if (songService.update(song)) {
+            operationLogService.logUpdate(operatorId, operatorName, operatorType,
+                    "曲库模块", "修改歌曲 id=" + id + " 歌名=" + name,
+                    ipUtils.getIpAddress(httpRequest));
             return R.ok("修改成功");
         }
 
@@ -123,8 +145,19 @@ public class SongController {
      */
     @DeleteMapping(value = "/{id}")
     @RequireUserType("admin")
-    public R<Boolean> deleteSong(@PathVariable("id") Integer id) {
-        return R.ok(songService.delete(id));
+    public R<Boolean> deleteSong(@RequestAttribute("userId") Integer operatorId,
+                                 @RequestAttribute("username") String operatorName,
+                                 @RequestAttribute("userType") String operatorType,
+                                 @PathVariable("id") Integer id,
+                                 HttpServletRequest httpRequest) {
+        boolean deleted = songService.delete(id);
+        // 删除是曲库里最难恢复的动作：行连同 list_song、song_tag 的关联一起消失，
+        // 不记审计就只剩"这行不见了"这一个事实，连是谁删的都不知道
+        if (deleted) {
+            operationLogService.logDelete(operatorId, operatorName, operatorType,
+                    "曲库模块", "删除歌曲 id=" + id, ipUtils.getIpAddress(httpRequest));
+        }
+        return R.ok(deleted);
     }
 
     /**
@@ -137,8 +170,12 @@ public class SongController {
     @PostMapping(value = "/{id}/picture")
     @RequireUserType("admin")
     public R<UploadPicVo> updateSongPic(
+            @RequestAttribute("userId") Integer operatorId,
+            @RequestAttribute("username") String operatorName,
+            @RequestAttribute("userType") String operatorType,
             @RequestParam("file") MultipartFile avatorFile,
-            @PathVariable("id") Integer id
+            @PathVariable("id") Integer id,
+            HttpServletRequest httpRequest
     ) throws IOException {
 
         String storeAvatorPath;
@@ -153,6 +190,9 @@ public class SongController {
 
         //更新成功
         if (songService.update(song)) {
+            operationLogService.logUpdate(operatorId, operatorName, operatorType,
+                    "曲库模块", "更换歌曲图片 id=" + id + " → " + storeAvatorPath,
+                    ipUtils.getIpAddress(httpRequest));
             UploadPicVo uploadPicVo = new UploadPicVo();
             uploadPicVo.setPic(storeAvatorPath);
             return R.ok("上传成功", uploadPicVo);
@@ -171,8 +211,12 @@ public class SongController {
     @PostMapping(value = "/{id}/audio")
     @RequireUserType("admin")
     public R<UploadSongVo> updateSongUrl(
+            @RequestAttribute("userId") Integer operatorId,
+            @RequestAttribute("username") String operatorName,
+            @RequestAttribute("userType") String operatorType,
             @RequestParam("file") MultipartFile avatorFile,
-            @PathVariable("id") Integer id
+            @PathVariable("id") Integer id,
+            HttpServletRequest httpRequest
     ) throws IOException {
         String storeAvatorPath;
         try {
@@ -186,6 +230,9 @@ public class SongController {
 
         //更新歌曲
         if (songService.update(song)) {
+            operationLogService.logUpdate(operatorId, operatorName, operatorType,
+                    "曲库模块", "更换歌曲音频 id=" + id + " → " + storeAvatorPath,
+                    ipUtils.getIpAddress(httpRequest));
             UploadSongVo uploadSongVo = new UploadSongVo();
             uploadSongVo.setAvator(storeAvatorPath);
             return R.ok("上传成功", uploadSongVo);
