@@ -1,15 +1,16 @@
 package com.shanzhu.music.interceptor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shanzhu.music.utils.IpUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.WebUtils;
 
-import java.net.InetAddress;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,7 +25,17 @@ import java.util.Map;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
+
+    /**
+     * 取客户端 IP 只有一个口径。此前本类自带一份 getClientIp，
+     * 无条件采信 X-Forwarded-For 等可伪造头，而鉴权侧用的是受
+     * security.ip.trust-proxy-headers 开关控制的 IpUtils：
+     * 同一个请求里，令牌绑定用的是真地址、审计日志记的是伪造值，
+     * 事后拿日志溯源会得到一个不存在的主机，等于自断线索。
+     */
+    private final IpUtils ipUtils;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final String START_TIME_ATTRIBUTE = "startTime";
@@ -36,8 +47,8 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
         long startTime = System.currentTimeMillis();
         request.setAttribute(START_TIME_ATTRIBUTE, startTime);
 
-        // 获取客户端IP
-        String clientIp = getClientIp(request);
+        // 获取客户端IP（与鉴权侧同一口径，见 ipUtils 字段说明）
+        String clientIp = ipUtils.getIpAddress(request);
 
         // 构建请求日志
         StringBuilder requestLog = new StringBuilder();
@@ -167,30 +178,6 @@ public class RequestResponseLoggingInterceptor implements HandlerInterceptor {
      */
     private String generateRequestId() {
         return String.format("%d-%d", System.currentTimeMillis(), (int) (Math.random() * 10000));
-    }
-
-    /**
-     * 获取客户端真实IP
-     */
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        // 多个代理时,第一个IP为真实IP
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        return ip;
     }
 
     /**
