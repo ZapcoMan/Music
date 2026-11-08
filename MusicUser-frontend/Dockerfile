@@ -23,7 +23,12 @@ ENV VUE_APP_API_BASE_URL=$VUE_APP_API_BASE_URL
 RUN npm run build
 
 # 生产阶段 - 使用 Nginx
-FROM nginx:alpine
+#
+# 用 unprivileged 变体而不是 nginx:alpine：后者以 root 起 master 进程，
+# 容器内一旦被绕过 nginx 配置解析的漏洞利用拿下，拿到的是 root。
+# 这个镜像自带 user=101（nginx）且默认端口 8080，因此必须与 nginx.conf 的
+# listen、compose 的端口映射三处一起改，只换镜像不换端口容器直接起不来。
+FROM nginxinc/nginx-unprivileged:alpine
 
 # 复制自定义 Nginx 配置
 COPY nginx.conf /etc/nginx/conf.d/default.conf
@@ -31,12 +36,12 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # 从构建阶段复制静态文件到 Nginx
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# 暴露端口
-EXPOSE 80
+# 暴露端口（非 root 不能绑定 1024 以下，这里是 8080）
+EXPOSE 8080
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=3s \
-  CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
+  CMD wget --quiet --tries=1 --spider http://localhost:8080/ || exit 1
 
 # 启动 Nginx
 CMD ["nginx", "-g", "daemon off;"]
