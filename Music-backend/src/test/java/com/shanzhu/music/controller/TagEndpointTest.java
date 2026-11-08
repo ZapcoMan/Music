@@ -1,6 +1,7 @@
 package com.shanzhu.music.controller;
 
 import com.shanzhu.music.BaseTest;
+import com.shanzhu.music.TestPayloads;
 import com.shanzhu.music.entity.po.Singer;
 import com.shanzhu.music.entity.po.Song;
 import com.shanzhu.music.service.SingerService;
@@ -170,7 +171,7 @@ class TagEndpointTest extends BaseTest {
     @DisplayName("准备一首自建歌曲供写入用例使用")
     void createSongForWriteCases() throws Exception {
         MockMultipartFile mp3 = new MockMultipartFile(
-                "file", "tag-endpoint.mp3", "audio/mpeg", "tag endpoint content".getBytes());
+                "file", "tag-endpoint.mp3", "audio/mpeg", TestPayloads.MP3);
 
         mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/songs")
                         .file(mp3)

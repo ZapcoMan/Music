@@ -1,6 +1,7 @@
 package com.shanzhu.music.controller;
 
 import com.shanzhu.music.BaseTest;
+import com.shanzhu.music.TestPayloads;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -39,7 +40,7 @@ class SongControllerTest extends BaseTest {
                 "file",
                 "test.mp3",
                 "audio/mpeg",
-                "test audio content".getBytes()
+                TestPayloads.MP3
         );
 
         mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/songs")
@@ -104,7 +105,7 @@ class SongControllerTest extends BaseTest {
         // 删除目标由本用例自己创建：原先写死 id=1，删的是碰巧存在（或根本不存在）的行，
         // 而断言只有 $.data exists —— 业务成功与"data=false 也算存在"在它眼里没区别
         MockMultipartFile file = new MockMultipartFile(
-                "file", "to-delete.mp3", "audio/mpeg", "x".getBytes());
+                "file", "to-delete.mp3", "audio/mpeg", TestPayloads.MP3);
         mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/songs")
                 .file(file)
                 .param("singerId", String.valueOf(ADDED_SINGER_ID))
@@ -147,6 +148,35 @@ class SongControllerTest extends BaseTest {
         mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/songs/1/audio")
                 .file(new MockMultipartFile("file", "evil.exe", "application/octet-stream", bytes))
                 )
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false));
+    }
+
+    /**
+     * 扩展名合法、内容不符同样要拒。
+     *
+     * 上面两条 evil.exe 只测了白名单那一层：文件名本身不合格。
+     * 真正的绕过是换一个合法后缀——把任意脚本改名成 .png 或 .mp3，
+     * 旧的校验会照收并落盘，之后它就以"图片"的身份被静态目录直出。
+     * 这组用例盯的是 FileStorageService 里的内容签名核对，
+     * 白名单通过、签名不匹配，必须停在落盘之前。
+     */
+    @Test
+    @Order(32)
+    @DisplayName("测试伪装成图片与音频的内容被拒绝")
+    void testDisguisedContentIsRejected() throws Exception {
+        // MZ 可执行头 + 合法 .png 后缀；补到 16 字节，避免被判成"内容过短"而不是"不符"
+        byte[] disguisedImage = new byte[]{0x4d, 0x5a, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
+                0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e};
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/songs/1/picture")
+                        .file(new MockMultipartFile("file", "disguised.png", "image/png", disguisedImage)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false));
+
+        // 纯文本冒充 mp3：既没有 ID3 标签，也不是 MPEG 帧同步头
+        byte[] disguisedAudio = "<script>alert(1)</script>".getBytes();
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/v1/songs/1/audio")
+                        .file(new MockMultipartFile("file", "disguised.mp3", "audio/mpeg", disguisedAudio)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false));
     }

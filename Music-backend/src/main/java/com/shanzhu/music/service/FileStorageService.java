@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
@@ -50,11 +51,27 @@ public class FileStorageService {
         if (extension == null || !allowedExtensions.contains(extension.toLowerCase(Locale.ROOT))) {
             throw new IllegalArgumentException("不支持的文件类型：" + extension);
         }
+        String normalizedExtension = extension.toLowerCase(Locale.ROOT);
+
+        // 扩展名是客户端可以随意改的字段：把脚本改名成 .jpg 就能过上面那道白名单，
+        // 落盘之后它就是个"图片"，由静态目录直出。要求内容与声明格式一致。
+        // 这里读一次流做判定，之后 transferTo 仍会重新打开自己的流，互不影响。
+        byte[] head = new byte[16];
+        int headLength;
+        try (InputStream in = file.getInputStream()) {
+            headLength = in.read(head);
+        }
+        if (headLength <= 0) {
+            throw new IllegalArgumentException("文件内容无法识别（空或已损坏）");
+        }
+        if (!matchesContent(normalizedExtension, head)) {
+            throw new IllegalArgumentException("文件内容与扩展名不符：" + normalizedExtension);
+        }
 
         // 落盘文件名完全由服务端生成，不沿用客户端提供的名字，从根源上排除路径穿越
         String safeName = System.currentTimeMillis() + "-"
                 + UUID.randomUUID().toString().substring(0, 8)
-                + "." + extension.toLowerCase(Locale.ROOT);
+                + "." + normalizedExtension;
 
         String dirPath = PathUtils.getClassLoadRootPath() + "/" + subDir + "/";
         File dir = new File(dirPath);
@@ -72,6 +89,62 @@ public class FileStorageService {
         String relativePath = "/" + subDir + "/" + safeName;
         log.info("文件上传成功: {} ({} bytes)", relativePath, file.getSize());
         return relativePath;
+    }
+
+    /**
+     * 文件头签名核对。只列本项目白名单内的格式；
+     * 新增扩展名时必须同时在这里加一条，否则 matchesContent 会走 default 直接拒绝。
+     */
+    private static boolean matchesContent(String extension, byte[] head) {
+        switch (extension) {
+            case "jpg":
+            case "jpeg":
+                return signatureMatches(head, 0, 0xFF, 0xD8, 0xFF);
+            case "png":
+                return signatureMatches(head, 0, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A);
+            case "gif":
+                return signatureMatches(head, 0, 'G', 'I', 'F', '8');
+            case "webp":
+                return signatureMatches(head, 0, 'R', 'I', 'F', 'F')
+                        && signatureMatches(head, 8, 'W', 'E', 'B', 'P');
+            case "mp3":
+                // ID3v2 标签头，或裸的 MPEG 帧同步：首字节 0xFF，次字节高 3 位全为 1
+                // （0xE0 是掩码而不是取值，实际可能是 0xE0–0xFF 之间的任一同步字）
+                return signatureMatches(head, 0, 'I', 'D', '3')
+                        || (head.length >= 2 && (head[0] & 0xFF) == 0xFF && (head[1] & 0xE0) == 0xE0);
+            case "wav":
+                return signatureMatches(head, 0, 'R', 'I', 'F', 'F')
+                        && signatureMatches(head, 8, 'W', 'A', 'V', 'E');
+            case "flac":
+                return signatureMatches(head, 0, 'f', 'L', 'a', 'C');
+            case "ogg":
+                return signatureMatches(head, 0, 'O', 'g', 'g', 'S');
+            case "aac":
+                // ADTS 帧同步：0xFF + 次字节 0xF_ （1 位版本 + 4 位 stream 标志，掩码 0xF6）
+                return head.length >= 2
+                        && (head[0] & 0xFF) == 0xFF
+                        && (head[1] & 0xF6) == 0xF0;
+            case "m4a":
+                // ISO BMFF：偏移 4 起是 "ftyp"
+                return signatureMatches(head, 4, 'f', 't', 'y', 'p');
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * 按偏移比较签名；长度不足一律视为不匹配，不抛越界。
+     */
+    private static boolean signatureMatches(byte[] head, int offset, int... signature) {
+        if (head == null || head.length < offset + signature.length) {
+            return false;
+        }
+        for (int i = 0; i < signature.length; i++) {
+            if ((head[offset + i] & 0xFF) != (signature[i] & 0xFF)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
