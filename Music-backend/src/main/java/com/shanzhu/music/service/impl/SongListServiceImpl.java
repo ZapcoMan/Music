@@ -1,5 +1,6 @@
 package com.shanzhu.music.service.impl;
 import com.shanzhu.music.common.CacheKeys;
+import com.shanzhu.music.common.PageLimits;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
@@ -231,8 +232,8 @@ public class SongListServiceImpl implements SongListService {
      */
     @Override
     public PageInfo<SongList> allSongListByPage(int pageNum, int pageSize) {
-        // 开启分页
-        PageHelper.startPage(pageNum, pageSize);
+        // 开启分页；上限由 PageLimits 兜住——配置层的 max-page-size 对这条路不生效
+        PageHelper.startPage(pageNum, PageLimits.clamp(pageSize));
         // 执行查询
         List<SongList> list = songListMapper.allSongList();
         // 封装分页结果

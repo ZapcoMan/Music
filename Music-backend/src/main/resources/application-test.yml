@@ -80,6 +80,7 @@ pagehelper:
   reasonable: true
   support-methods-arguments: true
   params: count=countSql
+  # 每页上限见 com.shanzhu.music.common.PageLimits（max-page-size 对 startPage 不生效）
 
 # JWT配置 - 测试环境简化
 jwt:

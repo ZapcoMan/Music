@@ -43,6 +43,9 @@ pagehelper:
   helper-dialect: mysql
   reasonable: true
   support-methods-arguments: true
+  # 每页上限不靠这里配：max-page-size 对 startPage 起页这条路不生效，
+  # 实测 pageSize=5000 会原样返回。真正兜上限的是 common.PageLimits，
+  # 由 SongControllerTest#testPageSizeCappedByMaxPageSize 断住。
 
 # JWT 配置(测试用简单密钥)
 jwt:

@@ -222,6 +222,31 @@ class SongControllerTest extends BaseTest {
     }
 
     /**
+     * 分页上限要真的夹得住。
+     *
+     * 这条用例最初是为了验 pagehelper.max-page-size，跑出来的是
+     * expected:<100> but was:<5000>——配置层根本夹不住 startPage 起页这条路
+     * （PageHelper 只在 setPageSize 里应用 maxPageSize），上限因此改由
+     * PageLimits 在调 startPage 之前夹。
+     *
+     * 留在这里的意义：防止有人把那条配置当成有效防护，也防止日后新增分页入口
+     * 时忘了过 clamp。
+     *
+     * 断的是夹完之后的 pageSize 元数据，不是返回条数——种子数据不足 100 行，
+     * 断条数在任何实现下都会通过。
+     */
+    @Test
+    @Order(12)
+    @DisplayName("测试分页大小被上限夹断")
+    void testPageSizeCappedByMaxPageSize() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/songs/page")
+                        .param("pageNum", "1")
+                        .param("pageSize", "5000"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.pageSize").value(100));
+    }
+
+    /**
      * 匿名添加歌曲必须被拒。
      *
      * 这条针对的是此前真实存在的洞：WebMvcConfig 为放行静态音频而排除了 /song/**，

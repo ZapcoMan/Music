@@ -1,5 +1,6 @@
 package com.shanzhu.music.service.impl;
 import com.shanzhu.music.common.CacheKeys;
+import com.shanzhu.music.common.PageLimits;
 
 import cn.hutool.core.date.DatePattern;
 import cn.hutool.core.date.DateUtil;
@@ -262,8 +263,8 @@ public class SingerServiceImpl implements SingerService {
      */
     @Override
     public PageInfo<Singer> allSingerByPage(int pageNum, int pageSize) {
-        // 开启分页
-        PageHelper.startPage(pageNum, pageSize);
+        // 开启分页；上限由 PageLimits 兜住——配置层的 max-page-size 对这条路不生效
+        PageHelper.startPage(pageNum, PageLimits.clamp(pageSize));
         // 执行查询
         List<Singer> list = singerMapper.allSinger();
         // 封装分页结果

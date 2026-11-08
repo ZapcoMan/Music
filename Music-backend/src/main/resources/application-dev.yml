@@ -111,6 +111,10 @@ pagehelper:
   reasonable: true
   support-methods-arguments: true
   params: count=countSql
+  # 每页条数上限不在这里配：pagehelper.max-page-size 只在 Page.setPageSize()
+  # 这条路径上生效，而本项目四处入口都是 startPage(pageNum, pageSize) 显式起页，
+  # 构造函数直接赋值、不经过 setPageSize，配了也夹不住（实测 pageSize=5000 原样返回）。
+  # 上限统一在 com.shanzhu.music.common.PageLimits，用例见 SongControllerTest。
 
 # JWT配置
 jwt:
