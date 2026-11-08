@@ -5,7 +5,7 @@ import {get,post,del,patch} from "./http";
 //查询歌手
 export const getAllSinger =() => get(`singers`);
 //根据性别查询歌手
-export const getSingerOfSex = (sex) => get(`singers?sex=${sex}`);
+export const getSingerOfSex = (sex) => get(`singers?sex=${encodeURIComponent(sex)}`);
 
 //============歌曲相关================
 //根据歌手id查询歌曲
@@ -13,15 +13,15 @@ export const songOfSingerId =(id) => get(`singers/${id}/songs`);
 //根据歌曲id查询歌曲对象
 export const songOfSongId =(id) => get(`songs/${id}`);
 //根据歌手名字模糊查询歌曲
-export const likeSongOfName =(keywords) => get(`songs?keyword=${keywords}`);
+export const likeSongOfName =(keywords) => get(`songs?keyword=${encodeURIComponent(keywords)}`);
 
 //============歌单相关================
 //查询歌单
 export const getAllSongList =() => get(`song-lists`);
 //返回标题包含文字的歌单列表
-export const getSongListOfLikeTitle = (keywords) => get(`song-lists?keyword=${keywords}`);
+export const getSongListOfLikeTitle = (keywords) => get(`song-lists?keyword=${encodeURIComponent(keywords)}`);
 //根据风格模糊查询歌单列表
-export const getSongListOfLikeStyle = (style) => get(`song-lists?style=${style}`);
+export const getSongListOfLikeStyle = (style) => get(`song-lists?style=${encodeURIComponent(style)}`);
 export const getRecommendedsongsList = () => get(`song-lists/recommended`)
 
 //============歌单的歌曲相关============

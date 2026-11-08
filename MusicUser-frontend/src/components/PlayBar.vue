@@ -41,8 +41,8 @@
                 <div class="current-time">{{ nowTime }}</div>
                 <div class="progress-box">
                     <div class="item-song-title">
-                        <div>{{ this.title }}</div>
-                        <div>{{ this.artist }}</div>
+                        <div>{{ title }}</div>
+                        <div>{{ artist }}</div>
                     </div>
                     <div ref="progress" class="progress" @mousemove="mousemove">
                         <!-- 进度条 -->
@@ -262,17 +262,36 @@ export default {
             }
         },
         copyToClip(content) {
-            var aux = document.createElement("input");
+            // 原先只走 document.execCommand("copy") 且不看返回值：它早已废弃，在非用户
+            // 手势、http 页面或被浏览器拦截时静默失败，而提示照样是"已成功获取链接"。
+            // 现代浏览器优先 navigator.clipboard（异步，能拿到真实的成败）。
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard
+                    .writeText(content)
+                    .then(() => {
+                        this.notify("您已成功获取音乐链接，快去粘贴分享吧。", "success");
+                    })
+                    .catch(() => {
+                        this.notify("复制失败，请手动选中链接复制。", "error");
+                    });
+                return;
+            }
+            // 降级路径只在旧浏览器/非安全上下文用到
+            const aux = document.createElement("input");
             aux.setAttribute("value", content);
             document.body.appendChild(aux);
             aux.select();
-            document.execCommand("copy");
-            document.body.removeChild(aux);
-            this.notify("您已成功获取音乐链接，快去粘贴分享吧。", "success");
-
-            //   navigator.clipboard.writeText(content).then(() => {
-            //     this.notify("您已成功获取音乐链接，快去粘贴分享吧。", "success");
-            //   });
+            let copied = false;
+            try {
+                copied = document.execCommand("copy");
+            } finally {
+                document.body.removeChild(aux);
+            }
+            if (copied) {
+                this.notify("您已成功获取音乐链接，快去粘贴分享吧。", "success");
+            } else {
+                this.notify("复制失败，请手动选中链接复制。", "error");
+            }
         },
         //提示信息
         notify(title, type) {
@@ -503,13 +522,19 @@ export default {
                     eleLink.style.display = "none";
                     //把字符内容转换成blob地址
                     let blob = new Blob([content]);
-                    eleLink.href = URL.createObjectURL(blob);
+                    let objectUrl = URL.createObjectURL(blob);
+                    eleLink.href = objectUrl;
                     //把链接地址加到document里
                     document.body.appendChild(eleLink);
                     //触发点击
                     eleLink.click();
                     //然后移除掉这个新加的控件
                     document.body.removeChild(eleLink);
+                    // blob URL 不 revoke 就一直占着整首歌的内存，下载页开久了会明显涨；
+                    // 立刻 revoke 在部分浏览器里会打断刚发起的下载，所以留一个短延迟
+                    window.setTimeout(() => {
+                        URL.revokeObjectURL(objectUrl);
+                    }, 1000);
                 })
                 .catch((err) => {
                     console.error(err);

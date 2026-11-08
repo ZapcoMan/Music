@@ -36,9 +36,14 @@ import {mixin} from '../mixins'
 export default {
   name: 'album-content',
   mixins: [mixin],
-  props: [
-    'songList'
-  ]
+  props: {
+    // 对象形式才会做类型校验；引用类型必须用工厂函数给默认值，
+    // 直接写 default: [] 会让所有实例共用同一个数组
+    songList: {
+      type: Array,
+      default: () => [],
+    },
+  },
 }
 </script>
 

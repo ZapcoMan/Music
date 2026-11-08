@@ -40,7 +40,6 @@ import {getUserOfId,getCommentOfSongListId,deleteComment} from '../api/index';
 
 export default {
     mixins: [mixin],
-    props: ['id'],
     data(){
         return{
             delVisible: false,          //删除弹窗是否显示

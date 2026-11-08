@@ -31,9 +31,9 @@
     <div class="tag-group">
       <span class="tag-group__title">精选评论：</span>
       <el-tag
-        v-for="(item, index) in featuredComment" :key="index" :type="info"
+        v-for="word in featuredComment" :key="word" type="info"
         effect="plain" size="medium">
-        {{featuredComment[index]}}
+        {{ word }}
       </el-tag>
     </div>
     <p>精彩评论：共{{ commentList.length }}条评论</p>
@@ -72,10 +72,18 @@
   export default {
     name: "comment",
     mixins: [mixin],
-    props: [
-      "playId", // 歌曲或歌单id
-      "type", // 0歌曲、1歌单
-    ],
+    props: {
+      // 写成对象而不是数组：数组形式的 props 不会做任何类型校验，
+      // 父组件传错类型（比如把 id 传成字符串）只会在运行时报错
+      playId: {
+        type: [Number, String],
+        default: null,
+      }, // 歌曲或歌单id
+      type: {
+        type: [Number, String],
+        default: 0,
+      }, // 0歌曲、1歌单
+    },
     computed: {
       ...mapGetters([
         "id", // 歌曲或歌单id
@@ -166,12 +174,11 @@
       },
       getfeaturedComment(){
         const  id = this.playId;
-        console.log('id' , id);
         getfeaturedComment(id).then((res) =>{
-          console.log('res.data:'+res.data);
           this.featuredComment = res.data;
-        })
-
+        }).catch((err) => {
+          this.notify((err && err.userMessage) || '精选评论加载失败', 'error');
+        });
       },
       // 给某一个评论点赞
       postUp(id, up, index) {

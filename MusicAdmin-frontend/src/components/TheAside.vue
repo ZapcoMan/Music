@@ -67,9 +67,16 @@ export default {
     },
     created(){
         //通过Bus进行组件间的通信，来折叠侧边栏
-        bus.$on('collapse',msg =>{
+        bus.$on('collapse', this.handleCollapse)
+    },
+    beforeDestroy(){
+        // 同 Home.vue：全局 bus 上不留指向已销毁实例的监听器
+        bus.$off('collapse', this.handleCollapse)
+    },
+    methods: {
+        handleCollapse(msg) {
             this.collapse = msg
-        })
+        }
     }
 }
 </script>

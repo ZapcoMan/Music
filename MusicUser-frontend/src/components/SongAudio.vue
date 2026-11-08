@@ -62,7 +62,11 @@ export default {
         togglePlay() {
             let player = this.$refs.player;
             if(this.isPlay){
-                player.play();
+                // play() 是 Promise：被浏览器拒绝（缺少用户手势、加载被打断）时
+                // 若不接住，除了 Unhandled rejection 还会让状态停在"播放中"
+                player.play().catch(() => {
+                    this.$store.commit('setIsPlay', false);
+                });
             }else{
                 player.pause();
             }

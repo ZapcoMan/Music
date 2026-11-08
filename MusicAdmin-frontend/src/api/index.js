@@ -29,7 +29,8 @@ export const delSong = (id) => del(`songs/${id}`);
 //根据歌曲id查询歌曲对象
 export const songOfSongId =(id) => get(`songs/${id}`);
 //根据歌曲名获取歌曲对象
-export const songOfSongName =(songName) => get(`songs?songName=${songName}`);
+// 歌名里带空格或 & 时，不编码的查询串会被截断成两个参数
+export const songOfSongName =(songName) => get(`songs?songName=${encodeURIComponent(songName)}`);
 //查询所有歌曲
 export const allSong =() => get(`songs`);
 

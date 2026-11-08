@@ -23,7 +23,14 @@ import {mixin} from '../mixins';
 export default {
     name: 'content-list',
     mixins: [mixin],
-    props: ['contentList'],
+    props: {
+        // 父组件传的都是列表；给默认空数组是因为 Home 上曾出现过 item.list
+        // 尚未就位时把 undefined 传进来，模板里的 v-for 直接报错
+        contentList: {
+            type: Array,
+            default: () => [],
+        },
+    },
     methods: {
         goAlbum(item,type){
             this.$store.commit("setTempList",item);
