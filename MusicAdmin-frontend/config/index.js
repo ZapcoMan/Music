@@ -56,7 +56,9 @@ module.exports = {
      * Source Maps
      */
 
-    productionSourceMap: true,
+    // 生产包不带 source map：Dockerfile 是 COPY --from=builder /app/dist，
+    // 开着它等于把源码结构一并发布出去（原始 app.*.js.map 已在 dist 里实测存在）。
+    productionSourceMap: false,
     // https://webpack.js.org/configuration/devtool/#production
     devtool: '#source-map',
 
