@@ -2,6 +2,7 @@ package com.shanzhu.music.controller;
 
 import cn.hutool.core.date.DateUtil;
 import com.shanzhu.music.BaseTest;
+import com.shanzhu.music.entity.dto.ConsumerRequest;
 import com.shanzhu.music.entity.po.Consumer;
 import com.shanzhu.music.service.ConsumerService;
 import org.junit.jupiter.api.*;
@@ -222,6 +223,45 @@ class ConsumerControllerTest extends BaseTest {
                 "未提交 password 时原口令必须仍然可用，不能被清空或覆盖");
         Assertions.assertFalse(consumerService.verifyPassword(username, ""),
                 "password 缺省不应被当作\"把口令改成空串\"");
+    }
+
+    /**
+     * 管理员按路径 id 修改指定用户的资料。
+     *
+     * AdminWriteAuthMatrixTest 只断言匿名 401 与消费者令牌 403，"admin 能打、
+     * 而且打到的是路径里那个人"这半边没有任何用例覆盖——管理端"编辑用户"正是
+     * 因此长期打着只认令牌身份的自助端点，直到 403 都没人发现。
+     *
+     * 前置账号走 consumerService.register 而不是再发一次注册请求：
+     * /registrations 带 5 次/60 秒的限流，构造前置数据不该占用那份额度，
+     * 否则本类的用例数量一涨，先撞上的就是限流而不是被测逻辑。
+     */
+    @Test
+    @Order(92)
+    @DisplayName("测试管理员修改指定用户资料")
+    void testAdminUpdateOtherConsumerProfile() throws Exception {
+        String username = "adminedit" + System.currentTimeMillis();
+        ConsumerRequest pre = new ConsumerRequest();
+        pre.setUsername(username);
+        pre.setPassword("123456");
+        pre.setSex((byte) 1);
+        Consumer created = consumerService.register(pre);
+
+        // 基类 mockMvc 预置管理员令牌，正是这条路径要求的调用方
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/consumers/" + created.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"introduction\":\"由管理员修改\",\"location\":\"深圳\"}"))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true));
+
+        Consumer updated = consumerService.selectByPrimaryKey(created.getId());
+        Assertions.assertEquals("由管理员修改", updated.getIntroduction(),
+                "管理员侧接口应改到路径指定的那个账号");
+        Assertions.assertEquals("深圳", updated.getLocation());
+        Assertions.assertEquals(username, updated.getUsername(),
+                "用户名是登录凭据，不随资料接口改动");
+        Assertions.assertTrue(consumerService.verifyPassword(username, "123456"),
+                "未提交 password 时原口令应保持可用");
     }
 
     /**

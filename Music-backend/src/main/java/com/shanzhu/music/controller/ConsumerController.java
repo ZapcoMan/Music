@@ -124,6 +124,40 @@ public class ConsumerController {
      * @param id 用户id
      * @return 删除结果
      */
+    /**
+     * 管理员修改指定用户的资料
+     *
+     * 与自助的 PATCH /profile 共用同一个 service，差别只在身份来源：目标用户取自
+     * 路径，且只有 admin 能打（方法级 @RequireUserType 覆盖类级）。
+     *
+     * 之所以要单开一个端点：管理端"编辑用户"此前一直打的是自助端点，那里
+     * @RequireUserType("consumer") 把 admin 令牌挡在门外，请求必然 403；而该端点
+     * 的身份又只取自令牌、不认参数，本来就无法指向别人。两条路都必须分开。
+     *
+     * @param id      目标用户id
+     * @param request 资料请求
+     * @return 修改结果
+     */
+    @Operation(summary = "管理员修改用户资料", description = "按用户id修改资料；用户名不可改动，口令留空即保持不变")
+    @RateLimit(key = "update:consumer:admin:", timeWindow = 60, maxRequests = 10, message = "修改过于频繁，请60秒后再试")
+    @PatchMapping(value = "/{id}")
+    @RequireUserType("admin")
+    public R<Void> updateConsumerByAdmin(@RequestAttribute("userId") Integer operatorId,
+                                         @RequestAttribute("username") String operatorName,
+                                         @RequestAttribute("userType") String operatorType,
+                                         @Parameter(description = "用户ID", required = true, example = "1")
+                                         @PathVariable("id") Integer id,
+                                         @Valid @RequestBody ConsumerProfileRequest request,
+                                         HttpServletRequest httpRequest) {
+        // 目标 id 来自路径而非令牌；用户名仍由 service 沿用库里现值，改不动
+        if (consumerService.updateProfile(request, id)) {
+            operationLogService.logUpdate(operatorId, operatorName, operatorType,
+                    "用户模块", "管理员修改用户资料 id=" + id, ipUtils.getIpAddress(httpRequest));
+            return R.ok("修改成功");
+        }
+        return R.error("修改失败");
+    }
+
     @RateLimit(key = "delete:consumer:", timeWindow = 60, maxRequests = 10, message = "用户删除过于频繁，请稍后再试")
     @DeleteMapping(value = "/{id}")
     @RequireUserType("admin")

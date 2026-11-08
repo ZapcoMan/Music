@@ -516,21 +516,27 @@ export default {
                         (d.getMonth() + 1) +
                         "-" +
                         d.getDate();
-                    let params = new URLSearchParams();
-                    params.append("id", this.form.id);
-                    params.append("username", this.form.username);
-                    // 留空即不发送，后端保持原密码；发送空串会被当作改成空密码
+                    // 走管理员侧 PATCH /consumers/{id}，body 为 JSON。
+                    // 原先这里既发的是表单（后端是 @RequestBody，直接 415），
+                    // 打的又是自助端点 /profile（@RequireUserType("consumer")
+                    // 把 admin 挡在 403），两条路都不通。
+                    // username 不再发送：用户名是登录凭据，后端一律沿用库里现值，
+                    // 表单里那个输入框只是展示，改它不会生效。
+                    // password 留空即不发送——请求 DTO 上只有 @Size，null 表示
+                    // "这次不改口令"；发送空串会被 @Size(min=6) 拦下。
+                    let payload = {
+                        sex: this.form.sex,
+                        phoneNum: this.form.phoneNum,
+                        email: this.form.email,
+                        birth: datetime,
+                        introduction: this.form.introduction,
+                        location: this.form.location
+                    };
                     if (this.form.password) {
-                        params.append("password", this.form.password);
+                        payload.password = this.form.password;
                     }
-                    params.append("sex", this.form.sex);
-                    params.append("phoneNum", this.form.phoneNum);
-                    params.append("email", this.form.email);
-                    params.append("birth", datetime);
-                    params.append("introduction", this.form.introduction);
-                    params.append("location", this.form.location);
 
-                    updateConsumer(params)
+                    updateConsumer(this.form.id, payload)
                         .then((res) => {
                             if (res.code == 20000 || res.success === true) {
                                 this.getData();

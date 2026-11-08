@@ -57,8 +57,10 @@ export const getAllConsumer =() => get(`consumers`);
 export const getConsumerByPage =(pageNum, pageSize) => get(`consumers/page?pageNum=${pageNum}&pageSize=${pageSize}`);
 //添加用户
 export const setConsumer = (params) => post(`consumers/registrations`,params);
-//编辑用户
-export const updateConsumer = (params) => patch(`consumers/profile`,params);
+//编辑用户（管理员侧端点：目标用户取自路径 id，故 id 单独作第一个参数，
+//不塞进 body。自助的 consumers/profile 只认令牌身份且
+//@RequireUserType("consumer")，admin 令牌打过去必然 403，不能拿来做管理端编辑）
+export const updateConsumer = (id, params) => patch(`consumers/${id}`,params);
 //删除用户
 export const delConsumer = (id) => del(`consumers/${id}`);
 //根据用户id查询该用户的详细信息

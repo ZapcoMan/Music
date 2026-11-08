@@ -65,7 +65,10 @@ class AdminWriteAuthMatrixTest extends BaseTest {
                 Arguments.of("PUT", "/api/v1/songs/1/tags", false),
                 Arguments.of("PUT", "/api/v1/singers/1/tags", false),
                 Arguments.of("POST", "/api/v1/tags", false),
-                // 用户治理：删除账号与两份全量名单
+                // 用户治理：改资料、删账号与两份全量名单
+                // PATCH /consumers/{id} 是管理员侧专用；自助的 /profile 仍列在
+                // consumerOnlyEndpoints 里，两边不能互相顶替
+                Arguments.of("PATCH", "/api/v1/consumers/1", false),
                 Arguments.of("DELETE", "/api/v1/consumers/1", false),
                 Arguments.of("GET", "/api/v1/consumers", false),
                 Arguments.of("GET", "/api/v1/consumers/page", false),
