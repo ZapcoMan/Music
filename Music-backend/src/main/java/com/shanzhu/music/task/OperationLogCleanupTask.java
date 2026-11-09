@@ -31,6 +31,7 @@ public class OperationLogCleanupTask {
      */
     @Scheduled(cron = "0 30 3 * * ?")
     public void cleanup() {
+        // 定时任务
         try {
             operationLogService.cleanExpiredLogs(retentionDays);
         } catch (Exception e) {
