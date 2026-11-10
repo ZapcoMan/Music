@@ -43,10 +43,14 @@ public class SongListController {
     /**
      * 添加歌单
      *
-     * @param title        标题
-     * @param pic          歌单图片
-     * @param introduction 简介
-     * @param style        风格
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param title         标题
+     * @param pic           歌单图片
+     * @param introduction  简介
+     * @param style         风格
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 添加结果
      */
     @PostMapping
@@ -87,10 +91,14 @@ public class SongListController {
      * 图片不在这里更新，走 POST /{id}/picture；SQL 是动态 &lt;set&gt;，未提交的字段保持原值，
      * 所以语义是 PATCH 而不是 PUT。
      *
-     * @param id           歌单id
-     * @param title        标题
-     * @param introduction 简介
-     * @param style        风格
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param id            歌单 id，以路径为准
+     * @param title         标题
+     * @param introduction  简介
+     * @param style         风格
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 修改结果
      */
     @PatchMapping(value = "/{id}")
@@ -124,7 +132,11 @@ public class SongListController {
     /**
      * 删除歌单
      *
-     * @param id 歌单id
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param id            目标歌单 id
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 删除结果
      */
     @DeleteMapping(value = "/{id}")
@@ -203,8 +215,12 @@ public class SongListController {
      *
      * 目标歌单取路径 id，理由同 PATCH：表单里再带一个 id 等于同一件事有两套权威。
      *
-     * @param avatorFile 歌单图片
-     * @param id         歌单id
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param avatorFile    歌单图片
+     * @param id            目标歌单 id
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 更新结果
      */
     @PostMapping(value = "/{id}/picture")

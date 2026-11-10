@@ -43,12 +43,16 @@ public class SongController {
     /**
      * 添加歌曲
      *
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
      * @param singerId     所属歌手id
      * @param name         歌名
      * @param introduction 简介
      * @param pic          默认图片
      * @param lyric        歌词
      * @param mpFile       歌曲文件
+     * @param httpRequest  当前请求，用于取 IP 写审计日志
      * @return 添加结果
      */
     @PostMapping
@@ -101,10 +105,14 @@ public class SongController {
     /**
      * 修改歌曲
      *
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
      * @param id           主键
      * @param name         歌名
-     * @param introduction 专辑
+     * @param introduction 简介
      * @param lyric        歌词
+     * @param httpRequest  当前请求，用于取 IP 写审计日志
      * @return 修改结果
      */
     @PatchMapping(value = "/{id}")
@@ -136,7 +144,11 @@ public class SongController {
     /**
      * 删除歌曲
      *
-     * @param id 歌曲id
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param id            目标歌曲 id
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 删除结果
      */
     @DeleteMapping(value = "/{id}")
@@ -159,8 +171,12 @@ public class SongController {
     /**
      * 更新歌曲图片
      *
-     * @param avatorFile 歌曲图片
-     * @param id         歌曲id
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param avatorFile    歌曲图片
+     * @param id            目标歌曲 id
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 更新结果
      */
     @PostMapping(value = "/{id}/picture")
@@ -195,8 +211,12 @@ public class SongController {
     /**
      * 更新歌曲
      *
-     * @param avatorFile 歌曲图片文件
-     * @param id         歌曲id
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param avatorFile    歌曲音频文件
+     * @param id            目标歌曲 id
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 更新结果
      */
     @PostMapping(value = "/{id}/audio")
