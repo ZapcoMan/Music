@@ -1,6 +1,5 @@
 package com.shanzhu.music.controller;
 
-import com.alibaba.fastjson2.JSONObject;
 import com.github.pagehelper.PageInfo;
 import com.shanzhu.music.annotation.RequireUserType;
 import com.shanzhu.music.common.R;
@@ -19,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.util.List;
 
 /**
