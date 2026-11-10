@@ -41,7 +41,10 @@ public class AdminController {
     /**
      * 管理员退出登录：吊销当前令牌
      *
-     * @param request HttpServletRequest
+     * @param request  HttpServletRequest，用于取 Authorization 头与 IP
+     * @param userId   令牌中的管理员id，仅用于审计日志
+     * @param username 令牌中的管理员账号，仅用于审计日志
+     * @param userType 令牌中的角色，仅用于审计日志
      * @return 结果
      */
     @Operation(summary = "管理员登出", description = "使当前管理员令牌立即失效")

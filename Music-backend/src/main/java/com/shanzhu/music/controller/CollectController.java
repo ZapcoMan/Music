@@ -45,9 +45,13 @@ public class CollectController {
     /**
      * 添加收藏
      *
-     * @param userId 当前登录用户，取自令牌
-     * @param type   收藏类型（0歌曲1歌单）
-     * @param songId 歌曲id
+     * @param userId      当前登录用户 id，取自令牌
+     * @param username    当前用户名，仅用于审计日志
+     * @param userType    当前用户角色，仅用于审计日志
+     * @param type        收藏类型（0歌曲1歌单），决定读 songId 还是 songListId
+     * @param songId      歌曲id（type=0 时必传）
+     * @param songListId  歌单id（type=1 时必传）
+     * @param httpRequest 当前请求，用于取 IP 写审计日志
      * @return 添加结果
      */
     @PostMapping
@@ -95,9 +99,12 @@ public class CollectController {
     /**
      * 取消当前登录用户对某首歌/某张歌单的收藏
      *
-     * @param userId 当前登录用户，取自令牌
-     * @param songId 歌曲id（收藏歌曲时的定位符）
-     * @param songListId 歌单id（收藏歌单时的定位符）
+     * @param userId      当前登录用户 id，取自令牌
+     * @param username    当前用户名，仅用于审计日志
+     * @param userType    当前用户角色，仅用于审计日志
+     * @param songId      歌曲id（取消歌曲收藏时的定位符）
+     * @param songListId  歌单id（取消歌单收藏时的定位符，两者至少给一个）
+     * @param httpRequest 当前请求，用于取 IP 写审计日志
      * @return 删除结果
      */
     @DeleteMapping
