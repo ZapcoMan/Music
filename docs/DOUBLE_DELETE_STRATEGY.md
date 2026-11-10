@@ -1,5 +1,11 @@
 # 延时双删策略实现指南
 
+> ⚠️ **口径声明**：本文为历史快照，正文代码示例是旧实现。现状：`deleteWithDelay`
+> 已改为**共享调度线程池**（2 线程，不再每次 `new Thread().start()`）并挂到事务
+> **afterCommit** 回调上排期（默认延迟 3 秒），使双删语义建立在"数据真正可见"之后；
+> 缓存键已收敛到 `CacheKeys` 常量类。文中各 Service 使用双删的范围描述仍大致有效。
+> 总体口径见 [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)、[REDIS_CACHE_OPTIMIZATION.md](REDIS_CACHE_OPTIMIZATION.md)。
+
 ## 📊 需求分析
 
 通过对项目所有缓存操作的全面分析,识别出需要实现**延时双删(Double Delete with Delay)**的数据类型。

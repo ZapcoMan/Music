@@ -1,5 +1,14 @@
 # 特征工程真实计算功能实现说明
 
+> ⚠️ **口径声明**：本文为历史快照，"特征真实计算"方向仍成立，但细节以现状为准：
+> 相关代码已重组到 `service/ranking`（FeatureEngineering/GBDT/NewSongBoost）与
+> `service/recall` 包；无评分历史时的中性兜底不再是硬编码 4.0，而是配置项
+> `recommendation.neutral-rating: 5.0`（1-10 分制取量纲中点，归一化上界为
+> `rating-max: 10.0`，SQL 里的 COALESCE(...,4.0) 写法已过时）；特征权重、FM 交叉项、
+> 六路召回权重均改为 `application.yml` 的 `recommendation.*` 配置驱动。
+> 口径出处见 [RECALL_AND_SEARCH_HISTORY_FEATURE.md](RECALL_AND_SEARCH_HISTORY_FEATURE.md)、
+> [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)。
+
 ## 📋 功能概述
 
 将推荐系统排序层中的特征默认值改为**真实计算**，提升推荐算法的准确性和个性化程度。
