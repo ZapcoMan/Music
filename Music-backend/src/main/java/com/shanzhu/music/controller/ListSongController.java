@@ -37,8 +37,12 @@ public class ListSongController {
     /**
      * 给歌单添加歌曲
      *
-     * @param songListId 目标歌单id，以 URL 为准
-     * @param songId     歌曲id
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param songListId    目标歌单 id，以 URL 为准
+     * @param songId        歌曲 id
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 添加结果
      */
     @PostMapping(value = "/api/v1/song-lists/{songListId}/songs")
@@ -78,8 +82,12 @@ public class ListSongController {
     /**
      * 删除歌单里的歌曲
      *
-     * @param songListId 歌单id
-     * @param songId     歌曲id
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param songListId    歌单 id
+     * @param songId        歌曲 id
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 删除结果
      */
     @DeleteMapping(value = "/api/v1/song-lists/{songListId}/songs/{songId}")

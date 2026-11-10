@@ -94,7 +94,10 @@ public class SearchHistoryController {
      * 根路径的 DELETE 即"删掉我这个人的全部搜索历史"：集合根已经带上了 owner（令牌），
      * 再叫 /clear 只是把同一个动作说两遍。
      *
-     * @param userId 用户ID
+     * @param userId       当前登录用户 id，取自令牌，作为清空目标
+     * @param username     当前用户名，仅用于审计日志
+     * @param userType     当前用户角色，仅用于审计日志
+     * @param httpRequest  当前请求，用于取 IP 写审计日志
      * @return 结果
      */
     @DeleteMapping
@@ -122,8 +125,11 @@ public class SearchHistoryController {
      * 用 /expired 这个集合名做 DELETE 的目标，意思是"删掉集合里符合条件的那批行"，
      * 与根路径的"整集清空"区分开；原 /clean-old 是动词短语，读起来不像资源。
      *
-     * @param userId 用户ID
-     * @param days 天数，默认30天
+     * @param userId       当前登录用户 id，取自令牌，作为清理目标
+     * @param username     当前用户名，仅用于审计日志
+     * @param userType     当前用户角色，仅用于审计日志
+     * @param days         保留天数，超出此天数的历史记录将被删除，默认30天
+     * @param httpRequest  当前请求，用于取 IP 写审计日志
      * @return 结果
      */
     @DeleteMapping("/expired")
