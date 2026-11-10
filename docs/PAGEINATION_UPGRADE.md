@@ -1,5 +1,11 @@
 # 前端分页改造说明
 
+> ⚠️ **口径声明**：本文为历史快照。文中的旧接口路径（`singer/allSingerByPage` 等）已随
+> v2.0.0/v3.0.0 RESTful 化改为 `/api/v1/{singers,song-lists,consumers}/page` 形式；
+> `res.code === 1` 判断已废除（现为 `R<T>` 的 `success`/`code:20000`，业务失败也是 HTTP 200）；
+> 每页条数另有后端 `PageLimits` 统一上限；管理端 Vue 实际版本为 2.5.x（非本文所写 2.6.11，
+> 那是用户端）。总体口径见 [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)、[CHANGELOG.md](../CHANGELOG.md)。
+
 ## 概述
 
 已将 MusicAdmin-frontend 的主要列表页面从**客户端分页**（假分页）改造为**服务端分页**（真分页），提升性能和用户体验。
