@@ -1,5 +1,13 @@
 # 标签系统结构化优化方案
 
+> ⚠️ **口径声明**：本文为历史设计方案，表结构与思路已落地，但细节以现状为准：
+> 标签中间表（song_tag/singer_tag）是标签关系的**唯一真源**，简介文本 LIKE 匹配已退为
+> 兼容路径；对外接口已 RESTful 化为 `/api/v1/tags[/hot|/songs]` 与
+> `/api/v1/{songs,singers}/{id}/tags`；tag_based 作为六路召回之一参与推荐（权重 0.20，
+> 见 `application.yml` 的 `recommendation.strategy-weights`）；建表脚本已并入 Flyway
+> V1–V13 体系，文中脚本文件名仅作历史参考。总体口径见
+> [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)、[CHANGELOG.md](../CHANGELOG.md)。
+
 ## 🎯 问题分析
 
 ### 原有实现的问题
