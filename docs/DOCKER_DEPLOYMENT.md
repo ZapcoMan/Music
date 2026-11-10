@@ -468,8 +468,8 @@ jobs:
 ## 📖 相关文档
 
 - [DOCKER_QUICK_START.md](DOCKER_QUICK_START.md) - Docker 快速开始指南
-- [README.md](README.md) - 项目总览
-- [API 开发文档.md](API%20开发文档.md) - API 接口文档
+- [README.md](../README.md) - 项目总览
+- [API 开发文档.md](../API%20开发文档.md) - API 接口文档
 
 ---
 

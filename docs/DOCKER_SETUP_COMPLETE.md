@@ -9,7 +9,7 @@
 > 均为 `${VAR:?}` **必填**，缺失即拒绝启动，不存在 root/root 默认口令；
 > ④ 库结构唯一出处是 **Flyway 迁移脚本（V1–V13）**，`db_music.sql` 已停用且不再挂载；
 > ⑤ compose 默认档位改为 `SPRING_PROFILES_ACTIVE=prod`（prod 关 Druid 监控台）。
-> 总体口径见 [docs/FIX-LOG-2026-11.md](docs/FIX-LOG-2026-11.md)、[CHANGELOG.md](CHANGELOG.md)。
+> 总体口径见 [docs/FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)、[CHANGELOG.md](../CHANGELOG.md)。
 
 ## ✅ 已完成的工作
 
