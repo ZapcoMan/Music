@@ -47,10 +47,11 @@ public class CommentController {
      * 原先挂在 POST /api/v1/comment/update 的入口（含"本人或管理员可改"的归属校验）已整体下线，
      * 因为产品口径是"一旦发布，连作者自己也不能修改"。要撤回就删了重发。
      *
-     * @param type       评论类型（0歌曲1歌单）
-     * @param songId     歌曲id
-     * @param songListId 歌单id
-     * @param content    评论内容
+     * @param userId     评论人 id，取自令牌，不接受请求参数
+     * @param username   评论人用户名，仅用于审计日志
+     * @param userType   评论人角色（consumer/admin），仅用于审计日志
+     * @param request    评论请求体：type（0歌曲1歌单）与配对的 songId/songListId、content
+     * @param httpRequest 当前请求，用于取 IP 写审计日志
      * @return 添加结果
      */
     @RateLimit(key = "comment:add:", timeWindow = 60, maxRequests = 10, message = "评论发表过于频繁，请稍后再试")
@@ -92,7 +93,11 @@ public class CommentController {
     /**
      * 删除评论
      *
-     * @param id 评论id
+     * @param id       评论id
+     * @param userId   当前用户 id，取自令牌，用于归属校验
+     * @param userType 当前用户角色，取自令牌，admin 可跨归属删除
+     * @param username 当前用户名，仅用于审计日志
+     * @param httpRequest 当前请求，用于取 IP 写审计日志
      * @return 删除结果
      */
     @RateLimit(key = "comment:delete:", timeWindow = 60, maxRequests = 20, message = "评论删除过于频繁，请稍后再试")
@@ -168,7 +173,11 @@ public class CommentController {
     /**
      * 给某个评论点赞
      *
-     * @param id 评论id
+     * @param id       评论id
+     * @param userId   当前用户 id，取自令牌，仅用于审计日志
+     * @param username 当前用户名，仅用于审计日志
+     * @param userType 当前用户角色，仅用于审计日志
+     * @param httpRequest 当前请求，用于取 IP 写审计日志
      * @return 结果
      */
     @RateLimit(key = "comment:like:", timeWindow = 60, maxRequests = 30, message = "点赞过于频繁，请稍后再试")
