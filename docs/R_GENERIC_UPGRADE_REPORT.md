@@ -1,5 +1,12 @@
 # R 类泛型化升级报告
 
+> ⚠️ **口径声明**：本文为历史快照。`R<T>` 泛型化本身已是现状，但正文部分示例已过期：
+> "最佳实践"里的链式 `.data("total", ...)` 写法依赖的 `dataMap` 字段**已删除**，
+> 多字段结果现在用专门的 Vo（如分页用 `PageInfo`、登录用 `ConsumerLoginVo`）放进 `data`；
+> 文中方法名/重载以当前 `R.java` 为准；Controller 方法与路径（如 `allSingerByPage`）
+> 已 RESTful 化为 `/api/v1/singers/page` 等形式。总体口径见
+> [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)、[CHANGELOG.md](../CHANGELOG.md)。
+
 ## 📋 概述
 
 将 `R` 统一返回结果类升级为支持泛型的版本,提升类型安全性和代码可读性。

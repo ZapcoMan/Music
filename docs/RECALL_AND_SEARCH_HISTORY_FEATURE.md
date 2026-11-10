@@ -1,11 +1,17 @@
 # 标签召回与搜索历史召回功能实现说明
 
-> ⚠️ 本文的策略权重数值与代码不一致。真实权重（现已可通过 `recommendation.strategy-weights`
-> 配置调整）为：`collaborative_filtering 0.40`、`content_based 0.25`、`personalized 0.20`、
-> `tag_based 0.20`、`search_history 0.20`、`popular 0.15`。
-> 另需注意：标签召回虽然代码路径已通，但 `song_tag` 实际为 0 行
-> （V3 的自动迁移按 `song.introduction` 匹配标签名，而该字段存的是专辑名），
-> 因此在补齐标签数据来源前它仍不会产生候选。详见 [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)。
+> ⚠️ **口径声明（本文是功能当时的制作快照，多处细节已演进）**：
+> 1. 策略权重的唯一出处现在是 `application.yml` 的 `recommendation.strategy-weights`，
+>    真实取值为：`collaborative_filtering 0.40`、`content_based 0.25`、`personalized 0.20`、
+>    `tag_based 0.20`、`search_history 0.20`、`popular 0.15`（本文旧版正文写的 0.25/0.25/0.15/0.15/0.2/0.2 与代码不符）。
+> 2. “`song_tag` 实际为 0 行、标签召回恒空转”已不是现状：Flyway V6/V7 已补齐标签与搜索历史数据
+>    （实测 tag_based 每用户约 25 首、search_history 1～5 首）；但那些标签与历史均为**模拟数据**，
+>    “召回不空转”不等于“推荐准确”，后者需真实行为数据才能评估。
+> 3. 实现细节已演进：标签召回现走 `song_tag` 中间表而非从简介分词；搜索历史召回从单一歌名路径
+>    改为歌名/歌单名/专辑名三条并试，同一首歌多路径命中只计一次分；融合层遍历顺序按
+>    “权重降序 + 名称字典序”固定，不再取决于 Spring bean 注册顺序。
+> 4. V2 脚本曾因 MariaDB 语法（`ADD COLUMN IF NOT EXISTS`）断裂导致后续迁移未执行，已由 V8–V11 修复；
+>    现在库结构已至 V13（见 [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md) 第一、三节）。
 
 
 ## 功能概述
@@ -196,13 +202,13 @@ public class SearchHistoryRecall implements RecallStrategy { ... }
 private List<RecallStrategy> recallStrategies;
 ```
 
-当前共有6路召回策略：
-1. CollaborativeFilteringRecall（协同过滤）- 权重0.25
-2. ContentBasedRecall（内容标签）- 权重0.25
-3. PersonalizedRecall（个性化）- 权重0.15
-4. PopularRecall（热门）- 权重0.15
-5. **TagBasedRecall（标签召回）- 权重0.20** ✨新增
-6. **SearchHistoryRecall（搜索历史）- 权重0.20** ✨新增
+当前共有6路召回策略（权重唯一出处：`application.yml` 的 `recommendation.strategy-weights`，下表为当前取值）：
+1. CollaborativeFilteringRecall（协同过滤）- 权重 0.40
+2. ContentBasedRecall（内容标签）- 权重 0.25
+3. PersonalizedRecall（个性化）- 权重 0.20
+4. **TagBasedRecall（标签召回）- 权重 0.20** ✨新增
+5. **SearchHistoryRecall（搜索历史）- 权重 0.20** ✨新增
+6. PopularRecall（热门）- 权重 0.15
 
 ### 4.3 融合排序
 
