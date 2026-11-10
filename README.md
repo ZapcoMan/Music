@@ -235,7 +235,7 @@ chmod +x deploy.sh && ./deploy.sh start
 ✅ 自动启动 MySQL、Redis、后端、前端五个服务  
 ✅ 访问 http://localhost:8080 (管理端) 或 http://localhost:8081 (用户端) 即可使用
 
-📖 详细说明：[DOCKER_QUICK_START.md](DOCKER_QUICK_START.md) | [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)
+📖 详细说明：[DOCKER_QUICK_START.md](docs/DOCKER_QUICK_START.md) | [DOCKER_DEPLOYMENT.md](docs/DOCKER_DEPLOYMENT.md)
 
 ---
 
@@ -560,7 +560,7 @@ docker-compose -f docker-compose.prod.yml up -d
 - 前端镜像以非 root 运行（`nginxinc/nginx-unprivileged`），容器内监听 8080，宿主端口映射不变
 - 数据库初始化唯一出处是 Flyway 迁移脚本，compose 不再挂载根目录 `db_music.sql`
 
-详细文档: [Docker 部署指南](DOCKER_DEPLOYMENT.md) | [Docker 快速开始](DOCKER_QUICK_START.md)
+详细文档: [Docker 部署指南](docs/DOCKER_DEPLOYMENT.md) | [Docker 快速开始](docs/DOCKER_QUICK_START.md)
 
 ### 传统部署
 
