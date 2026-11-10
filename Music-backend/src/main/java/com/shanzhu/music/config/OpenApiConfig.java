@@ -32,6 +32,9 @@ public class OpenApiConfig {
 
     @Bean
     public OpenAPI customOpenAPI() {
+        String author = "zapcoman";
+        String authorEmail = "zapcoman@zapcoman.com";
+        String authorUrl = "https://github.com/ZapcoMan";
         BuildProperties props = buildProperties.getIfAvailable();
         return new OpenAPI()
                 .info(new Info()
@@ -39,9 +42,9 @@ public class OpenApiConfig {
                         .description("音乐网站后台管理系统 RESTful API 接口文档")
                         .version(props != null ? props.getVersion() : "未知（构建未生成 build-info）")
                         .contact(new Contact()
-                                .name("ShanZhu")
-                                .email("shanzhu@example.com")
-                                .url("https://github.com/shanzhu"))
+                                .name(author)
+                                .email(authorEmail)
+                                .url(authorUrl))
                         .license(new License()
                                 .name("Apache 2.0")
                                 .url("https://www.apache.org/licenses/LICENSE-2.0.html")));
