@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * Actuator 自定义信息贡献者。
- *
+ * <p>
  * 版本从 build-info.properties 读，不再写死字符串：此前这里写 "1.0.0"，
  * 而 pom 是 2.0.1、application.yml 的 info.app.version 也是 2.0.1，
  * 三处各说各话，且改版本号时这里不会报错、只会一直骗人。

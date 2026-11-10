@@ -79,7 +79,7 @@ public class AsyncConfig implements AsyncConfigurer {
     }
 
     /**
-     * @Async 方法抛出的异常不会回到调用方，没有这个处理器就是静默丢失。
+     * &#064;Async  方法抛出的异常不会回到调用方，没有这个处理器就是静默丢失。
      */
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
