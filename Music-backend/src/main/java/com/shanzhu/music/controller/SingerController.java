@@ -40,7 +40,11 @@ public class SingerController {
     /**
      * 添加歌手
      *
-     * @param request 歌手信息
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param request       歌手信息
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 添加结果
      */
     @PostMapping
@@ -65,8 +69,12 @@ public class SingerController {
     /**
      * 修改歌手
      *
-     * @param id      歌手id，以路径为准
-     * @param request 歌手信息
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param id            歌手 id，以路径为准
+     * @param request       歌手信息
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 结果
      */
     @PatchMapping(value = "/{id}")
@@ -89,7 +97,11 @@ public class SingerController {
     /**
      * 删除歌手
      *
-     * @param id 歌手id
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param id            目标歌手 id
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 删除结果
      */
     @DeleteMapping(value = "/{id}")
@@ -187,8 +199,12 @@ public class SingerController {
     /**
      * 更新歌手图片
      *
-     * @param avatorFile 头像文件
-     * @param id         更是id
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param avatorFile    头像文件
+     * @param id            歌手 id
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 更新结果
      */
     @PostMapping(value = "/{id}/picture")
