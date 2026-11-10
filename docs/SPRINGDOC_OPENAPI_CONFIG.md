@@ -1,5 +1,14 @@
 # SpringDoc OpenAPI 配置说明
 
+> ⚠️ **口径声明**：本文为历史快照。现状差异："已添加注解的 Controller"与"后续工作建议"
+> 两处清单已过时——OpenAPI 注解已覆盖全部 12 个 Controller；示例接口中
+> `POST /admin/login/status` 现为 `POST /api/v1/admin/sessions`，`GET /manage` 已废除，
+> `GET /api/v1/consumers`（全量用户列表）因把用户数据暴露给任意登录令牌已在 v3.0.0
+> **直接删除**，不要再补回；文档版本号真源改为 `AppInfoContributor` + build-info（真源是
+> pom），`application.yml` 中已无 `info.app` 块；Swagger 示例参数不再预填默认账号口令。
+> springdoc 版本以 pom 为准。总体口径见 [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)、
+> [CHANGELOG.md](../CHANGELOG.md)。
+
 ## 概述
 
 项目已成功集成 SpringDoc OpenAPI,用于生成和管理 RESTful API 文档。

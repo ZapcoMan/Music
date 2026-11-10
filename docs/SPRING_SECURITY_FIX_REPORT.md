@@ -1,5 +1,13 @@
 # Spring Security 配置修复报告
 
+> ⚠️ **口径声明**：本文为历史快照，"需要 SecurityConfig 兜住默认拦截"的结论仍成立，但细节已变：
+> CORS 现为**单一出处 SecurityConfig**（文中"两处 CORS 互补"一节已废弃，WebMvcConfig 不再
+> 配 addCorsMappings），允许方法已含 PATCH（改资料用），白名单源改为可配置；
+> 拦截器链现为 Logging:0 → JWT:1 → RateLimit:2（文中缺 Logging）；BCrypt 强度因子现为 12；
+> 鉴权模型已叠加 `@RequireUserType` 角色默认拒绝 + ANONYMOUS_ENTRIES（方法+路径）放行。
+> 正文代码片段为当时版本，现状以 `SecurityConfig.java`/`WebMvcConfig.java` 为准；总体口径见
+> [SECURITY_CONFIG_GUIDE.md](SECURITY_CONFIG_GUIDE.md)、[FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)。
+
 ## 📋 问题发现
 
 用户指出:**Music 引入了 spring-boot-starter-security,但没有看到 SecurityConfig!**
