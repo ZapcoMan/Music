@@ -1,5 +1,13 @@
 # Redis 缓存使用指南
 
+> ⚠️ **口径声明**：本文为早期快照，仅缓存思路（Cache-Aside + `music:` 前缀）仍成立。现状差异：
+> 缓存已扩展到歌曲/推荐/榜单/搜索等多个域，键前缀全部收敛到 `CacheKeys` 常量类
+> （各 Service 内不再散落 `private static final String`）；写操作改用**延时双删**
+> （共享调度池 + afterCommit，见 DOUBLE_DELETE_STRATEGY.md）；Redis 另有两类非缓存
+> 用途：限流计数 `rate:*` 与令牌黑名单 `jwt:blacklist:`（测试隔离时前者可清、后者绝不可清）；
+> prod 的 `REDIS_PASSWORD` 为必填环境变量，compose 端口不再暴露宿主机。详见
+> [REDIS_CACHE_OPTIMIZATION.md](REDIS_CACHE_OPTIMIZATION.md)、[FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)。
+
 ## 概述
 
 本项目已集成 Redis 缓存,用于优化热点数据的访问性能。目前以下数据已启用缓存:

@@ -1,5 +1,13 @@
 # Redis 缓存全面优化总结
 
+> ⚠️ **口径声明**：本文为历史总结，各 Service 已接缓存这一结论仍成立，但正文代码
+> 是旧实现：键前缀现已收敛到 `CacheKeys` 常量类（含 `music:` 业务缓存 8 个前缀与
+> `jwt:blacklist:`）；高频写服务的失效策略升级为**延时双删**（共享调度池 + afterCommit，
+> 见 DOUBLE_DELETE_STRATEGY.md）；登录口令校验始终问数据库，不依赖可能返回陈旧哈希的
+> 缓存路径；测试基类按前缀隔离（清 `music:*`/`rate:*`，绝不动 `jwt:blacklist:*`）。
+> 具体键名与 TTL 以代码为准；总体口径见 [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)、
+> [CHANGELOG.md](../CHANGELOG.md)。
+
 ## 📊 高频数据分析与缓存策略
 
 通过对项目代码的全面分析,已识别所有高频查询数据并统一添加 Redis 缓存。
