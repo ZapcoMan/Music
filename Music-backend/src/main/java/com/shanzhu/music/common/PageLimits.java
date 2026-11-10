@@ -2,7 +2,7 @@ package com.shanzhu.music.common;
 
 /**
  * 分页每页条数的上限。
- *
+ * <p>
  * 为什么写在代码里，而不是用 pagehelper.max-page-size：那个配置只挂在
  * Page.setPageSize() 这条路径上，而本项目四处入口都是
  * PageHelper.startPage(pageNum, pageSize) 显式起页——其构造函数直接给字段赋值，
