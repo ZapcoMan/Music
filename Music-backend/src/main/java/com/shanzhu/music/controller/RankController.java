@@ -36,13 +36,16 @@ public class RankController {
 
     /**
      * 新增评价
-     *
+     * <p>
      * 评分人身份取自令牌，不再接受入参 consumerId：此前任何登录用户都能指定
      * consumerId 打任意分，而评分是协同过滤与精排的直接输入，污染它等于污染推荐结果。
      * 前端本就在传自己的 userId（SongListAlbum.vue），行为对正常用户无变化。
      *
-     * @param songListId 歌单id
-     * @param score      评价
+     * @param userId      评分人 id，取自令牌并写入 rank.consumerId，不接受入参
+     * @param username    评分人用户名，仅用于审计日志
+     * @param userType    评分人角色（consumer/admin），仅用于审计日志
+     * @param request     评分请求体：songListId 歌单id、score 分值（1-10）
+     * @param httpRequest 当前请求，用于取 IP 写审计日志
      * @return 结果
      */
     @Operation(summary = "提交评分", description = "为指定歌单打分，取值 1-10；同一用户重复提交视为改分")

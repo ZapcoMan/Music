@@ -55,7 +55,10 @@ public class ConsumerController {
      * 退出登录：吊销当前令牌，使其在有效期内立即不可用。
      * 此前只由前端删除本地 token，泄漏出去的令牌在服务端仍然有效。
      *
-     * @param request HttpServletRequest
+     * @param request  HttpServletRequest，用于取 Authorization 头与 IP
+     * @param userId   令牌中的用户id，仅用于审计日志
+     * @param username 令牌中的用户名，仅用于审计日志
+     * @param userType 令牌中的用户角色，仅用于审计日志
      * @return 结果
      */
     @Operation(summary = "用户登出", description = "使当前令牌立即失效")
@@ -82,7 +85,8 @@ public class ConsumerController {
     /**
      * 添加前台用户
      *
-     * @param request 用户信息
+     * @param request     用户信息
+     * @param httpRequest 当前请求，用于取 IP 写审计日志
      * @return 添加结果
      */
     @Operation(summary = "注册用户", description = "注册新的前台用户账号")
@@ -100,7 +104,11 @@ public class ConsumerController {
     /**
      * 修改前台用户
      *
-     * @param request 用户信息
+     * @param currentUserId   令牌中的用户id，作为修改目标，不接受入参
+     * @param currentUsername 令牌中的用户名，仅用于审计日志
+     * @param currentUserType 令牌中的用户角色，仅用于审计日志
+     * @param request         资料请求
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 修改结果
      */
     @RateLimit(key = "update:consumer:", timeWindow = 60, maxRequests = 10, message = "资料修改过于频繁，请稍后再试")
@@ -120,12 +128,6 @@ public class ConsumerController {
         return R.error("修改失败");
     }
 
-    /**
-     * 删除前台用户
-     *
-     * @param id 用户id
-     * @return 删除结果
-     */
     /**
      * 管理员修改指定用户的资料
      *
@@ -160,6 +162,16 @@ public class ConsumerController {
         return R.error("修改失败");
     }
 
+    /**
+     * 删除前台用户
+     *
+     * @param operatorId   令牌中的操作人id，仅用于审计日志
+     * @param operatorName 令牌中的操作人用户名，仅用于审计日志
+     * @param operatorType 令牌中的操作人角色，仅用于审计日志
+     * @param id           目标用户id
+     * @param httpRequest  当前请求，用于取 IP 写审计日志
+     * @return 删除结果
+     */
     @RateLimit(key = "delete:consumer:", timeWindow = 60, maxRequests = 10, message = "用户删除过于频繁，请稍后再试")
     @DeleteMapping(value = "/{id}")
     @RequireUserType("admin")
@@ -242,9 +254,11 @@ public class ConsumerController {
      * 更新前台用户头像
      *
      * @param avatorFile    头像文件
-     * @param id            用户id
-     * @param currentUserId 令牌中的用户id
-     * @param userType      令牌中的用户类型
+     * @param id            目标用户id
+     * @param currentUserId 令牌中的用户id，非 admin 时用于与 id 比对
+     * @param userType      令牌中的角色，决定是否可代改他人头像
+     * @param username      令牌中的用户名，仅用于审计日志
+     * @param request       当前请求，用于取 IP 写审计日志
      * @return 上传结果
      */
     @RateLimit(key = "upload:avatar:", timeWindow = 60, maxRequests = 5, message = "头像上传过于频繁，请稍后再试")
