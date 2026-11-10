@@ -103,8 +103,12 @@ public class TagController {
     /**
      * 设置某首歌的标签（整组替换）
      *
-     * @param songId 歌曲id
-     * @param tags   标签名数组，空数组表示清空
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param songId        歌曲 id
+     * @param tags          标签名数组，空数组表示清空
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 生效的标签数量
      */
     @Operation(summary = "设置歌曲标签", description = "整组替换：先删后插重建关联，并同步 song.tags 逗号串")
@@ -161,8 +165,12 @@ public class TagController {
     /**
      * 设置某位歌手的标签（整组替换）
      *
-     * @param singerId 歌手id
-     * @param tags     标签名数组，空数组表示清空
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param singerId      歌手 id
+     * @param tags          标签名数组，空数组表示清空
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 生效的标签数量
      */
     @Operation(summary = "设置歌手标签", description = "整组替换：先删后插重建关联，并同步 singer.tags 逗号串")
@@ -197,7 +205,11 @@ public class TagController {
     /**
      * 批量新增标签到字典（已存在的按名字忽略）
      *
-     * @param tags 标签列表，name 必填，type 取 0风格1情感2场景3语言4其他
+     * @param tags          标签列表，name 必填，type 取 0风格1情感2场景3语言4其他
+     * @param operatorId    令牌中的操作人 id，仅用于审计日志
+     * @param operatorName  令牌中的操作人账号，仅用于审计日志
+     * @param operatorType  令牌中的角色，仅用于审计日志
+     * @param httpRequest   当前请求，用于取 IP 写审计日志
      * @return 新增条数
      */
     @Operation(summary = "批量新增标签", description = "按名字去重写入标签字典；name 空白的条目跳过")
