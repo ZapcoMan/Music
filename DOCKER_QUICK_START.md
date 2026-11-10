@@ -2,19 +2,24 @@
 
 ## 🚀 30 秒快速启动
 
-### Windows 用户
+> ⚠️ 启动前先准备 `.env`：`docker-compose.yml` 对 `MYSQL_ROOT_PASSWORD`、`DB_USERNAME`、
+> `DB_PASSWORD`、`REDIS_PASSWORD`、`JWT_SECRET` 使用了 `${VAR:?}` 必填语法，缺失时 compose 直接拒绝启动。
+
 ```powershell
+# Windows
+cp .env.example .env   # 首次：编辑 .env 填入真实口令
 .\deploy.ps1 start
 ```
 
-### Linux/Mac 用户
 ```bash
+# Linux/Mac
+cp .env.example .env   # 首次：编辑 .env 填入真实口令
 chmod +x deploy.sh && ./deploy.sh start
 ```
 
 ✅ **自动完成**：
 - 启动 MySQL、Redis、后端、前端（管理端+用户端）共 5 个服务
-- 自动初始化数据库
+- 后端启动时 Flyway 自动执行 V1–V13 迁移脚本建库建表（库结构唯一出处，无需手工导入 SQL）
 - 自动配置网络连接
 
 ✅ **访问地址**：
@@ -96,7 +101,8 @@ docker-compose ps
 docker-compose up -d
 ```
 
-使用 `docker-compose.yml`，适合本地开发。
+使用 `docker-compose.yml`，适合本地开发。注意：敏感变量同样是 `${VAR:?}` 必填，需要先准备 `.env`；
+档位默认 prod，本地联调可在 `.env` 里显式设 `SPRING_PROFILES_ACTIVE=dev`。
 
 ### 生产环境
 ```bash
@@ -116,17 +122,12 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ## 🗄️ 数据库初始化
 
-### 自动初始化（推荐）
-首次启动时，Flyway 会自动执行数据库迁移脚本。
+### 自动初始化（唯一方式）
+首次启动时，后端 Flyway 会自动执行 `Music-backend/src/main/resources/db/migration` 下的迁移脚本（V1–V13）建库建表。
 
-### 手动导入
-```bash
-# 进入 MySQL 容器
-docker-compose exec mysql mysql -u root -p db_music
-
-# 或在宿主机执行
-docker-compose exec -T mysql mysql -uroot -p${MYSQL_ROOT_PASSWORD} db_music < db_music.sql
-```
+> ⚠️ 根目录 `db_music.sql` 已停用：它是 V1 时代的整库旧快照，与 Flyway 脚本不同源；
+> compose 也已不再把它挂载到 `/docker-entrypoint-initdb.d`。**请勿手工导入**，否则同一份库
+> 会出现两个结构出处，后续排障时无法确认真实结构是谁给的。
 
 ---
 
@@ -140,12 +141,12 @@ Error starting userland proxy: Bind for 0.0.0.0:8080 failed: port is already all
 ```
 
 **解决方案**：
-修改 `docker-compose.yml` 中的端口映射：
+修改 `docker-compose.yml` 中的端口映射（前端容器内监听 8080，不是 80）：
 ```yaml
 ports:
-  - "8082:80"      # 将管理端改为 8082
-  - "8083:80"      # 将用户端改为 8083
-  - "9172:9171"    # 将后端改为 9172
+  - "8082:8080"   # 将管理端改为 8082
+  - "8083:8080"   # 将用户端改为 8083
+  - "9172:9171"   # 将后端改为 9172
 ```
 
 ### 2. 容器启动失败
@@ -230,11 +231,11 @@ docker system df
 
 | 服务 | 容器端口 | 宿主机端口 | 说明 |
 |------|---------|-----------|------|
-| 管理端前端 | 80 | 8080 | Vue 2 + Nginx |
-| 用户端前端 | 80 | 8081 | Vue 2 + Nginx |
+| 管理端前端 | 8080 | 8080 | Vue 2 + Nginx（unprivileged） |
+| 用户端前端 | 8080 | 8081 | Vue 2 + Nginx（unprivileged） |
 | 后端 API | 9171 | 9171 | Spring Boot |
-| MySQL | 3306 | 3306 | 数据库 |
-| Redis | 6379 | 6379 | 缓存 |
+| MySQL | 3306 | 不暴露 | 仅 compose 内部网络可达 |
+| Redis | 6379 | 不暴露 | 仅 compose 内部网络可达 |
 
 ---
 
@@ -267,13 +268,16 @@ docker-compose build
 
 ### 环境变量覆盖
 ```bash
-# 临时修改端口
-MYSQL_PORT=3307 docker-compose up -d
+# 临时切换运行档位（默认 prod，本地联调可用 dev）
+SPRING_PROFILES_ACTIVE=dev docker-compose up -d
 
-# 或使用 .env 文件
-echo "MYSQL_PORT=3307" >> .env
+# 或写入 .env 文件
+
+SPRING_PROFILES_ACTIVE=dev
 docker-compose up -d
 ```
+
+换端口请直接修改 `docker-compose.yml` 的 `ports:` 映射（见“修改端口”章节）；口令类变量只能来自 `.env`。
 
 ---
 
@@ -288,10 +292,10 @@ docker-compose up -d
 ## ❓ 常见问题
 
 ### Q: 首次启动很慢？
-A: 首次需要下载镜像和初始化数据库，请耐心等待 2-5 分钟。
+A: 首次需要下载镜像，后端启动时 Flyway 还会自动执行 V1–V13 迁移建库，请耐心等待 2-5 分钟。
 
 ### Q: 如何修改数据库密码？
-A: 编辑 `.env` 文件，修改 `MYSQL_ROOT_PASSWORD`，然后重启服务。
+A: 编辑 `.env` 文件，同步修改 `MYSQL_ROOT_PASSWORD` 与 `DB_PASSWORD`（两者需一致），然后重建 MySQL 容器：`docker-compose down -v && docker-compose up -d`（⚠️ `-v` 会清空数据）。
 
 ### Q: 数据会丢失吗？
 A: 不会。数据存储在 Docker Volume 中，除非手动删除卷，否则数据会持久化。
@@ -302,3 +306,5 @@ A: 参考 [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) 的生产环境部署章�
 ---
 
 **提示**：遇到问题？查看完整文档 [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) 或提交 [Issue](https://github.com/ZapcoMan/Music/issues)
+
+**最后更新**: 2026-11-10（按 v3.0.0 现状口径刷新）

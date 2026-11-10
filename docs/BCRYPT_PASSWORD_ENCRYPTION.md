@@ -1,5 +1,12 @@
 # BCrypt 密码加密升级指南
 
+> ⚠️ **口径声明**：本文为历史快照。现状差异：强度因子已从默认 10 提到 **12**；
+> `Consumer`/`Admin` 实体的 `password` 字段加了 `@JsonIgnore`，不会随序列化外泄；
+> 示例中的 `/admin/login/status` 已改为 `POST /api/v1/admin/sessions`；库结构/口令迁移
+> 统一由 Flyway V1–V13 管理，`db_music.sql` dump 已停用；"在线工具生成哈希、Rounds: 10"
+> 的建议不再适用于本项目（应统一用 `PasswordUtils.encode` 的强度 12）。
+> 总体口径见 [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)、[CHANGELOG.md](../CHANGELOG.md)。
+
 ## 概述
 
 项目已从**明文密码**升级为 **BCrypt 加密密码**，大幅提升安全性。

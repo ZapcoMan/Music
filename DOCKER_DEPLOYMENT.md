@@ -24,12 +24,14 @@
        │   Backend API     │
        │     :9171         │
        └────────┬──────────┘
-                │
+                │  （以下两个服务只在
+                │   compose 内部网络可达，
+                │   不再映射到宿主机端口）
        ┌────────┴──────────┐
        │                   │
 ┌──────▼──────┐    ┌──────▼──────┐
 │   MySQL     │    │   Redis     │
-│   :3306     │    │   :6379     │
+│ mysql:3306  │    │  redis:6379 │
 └─────────────┘    └─────────────┘
 ```
 
@@ -37,8 +39,8 @@
 
 | 服务 | 技术 | 版本 | 说明 |
 |------|------|------|------|
-| 管理端前端 | Vue 2 + Nginx | 2.6.11 | 后台管理系统 |
-| 用户端前端 | Vue 2 + Nginx | 2.6.11 | 用户音乐网站 |
+| 管理端前端 | Vue 2 + Nginx（unprivileged） | Vue ^2.5.2 | 后台管理系统，容器内监听 8080 |
+| 用户端前端 | Vue 2 + Nginx（unprivileged） | Vue ^2.6.11 | 用户音乐网站，容器内监听 8080 |
 | 后端 API | Spring Boot | 3.4.3 | RESTful API |
 | 数据库 | MySQL | 8.0 | 关系数据库 |
 | 缓存 | Redis | 7.x | 缓存数据库 |
@@ -69,7 +71,7 @@ chmod +x deploy.sh && ./deploy.sh start
 ### 使用 Docker Compose
 
 ```bash
-# 开发环境
+# 开发/本地环境（compose 的必填变量同样生效，先准备 .env，见下方"环境变量"）
 docker-compose up -d
 
 # 生产环境
@@ -88,9 +90,11 @@ docker-compose -f docker-compose.prod.yml up -d
 | 用户端前端 | http://localhost:8081 | 用户音乐网站 |
 | 后端 API | http://localhost:9171 | RESTful API |
 | Swagger UI | http://localhost:9171/swagger-ui.html | API 文档 |
-| MySQL | localhost:3306 | 数据库 (root/root) |
-| Redis | localhost:6379 | 缓存 (密码: admin) |
-| Druid 监控 | http://localhost:9171/druid | 连接池监控 (admin/admin) |
+
+> ⚠️ 口径变化（v3.0.0 安全收紧）：**MySQL 与 Redis 不再暴露宿主端口**（3306/6379 仅在
+> compose 内部网络可达，本机调试可按 `docker-compose.yml` 内注释临时绑 `127.0.0.1`）；
+> **Druid 监控台在 prod 档位关闭**，不再有 `localhost:9171/druid` 入口；数据库/Redis 口令
+> 一律来自 `.env` 的必填变量，不存在 root/root、admin 之类的默认值。
 
 ---
 
@@ -100,7 +104,14 @@ docker-compose -f docker-compose.prod.yml up -d
 
 #### 开发环境（docker-compose.yml）
 
-默认配置已包含在 `docker-compose.yml` 中，无需额外配置。
+`docker-compose.yml` 中的敏感变量同样使用 `${VAR:?}` 强制语法：**没有 `.env`（或环境变量）时
+compose 会直接拒绝启动**，而不是回落到示例弱口令。本地开发同样需要先：
+
+```bash
+cp .env.example .env
+```
+
+如只做本地联调，可在 `.env` 中显式设置 `SPRING_PROFILES_ACTIVE=dev` 覆盖默认的 prod 档位。
 
 #### 生产环境（.env 文件）
 
@@ -109,20 +120,25 @@ docker-compose -f docker-compose.prod.yml up -d
 cp .env.example .env
 ```
 
-2. 编辑 `.env` 文件：
+2. 编辑 `.env` 文件（变量名与 `application-prod.yml` 占位一致，均无默认值，缺失即启动失败）：
 ```env
-# MySQL 配置
-MYSQL_ROOT_PASSWORD=your_secure_password
-MYSQL_DATABASE=db_music
+# MySQL 配置（MYSQL_ROOT_PASSWORD 需与 DB_PASSWORD 一致）
+DB_USERNAME=your_db_user
+DB_PASSWORD=your_secure_mysql_password
+MYSQL_ROOT_PASSWORD=your_secure_mysql_password
 
 # Redis 配置
-REDIS_PASSWORD=your_redis_password
+REDIS_PASSWORD=your_secure_redis_password
 
-# JWT 配置
-JWT_SECRET=your_jwt_secret_key_change_in_production
+# JWT 配置：HMAC-SHA384 签名要求密钥至少 448 bit（约 56 个 ASCII 字符），禁止沿用示例值
+JWT_SECRET=your_at_least_56_chars_random_secret_key_change_in_production
 
-# 时区
+# 允许的跨域来源（逗号分隔，禁止通配符）
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://admin.yourdomain.com
+
+# 时区 / 档位
 TZ=Asia/Shanghai
+SPRING_PROFILES_ACTIVE=prod
 ```
 
 3. 启动生产环境：
@@ -161,20 +177,20 @@ docker-compose exec redis redis-cli -a ${REDIS_PASSWORD} BGSAVE
 
 ### 修改端口
 
-编辑 `docker-compose.yml`：
+编辑 `docker-compose.yml`（注意：前端**容器内端口是 8080**——nginx-unprivileged 非 root 不能绑定 1024 以下端口，改宿主侧即可）：
 ```yaml
 services:
   admin-frontend:
     ports:
-      - "8082:80"      # 管理端改为 8082
+      - "8082:8080"  # 管理端改为 8082
   
   user-frontend:
     ports:
-      - "8083:80"      # 用户端改为 8083
+      - "8083:8080"  # 用户端改为 8083
   
   backend:
     ports:
-      - "9172:9171"    # 后端改为 9172
+      - "9172:9171"  # 后端改为 9172
 ```
 
 ### 资源限制
@@ -246,8 +262,8 @@ docker-compose exec backend bash
 # 进入 MySQL
 docker-compose exec mysql mysql -u root -p
 
-# 进入 Redis
-docker-compose exec redis redis-cli -a admin
+# 进入 Redis（容器内不设口令明文，用环境变量取）
+docker-compose exec redis sh -c 'redis-cli -a "$REDIS_PASSWORD"'
 ```
 
 ### 重启服务
@@ -315,9 +331,10 @@ docker-compose exec mysql mysql -u root -p${MYSQL_ROOT_PASSWORD} -e "SHOW DATABA
 ```
 
 **初始化数据库**：
-```bash
-docker-compose exec -T mysql mysql -uroot -p${MYSQL_ROOT_PASSWORD} db_music < db_music.sql
-```
+
+库结构的唯一出处是 `Music-backend/src/main/resources/db/migration` 下的 Flyway 迁移脚本（V1–V13），
+后端启动时自动建库建表，**无需也不应手工导入任何 SQL**；根目录 `db_music.sql` 已停用（它是 V1 时代
+的旧快照，与 Flyway 脚本不同源，导入只会造成双出处冲突）。
 
 ### 4. 前端无法访问后端
 
@@ -328,13 +345,14 @@ docker-compose exec backend ping redis
 ```
 
 **检查配置**：
-确保前端构建时的 API 地址正确：
+前端镜像构建时通过 build arg 注入 API 地址，指向**宿主机上的后端**（浏览器从宿主访问）：
 ```yaml
 # docker-compose.yml
 build:
   args:
-    VUE_APP_API_BASE_URL: http://backend:9171  # 容器内通信
+    VUE_APP_API_BASE_URL: http://localhost:9171
 ```
+若后端换了宿主端口（如 9172），需同步修改此地址并重新构建前端镜像。
 
 ### 5. 内存不足
 
@@ -363,10 +381,10 @@ docker system prune -a --volumes
 
 ### 生产环境安全检查清单
 
-- ✅ 修改所有默认密码（MySQL、Redis、Druid）
-- ✅ 使用强 JWT Secret（至少 32 位随机字符串）
+- ✅ 修改所有默认密码（MySQL、Redis——compose 已用 `${VAR:?}` 强制必填，缺失即拒绝启动）
+- ✅ 使用强 JWT Secret（HMAC-SHA384 签名，至少 448 bit，约 56 个 ASCII 字符）
 - ✅ 启用 HTTPS（使用 Nginx 反向代理 + Let's Encrypt）
-- ✅ 限制外部访问（防火墙规则）
+- ✅ 限制外部访问（防火墙规则；MySQL/Redis 默认已不暴露宿主端口）
 - ✅ 定期更新镜像（安全补丁）
 - ✅ 备份重要数据
 - ✅ 监控日志和异常
@@ -391,11 +409,11 @@ ufw deny 6379/tcp   # 禁止外部访问 Redis
 
 ```dockerfile
 # 构建阶段
-FROM node:16 AS builder
-RUN npm run build
+FROM node:20-alpine AS builder
+RUN npm ci && npm run build
 
 # 运行阶段
-FROM nginx:alpine
+FROM nginxinc/nginx-unprivileged:alpine   # 非 root 运行，容器内监听 8080
 COPY --from=builder /app/dist /usr/share/nginx/html
 ```
 
@@ -458,7 +476,7 @@ jobs:
 ## ❓ 常见问题
 
 ### Q: 首次启动很慢？
-A: 首次需要下载镜像和初始化数据库，请耐心等待 2-5 分钟。后续启动会快很多。
+A: 首次需要下载镜像，后端启动时 Flyway 还会自动执行 V1–V13 迁移建库，请耐心等待 2-5 分钟。后续启动会快很多。
 
 ### Q: 如何修改数据库密码？
 A: 编辑 `.env` 文件，修改 `MYSQL_ROOT_PASSWORD`，然后执行 `docker-compose down -v && docker-compose up -d`（⚠️ 会清空数据）。
@@ -484,6 +502,6 @@ du -sh /var/lib/docker/volumes
 
 ---
 
-**最后更新**: 2026-05-07  
+**最后更新**: 2026-11-10（按 v3.0.0 现状口径刷新：端口收敛、必填环境变量、Flyway 唯一库结构出处）
 **维护者**: 开发团队  
 **问题反馈**: [GitHub Issues](https://github.com/ZapcoMan/Music/issues)

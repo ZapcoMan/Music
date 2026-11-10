@@ -1,5 +1,16 @@
 # Docker 部署配置完成报告
 
+> ⚠️ **口径声明**：本文为 2026-05 的历史完成报告，其后部署配置又经历 v3.0.0 安全收紧，
+> 以下描述已过时，请以实际文件与 [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)、
+> [DOCKER_QUICK_START.md](DOCKER_QUICK_START.md) 为准：
+> ① MySQL/Redis **不再映射宿主端口 3306/6379**，仅 compose 内部网络可达；
+> ② 前端容器改用 **nginx-unprivileged，容器内监听 8080**（不是 80）；
+> ③ 口令类变量（MYSQL_ROOT_PASSWORD/DB_USERNAME/DB_PASSWORD/REDIS_PASSWORD/JWT_SECRET）
+> 均为 `${VAR:?}` **必填**，缺失即拒绝启动，不存在 root/root 默认口令；
+> ④ 库结构唯一出处是 **Flyway 迁移脚本（V1–V13）**，`db_music.sql` 已停用且不再挂载；
+> ⑤ compose 默认档位改为 `SPRING_PROFILES_ACTIVE=prod`（prod 关 Druid 监控台）。
+> 总体口径见 [docs/FIX-LOG-2026-11.md](docs/FIX-LOG-2026-11.md)、[CHANGELOG.md](CHANGELOG.md)。
+
 ## ✅ 已完成的工作
 
 ### 1. Docker 配置文件
@@ -47,7 +58,7 @@
   - 生产环境建议
   - 性能优化建议
 
-- ✅ `DOCKER_QUICKSTART.md` - 快速开始指南
+- ✅ `DOCKER_QUICK_START.md` - 快速开始指南
   - 一键启动命令
   - 常用命令速查
   - 快速故障排查
@@ -321,7 +332,7 @@ docker-compose restart backend
 ---
 
 **下一步**: 
-1. 阅读 [DOCKER_QUICKSTART.md](DOCKER_QUICKSTART.md) 快速上手
+1. 阅读 [DOCKER_QUICK_START.md](DOCKER_QUICK_START.md) 快速上手
 2. 查看 [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) 了解详细信息
 3. 运行 `./deploy.sh start` 或 `.\deploy.ps1 start` 启动服务
 
