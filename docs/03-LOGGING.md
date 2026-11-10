@@ -1,5 +1,11 @@
 # Logback 日志系统配置
 
+> ⚠️ **口径声明**：本文为历史快照。保留天数/队列大小/各包日志级别等具体数值以
+> `logback-spring.xml` 与 `application-{profile}.yml` 的当前内容为准（例：dev 档现为
+> `com.shanzhu.music=DEBUG`、`max-history: 15`）；日志中已追加令牌脱敏与请求审计
+> （见 04-REQUEST-AUDIT.md）。总体口径见 [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)、
+> [CHANGELOG.md](../CHANGELOG.md)。
+
 ## 📋 概述
 
 项目已配置完整的 **Logback 日志系统**，支持：

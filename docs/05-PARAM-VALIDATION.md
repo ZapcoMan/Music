@@ -1,5 +1,13 @@
 # 参数校验最佳实践
 
+> ⚠️ **口径声明**：本文为历史快照。其"❌ 不应该添加 @Valid"一节中 `@GetMapping("/delete")`
+> 等动词式/GET 删除示例已废除（v3.0.0 全面 RESTful 化，删除走 `DELETE /api/v1/...`）；
+> 返回值也已泛型化为 `R<T>`，DTO 清单在原有 9 个基础上又有扩充（如
+> `ConsumerProfileRequest`、`ConsumerRequest` 拆分注册/改资料场景）；分页参数另有
+> `PageLimits` 统一上限（pagehelper 配置夹不住显式 startPage）。校验思路（Bean
+> Validation + @Valid + 全局异常处理器）仍与现状一致。总体口径见
+> [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)、[CHANGELOG.md](../CHANGELOG.md)。
+
 ## 📋 概述
 
 项目已实现基于 **Bean Validation** 的参数校验系统，包括：

@@ -1,5 +1,12 @@
 # 请求/响应审计日志
 
+> ⚠️ **口径声明**：本文为历史快照。示例中的 `/admin/login/status`、`/song/allSong` 等
+> 动词式旧路径已 RESTful 化为 `/api/v1/*`；本项目 `Authorization` 头传的是**裸 JWT、
+> 不带 `Bearer ` 前缀**；登录/改资料走表单提交，表单体同样含明文凭令，脱敏已覆盖
+> form 体；另新增操作审计（OperationLogService 登录/登出/重操作落库）。拦截器
+> 顺序 Logging:0 → JWT:1 → RateLimit:2 仍与现状一致。总体口径见
+> [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)、[CHANGELOG.md](../CHANGELOG.md)。
+
 ## 📋 概述
 
 项目已配置 **RequestResponseLoggingInterceptor**，用于记录所有 API 请求和响应的详细信息，便于：
