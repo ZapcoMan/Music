@@ -35,7 +35,7 @@ public class JwtAuthenticationInterceptor implements HandlerInterceptor {
 
     /**
      * 免登录入口，按"HTTP 方法 + 路径"整体匹配。
-     *
+     * <p>
      * 之所以不再用 WebMvcConfig#excludePathPatterns 表达：那条规则只认路径不认方法。
      * 登录是 POST /consumers/sessions，登出是 DELETE /consumers/sessions —— 同一个字面，
      * 一个必须匿名可调、另一个必须带令牌。按路径排除会把登出一起放成匿名入口，
