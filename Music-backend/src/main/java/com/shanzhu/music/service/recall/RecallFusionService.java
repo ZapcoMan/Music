@@ -100,9 +100,13 @@ public class RecallFusionService {
                 result.setWeight(effectiveWeight(strategy));
                 recallResults.add(result);
             } catch (Exception e) {
-                log.error("召回策略 {} 执行异常", strategy.getStrategyName(), e);
+                // 这一路已降级为空结果、不再影响整体推荐，所以 ERROR 只留可定位的一行摘要；
+                // 完整调用栈降到 debug，免得单测与下游偶发抖动把整屏刷成 stack trace。
+                log.error("召回策略 {} 执行异常，本路降级：{}: {}",
+                    strategy.getStrategyName(), e.getClass().getSimpleName(), e.getMessage());
+                log.debug("召回策略 {} 异常详情", strategy.getStrategyName(), e);
                 recallResults.add(RecallResult.failed(
-                    strategy.getStrategyName(), effectiveWeight(strategy), e.getMessage()));
+                    strategy.getStrategyName(), effectiveWeight(strategy), e.toString()));
             }
         }
 
@@ -123,13 +127,23 @@ public class RecallFusionService {
     
     /**
      * 冷启动处理 - 无收藏用户退化为热门召回
+     *
+     * 这里不走多路融合的 try/catch，热门召回自己异常（SQL 报错、表缺失等）
+     * 也必须就地降级为空结果，否则一路失败会把整个推荐流程抛穿到调用方。
      */
     private List<Song> handleColdStart(List<RecallStrategy> orderedStrategies, Integer userId, int topN) {
         for (RecallStrategy strategy : orderedStrategies) {
             if (POPULAR_STRATEGY.equals(strategy.getStrategyName())) {
-                RecallResult result = strategy.recall(userId);
-                if (result.getSongs() != null && !result.getSongs().isEmpty()) {
-                    return result.getSongs().stream().limit(topN).collect(Collectors.toList());
+                try {
+                    RecallResult result = strategy.recall(userId);
+                    if (result.getSongs() != null && !result.getSongs().isEmpty()) {
+                        return result.getSongs().stream().limit(topN).collect(Collectors.toList());
+                    }
+                } catch (Exception e) {
+                    // 与多路召回那条 catch 同一口径：就地降级为空结果，ERROR 只留一行摘要，完整栈看 debug
+                    log.error("冷启动用户 {} 的热门召回执行异常，返回空推荐：{}: {}",
+                        userId, e.getClass().getSimpleName(), e.getMessage());
+                    log.debug("冷启动用户 {} 的热门召回异常详情", userId, e);
                 }
                 break;
             }

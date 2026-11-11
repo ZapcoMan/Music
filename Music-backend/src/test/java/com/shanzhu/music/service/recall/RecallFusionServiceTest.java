@@ -133,6 +133,26 @@ class RecallFusionServiceTest {
     }
 
     /**
+     * 冷启动走的是 handleColdStart，不经过上面那段多路 try/catch，
+     * 所以必须单独钉住：热门召回自己报 SQL 错时只能给空推荐，
+     * 不能把异常抛穿给 RankingService，让新用户连首页都打不开。
+     */
+    @Test
+    @DisplayName("冷启动时热门召回抛异常也降级为空结果而不是抛穿")
+    void coldStartWithFailingPopularStrategyDegradesToEmpty() {
+        when(collectMapper.selectByUserId(13)).thenReturn(Collections.emptyList());
+        RecallStrategy brokenPopular = mock(RecallStrategy.class);
+        when(brokenPopular.getStrategyName()).thenReturn("popular");
+        when(brokenPopular.getWeight()).thenReturn(0.15);
+        when(brokenPopular.recall(any())).thenThrow(new RuntimeException("SQL 报错"));
+
+        List<RecallFusionService.SongWithRecallInfo> result =
+                service(Arrays.asList(brokenPopular)).fuseRecallWithInfo(13, 5);
+
+        assertTrue(result.isEmpty(), "冷启动热门召回失败应返回空推荐，而不是抛出异常");
+    }
+
+    /**
      * recallStrategies 由 Spring 注入为 List，其顺序依赖 bean 注册次序；
      * 而融合产出的 strategy 与 rank 会作为特征进入打分。源码里专门固定了遍历顺序，
      * 这条用例就是钉住该约定：注入顺序相反时，结果序列必须逐位相同。

@@ -26,7 +26,11 @@
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>${CONSOLE_LOG_PATTERN}</pattern>
-            <charset>utf8</charset>
+            <!-- 默认 UTF-8，与文件 appender 及源码编码同源，Linux/Docker/CI 无需任何设置即正确。
+                 Windows 控制台代码页是 936(GBK) 时，中文会被按 GBK 解出乱码，
+                 那种场合用 -DconsoleCharset=GBK 单独覆盖这一处，文件日志不受影响。
+                 不要把默认值改成 GBK：那只是把乱码从本地搬到线上。 -->
+            <charset>${consoleCharset:-UTF-8}</charset>
         </encoder>
     </appender>
 

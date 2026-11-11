@@ -20,6 +20,10 @@
         <java.version>17</java.version>
         <!-- 默认激活 dev 环境 -->
         <spring.profiles.active>dev</spring.profiles.active>
+        <!-- 给 jacoco prepare-agent 占位：它在 test 前会把探针参数写进这个属性。
+             先置空是为了 -Djacoco.skip=true 时，surefire 里的 @{argLine} 仍能解析成空串，
+             而不是报"无法解析属性"。 -->
+        <argLine/>
     </properties>
 
     <dependencies>
@@ -305,6 +309,17 @@
                 <configuration>
                     <!-- 测试失败不中断构建 -->
                     <testFailureIgnore>false</testFailureIgnore>
+                    <!--
+                      @{argLine} 是延迟求值，用来接住 jacoco prepare-agent 注入的探针参数，
+                      直接写 <argLine> 会把覆盖率代理顶掉。后面强制 fork JVM 默认编码为 UTF-8：
+                      JDK 17 在中文 Windows 上 file.encoding 默认是 GBK，而 logback 控制台走的是
+                      UTF-8 编码器，两路混写会让 Maven / IDEA 无法确定该按什么解码子进程输出。
+                      stdout/stderr 也要一起锁 UTF-8：单测里没有 @SpringBootTest 的 fork 拿到的是
+                      logback 默认配置，控制台 appender 直接跟 JVM 默认编码；而 surefire 把子进程输出
+                      转交给 Maven 时用的也是这一套，上一跳对了下一跳错了，中文照样乱。
+                      JDK 17 认 sun.stdout.encoding，JDK 18+ 认 stdout.encoding，两个都给不会冲突。
+                    -->
+                    <argLine>@{argLine} -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dstdout.encoding=UTF-8</argLine>
                     <!-- 包含的测试类模式 -->
                     <includes>
                         <include>**/*Test.java</include>
