@@ -39,8 +39,8 @@
 
 | 服务 | 技术 | 版本 | 说明 |
 |------|------|------|------|
-| 管理端前端 | Vue 2 + Nginx（unprivileged） | Vue ^2.5.2 | 后台管理系统，容器内监听 8080 |
-| 用户端前端 | Vue 2 + Nginx（unprivileged） | Vue ^2.6.11 | 用户音乐网站，容器内监听 8080 |
+| 管理端前端 | Vue 2 + Nginx（unprivileged） | Vue 2.7.16（锁定值） | 后台管理系统，容器内监听 8080 |
+| 用户端前端 | Vue 2 + Nginx（unprivileged） | Vue 2.7.15（锁定值） | 用户音乐网站，容器内监听 8080 |
 | 后端 API | Spring Boot | 3.4.3 | RESTful API |
 | 数据库 | MySQL | 8.0 | 关系数据库 |
 | 缓存 | Redis | 7.x | 缓存数据库 |
@@ -87,14 +87,21 @@ docker-compose -f docker-compose.prod.yml up -d
 | 服务 | 地址 | 说明 |
 |------|------|------|
 | 管理端前端 | http://localhost:8080 | 后台管理系统 |
-| 用户端前端 | http://localhost:8081 | 用户音乐网站 |
+| 用户端前端 | http://localhost:8081 | 用户音乐网站（容器内同样是 8080） |
 | 后端 API | http://localhost:9171 | RESTful API |
-| Swagger UI | http://localhost:9171/swagger-ui.html | API 文档 |
+| 健康检查 | http://localhost:9171/actuator/health | 匿名可访问 |
+| Swagger UI | http://localhost:9171/swagger-ui.html | **仅 dev 档可用，prod 档 404** |
 
 > ⚠️ 口径变化（v3.0.0 安全收紧）：**MySQL 与 Redis 不再暴露宿主端口**（3306/6379 仅在
-> compose 内部网络可达，本机调试可按 `docker-compose.yml` 内注释临时绑 `127.0.0.1`）；
+> compose 内部网络可达，本机调试可按 `docker-compose.yml` 内注释临时绑 `127.0.0.1:13306`）；
 > **Druid 监控台在 prod 档位关闭**，不再有 `localhost:9171/druid` 入口；数据库/Redis 口令
 > 一律来自 `.env` 的必填变量，不存在 root/root、admin 之类的默认值。
+>
+> ⚠️ **两个 compose 文件的后端默认档位都是 prod**（`docker-compose.yml` 用
+> `${SPRING_PROFILES_ACTIVE:-prod}`，prod 文件写死 `prod`）。prod 档同时关闭了 SpringDoc，
+> 所以"启动后打开 Swagger"这一步默认会 404，部署脚本打印的该地址也一样。
+> 本地联调请在 `.env` 显式设 `SPRING_PROFILES_ACTIVE=dev`。
+> `/actuator/{info,metrics,prometheus}` 在两个档位都需有效 JWT，只有 `health` 匿名。
 
 ---
 
@@ -122,8 +129,11 @@ cp .env.example .env
 
 2. 编辑 `.env` 文件（变量名与 `application-prod.yml` 占位一致，均无默认值，缺失即启动失败）：
 ```env
-# MySQL 配置（MYSQL_ROOT_PASSWORD 需与 DB_PASSWORD 一致）
-DB_USERNAME=your_db_user
+# MySQL 配置
+# DB_USERNAME 必须是 root：mysql 服务只设了 MYSQL_ROOT_PASSWORD，
+# 没有 MYSQL_USER/MYSQL_PASSWORD，镜像不会创建其他账号。
+# DB_PASSWORD 必须与 MYSQL_ROOT_PASSWORD 一致（后端用前者连库，库用后者初始化）。
+DB_USERNAME=root
 DB_PASSWORD=your_secure_mysql_password
 MYSQL_ROOT_PASSWORD=your_secure_mysql_password
 
@@ -133,13 +143,20 @@ REDIS_PASSWORD=your_secure_redis_password
 # JWT 配置：HMAC-SHA384 签名要求密钥至少 448 bit（约 56 个 ASCII 字符），禁止沿用示例值
 JWT_SECRET=your_at_least_56_chars_random_secret_key_change_in_production
 
-# 允许的跨域来源（逗号分隔，禁止通配符）
+# 允许的跨域来源（逗号分隔，禁止通配符）；prod compose 中为 ${VAR:?} 必填
 CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://admin.yourdomain.com
+
+# 前端构建期烘焙的后端地址；不设则产物指向 http://localhost:9171
+API_BASE_URL=https://api.yourdomain.com
 
 # 时区 / 档位
 TZ=Asia/Shanghai
 SPRING_PROFILES_ACTIVE=prod
 ```
+
+> `.env.example` 里 `DB_USERNAME` 的示例值是占位文本，照抄会连不上库——按上面填 `root`。
+> `API_BASE_URL` 只影响前端镜像构建（`--build-arg VUE_APP_API_BASE_URL`），
+> 改它之后必须重新构建前端镜像，运行时改环境变量无效。
 
 3. 启动生产环境：
 ```bash
@@ -195,7 +212,10 @@ services:
 
 ### 资源限制
 
-编辑 `docker-compose.yml`：
+`docker-compose.prod.yml` **已预设**各服务上限：后端 2 CPU / 2G、MySQL 1 CPU / 1G、
+Redis 0.5 CPU / 512M、两个前端各 0.5 CPU / 256M；后端另配 json-file 日志轮转（10m × 3）。
+`docker-compose.yml`（开发档）没有 `deploy.resources` 段，需要时自行添加：
+
 ```yaml
 services:
   backend:
@@ -208,6 +228,15 @@ services:
           cpus: '1'
           memory: 1G
 ```
+
+> ⚠️ **JVM 堆参数不由 compose 控制**：prod compose 虽然后端设了 `JAVA_OPTS`
+> （`-Xms512m -Xmx1024m -XX:+UseG1GC ...`），但 `Music-backend/Dockerfile` 的 `ENTRYPOINT`
+> 是 exec 形式并写死了 `-Xms256m -Xmx512m`，不经 shell 展开变量，因此 `JAVA_OPTS` **不生效**，
+> 容器实际堆上限为 512m。要调堆必须改 Dockerfile 后重新构建镜像。
+> 详见 [TROUBLESHOOTING.md](TROUBLESHOOTING.md) 第 12 条。
+>
+> 另注：`deploy.resources` 在 swarm 之外的 `docker-compose up` 下，limits 的生效范围取决于
+> Compose 版本与运行时； reservations 通常不被普通 up 应用。
 
 ### 自定义镜像构建
 
@@ -435,39 +464,32 @@ docker inspect backend
 
 ---
 
-## 🔄 持续集成/持续部署（CI/CD）
+## 🔄 持续集成（CI）
 
-### GitHub Actions 示例
+仓库现有两个 workflow（`.github/workflows/`），**都只做校验，不构建镜像、不推送 registry、不部署到服务器**：
 
-```yaml
-name: Docker Build and Deploy
+| workflow | 触发 | 内容 |
+|----------|------|------|
+| `ci.yml` | push / PR 到 `master` | `backend-verify`：temurin 17 + Redis 7 容器 + `mvn -B clean verify`（JaCoCo 四项门禁 + SpotBugs High=0），失败时上传 surefire 报告；`mysql-migrations`：真实 MySQL 8.0 上按 `sort -V` 分段执行 V1→V13 并断言唯一约束 |
+| `frontend-ci.yml` | push / PR 到 `master` | matrix 两端：node 20 + `npm ci` → `lint` → `unit` → `build` → 断言 dist 无 `.map` |
 
-on:
-  push:
-    branches: [ main ]
+两者均不引用 secrets，不按 tag 触发，不发布 Release/Pages。门禁阈值与跑法详见
+[DEVELOPMENT.md](DEVELOPMENT.md) 第 5–6 节。
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Build and Push Docker Images
-        run: |
-          docker-compose build
-          docker-compose push
-      
-      - name: Deploy to Server
-        run: |
-          ssh user@server "cd /path/to/project && docker-compose pull && docker-compose up -d"
-```
+> 早期文档在这里给过一段 `branches: [main]` + `docker-compose push` + `ssh` 部署的示例 YAML，
+> 那不是本仓库的配置：实际分支只有 `master`，也没有配置镜像仓库与部署目标。已移除，避免照抄。
+
+**因此部署是手工动作**：在目标机上 `git pull` → 准备 `.env` →
+`docker-compose -f docker-compose.prod.yml up -d --build`。
+若需要自动化部署，得自行新增 workflow 并配好 registry 凭据与目标机访问方式——目前仓库里没有。
 
 ---
 
 ## 📖 相关文档
 
 - [DOCKER_QUICK_START.md](DOCKER_QUICK_START.md) - Docker 快速开始指南
+- [DEVELOPMENT.md](DEVELOPMENT.md) - 本地开发、端口与构建链路、CI 门禁
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - 故障排查
 - [README.md](../README.md) - 项目总览
 - [API 开发文档.md](../API%20开发文档.md) - API 接口文档
 
@@ -479,10 +501,10 @@ jobs:
 A: 首次需要下载镜像，后端启动时 Flyway 还会自动执行 V1–V13 迁移建库，请耐心等待 2-5 分钟。后续启动会快很多。
 
 ### Q: 如何修改数据库密码？
-A: 编辑 `.env` 文件，修改 `MYSQL_ROOT_PASSWORD`，然后执行 `docker-compose down -v && docker-compose up -d`（⚠️ 会清空数据）。
+A: 编辑 `.env`，**同步修改 `MYSQL_ROOT_PASSWORD` 与 `DB_PASSWORD`**（两者必须一致），然后重建 MySQL 卷：`docker-compose down -v && docker-compose up -d`（⚠️ `-v` 会清空数据，先 `mysqldump` 备份）。只改其中一个会让后端连不上库；已存在的卷不会自动更新口令，因为 MySQL 只在首次初始化时写入。
 
 ### Q: 数据会丢失吗？
-A: 不会。数据存储在 Docker Volume 中，除非手动执行 `docker-compose down -v`，否则数据会持久化。
+A: 不会。数据存储在 Docker Volume 中，除非手动执行 `docker-compose down -v`（或部署脚本的 `clean`，它等价于 `down -v --rmi all`），否则数据会持久化。
 
 ### Q: 如何在服务器上部署？
 A: 
@@ -502,6 +524,6 @@ du -sh /var/lib/docker/volumes
 
 ---
 
-**最后更新**: 2026-11-10（按 v3.0.0 现状口径刷新：端口收敛、必填环境变量、Flyway 唯一库结构出处）
+**最后更新**: 2026-11-16（按 compose / Dockerfile / workflow 实际内容核对：默认 prod 档与 Swagger 404、DB_USERNAME 必须 root、API_BASE_URL 与 CORS 必填、JAVA_OPTS 不生效、资源限制预设值、CI 只校验不部署）
 **维护者**: 开发团队  
 **问题反馈**: [GitHub Issues](https://github.com/ZapcoMan/Music/issues)

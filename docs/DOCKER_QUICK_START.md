@@ -4,6 +4,8 @@
 
 > ⚠️ 启动前先准备 `.env`：`docker-compose.yml` 对 `MYSQL_ROOT_PASSWORD`、`DB_USERNAME`、
 > `DB_PASSWORD`、`REDIS_PASSWORD`、`JWT_SECRET` 使用了 `${VAR:?}` 必填语法，缺失时 compose 直接拒绝启动。
+> `DB_USERNAME` 需填 **`root`**（mysql 服务只设 `MYSQL_ROOT_PASSWORD`，镜像只创建 root 账号），
+> 且 `DB_PASSWORD` 必须与 `MYSQL_ROOT_PASSWORD` 一致。
 
 ```powershell
 # Windows
@@ -26,7 +28,16 @@ chmod +x deploy.sh && ./deploy.sh start
 - 管理端：http://localhost:8080
 - 用户端：http://localhost:8081
 - 后端 API：http://localhost:9171
-- Swagger UI：http://localhost:9171/swagger-ui.html
+- 健康检查：http://localhost:9171/actuator/health
+- Swagger UI：http://localhost:9171/swagger-ui.html —— **仅在 dev 档可用**
+
+> ⚠️ **默认档位是 prod**：`docker-compose.yml` 的 `SPRING_PROFILES_ACTIVE` 默认值为 `prod`，
+> 而 prod 档刻意关闭了 SpringDoc 与 Druid 监控台。因此按上面命令直接启动后，
+> `/swagger-ui.html` 会 **404**（部署脚本打印的该地址同样只在 dev 档有效）。
+> 需要在线接口文档时，在 `.env` 里设 `SPRING_PROFILES_ACTIVE=dev` 后重启后端。
+>
+> 另注：`npm run dev` 的本地开发端口是 **9172（管理端）/ 9173（用户端）**，与上表的容器端口不同，
+> 详见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
 ---
 
@@ -116,6 +127,18 @@ vim .env
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
+prod compose 额外要求：
+
+- `CORS_ALLOWED_ORIGINS` 为 `${VAR:?}` **必填**（dev compose 不要求），填真实前端 origin，逗号分隔，禁止通配符
+- `API_BASE_URL` 决定前端构建期烘焙的后端地址，默认 `http://localhost:9171`；
+  **不覆盖它，线上页面就会去请求访客自己的 localhost**
+- `SPRING_PROFILES_ACTIVE` 在 prod 文件里写死为 `prod`，不受 `.env` 影响
+- 各服务预设了 `deploy.resources.limits`（后端 2 CPU / 2G，MySQL 1 CPU / 1G，Redis 0.5 / 512M，前端 0.5 / 256M）
+
+> ⚠️ prod compose 里的 `JAVA_OPTS` **当前不生效**：后端 Dockerfile 的 `ENTRYPOINT` 是 exec 形式
+> 且写死了 `-Xms256m -Xmx512m`，不会展开该变量。容器实际堆上限是 512m。
+> 详见 [TROUBLESHOOTING.md](TROUBLESHOOTING.md) 第 12 条。
+
 📖 详细配置：[DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)
 
 ---
@@ -146,7 +169,7 @@ Error starting userland proxy: Bind for 0.0.0.0:8080 failed: port is already all
 ports:
   - "8082:8080"   # 将管理端改为 8082
   - "8083:8080"   # 将用户端改为 8083
-  - "9172:9171"   # 将后端改为 9172
+  - "9175:9171"   # 将后端改为 9175（避开 9172/9173，那是前端本地 dev 端口）
 ```
 
 ### 2. 容器启动失败
@@ -214,6 +237,10 @@ docker-compose down -v
 docker volume rm music_mysql-data
 docker volume rm music_redis-data
 ```
+
+> ⚠️ 部署脚本的 `clean` 子命令等价于 `docker-compose down -v --rmi all`，
+> **会同时删除数据卷与镜像**（脚本内有 y/n 确认）。执行前先 `mysqldump` 备份。
+> `stop` / `restart` 只走 `down` / `up`，不动数据卷。
 
 ### 清理无用镜像
 ```bash
@@ -284,6 +311,8 @@ docker-compose up -d
 ## 📖 相关文档
 
 - [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) - 完整 Docker 部署指南
+- [DEVELOPMENT.md](DEVELOPMENT.md) - 本地开发（端口、构建链路、环境变量）
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - 故障排查
 - [README.md](../README.md) - 项目总览
 - [API 开发文档.md](../API%20开发文档.md) - API 接口文档
 
@@ -307,4 +336,4 @@ A: 参考 [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) 的生产环境部署章�
 
 **提示**：遇到问题？查看完整文档 [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) 或提交 [Issue](https://github.com/ZapcoMan/Music/issues)
 
-**最后更新**: 2026-11-10（按 v3.0.0 现状口径刷新）
+**最后更新**: 2026-11-16（按 compose / Dockerfile 实际内容核对：默认 prod 档与 Swagger 404、DB_USERNAME 必须 root、prod 必填项与 JAVA_OPTS 不生效、clean 删卷警示）
