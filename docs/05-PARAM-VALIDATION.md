@@ -2,18 +2,26 @@
 
 > ⚠️ **口径声明**：本文为历史快照。其"❌ 不应该添加 @Valid"一节中 `@GetMapping("/delete")`
 > 等动词式/GET 删除示例已废除（v3.0.0 全面 RESTful 化，删除走 `DELETE /api/v1/...`）；
-> 返回值也已泛型化为 `R<T>`，DTO 清单在原有 9 个基础上又有扩充（如
-> `ConsumerProfileRequest`、`ConsumerRequest` 拆分注册/改资料场景）；分页参数另有
-> `PageLimits` 统一上限（pagehelper 配置夹不住显式 startPage）。校验思路（Bean
-> Validation + @Valid + 全局异常处理器）仍与现状一致。总体口径见
+> 返回值也已泛型化为 `R<T>`。
+>
+> **2026-11-16 按源码修正**：入参 DTO 是 **6 个**（不是 9 个）；`@Valid` 只有 **7 处、
+> 分布在 4 个 Controller**（不是"8 个 Controller 全部添加"）；校验失败的业务 code 是
+> **20002**、字段名是 `message`（不是 `code:400` / `msg`）。
+>
+> 分页另有 `common/PageLimits.MAX_PAGE_SIZE = 100`，在 **ServiceImpl 层**调
+> `PageHelper.startPage` 之前 `clamp`（song/songList/singer/consumer 四处入口全部覆盖）——
+> pagehelper 的 `max-page-size` 配置只挂在 `Page.setPageSize()` 上，夹不住显式 `startPage`。
+> 校验思路（Bean Validation + @Valid + 全局异常处理器）仍与现状一致。总体口径见
 > [FIX-LOG-2026-11.md](FIX-LOG-2026-11.md)、[CHANGELOG.md](../CHANGELOG.md)。
 
 ## 📋 概述
 
 项目已实现基于 **Bean Validation** 的参数校验系统，包括：
-- ✅ 9个DTO类覆盖所有增删改接口
-- ✅ 注解式自动校验（@Valid）
-- ✅ 统一错误提示格式
+- ✅ `entity/dto/` 下 **6 个入参 Request 类**承载校验注解（另有 `RecallResult`/`SongFeature`
+  两个内部计算载体，不接请求）
+- ⚠️ 注解式自动校验（`@Valid`）**只标注在 7 处入参上，不是全部增删改接口**——
+  逐接口清单见 [API 开发文档](../API%20开发文档.md) 的"校验规则"节
+- ✅ 统一错误提示格式（`R<T>`，字段名 `message`）
 - ✅ 全局异常处理器
 
 ---
@@ -270,10 +278,22 @@ public R handleValidationException(MethodArgumentNotValidException e) {
 **A**: 全局异常处理器统一处理，返回格式：
 ```json
 {
-  "code": 400,
-  "msg": "用户名不能为空"
+  "success": false,
+  "code": 20002,
+  "message": "用户名长度必须在2-50之间"
 }
 ```
+
+HTTP 状态码同时为 **400**（三个校验异常处理方法都标了 `@ResponseStatus(HttpStatus.BAD_REQUEST)`），
+业务 code 取 `ResultCodeEnum.PARAM_ERROR.getCode()` = **20002**。
+字段名是 `message` 不是 `msg`。
+
+`MethodArgumentNotValidException`（`@RequestBody` + `@Valid`）、`BindException`（表单绑定 + `@Valid`）、
+`ConstraintViolationException` 三个分支返回的 code 一致，不存在"参数错误有两个 code 来源"的情况。
+
+> 注意区分：`BusinessException` 走的是另一条路——HTTP **200** + code **400**（默认）
+> 或 500（存储不可用），因为两套前端判成功只看 `res.code == 20000 || res.success === true`，
+> 写成 4xx 会让 axios 走 reject 分支而看不到 message。
 
 ### Q2: 如何自定义校验规则？
 
@@ -352,17 +372,25 @@ controller/
 
 ## 🎯 总结
 
-### 已完成的功能
-✅ 9个DTO类覆盖所有增删改场景  
-✅ 8个Controller全部添加@Valid校验  
-✅ 统一错误提示格式  
-✅ 全局异常处理器  
+### 现状（按源码核对）
+✅ 6 个入参 Request DTO 承载校验注解  
+⚠️ `@Valid` 实际只有 **7 处**，分布在 **4 个 Controller**：  
+　　ConsumerController 3（registrations / profile / {id}，均 `@RequestBody`）  
+　　SingerController 2（POST / PATCH，均 `@RequestBody`）  
+　　CommentController 1（POST，表单绑定）  
+　　RankController 1（POST，表单绑定）  
+❌ SongController / SongListController / CollectController / ListSongController /
+　　TagController / SearchHistoryController **无 `@Valid`**：上传类由 `FileStorageService`
+　　校验并抛 `BusinessException`，其余依赖 Service 层判断与数据库约束  
+✅ 统一错误提示格式（`R<T>`，code 20002 + HTTP 400）  
+✅ 全局异常处理器覆盖校验、业务、404/405/413/415/500 等分支  
 
 ### 优势
-🚀 代码量减少 60%+  
-🚀 校验逻辑集中管理  
-🚀 错误提示统一格式  
-🚀 易于维护和扩展  
+🚀 校验逻辑集中在 DTO，不散落在 Controller 的 if 里  
+🚀 错误提示统一格式，前端可直接展示 `message`  
+🚀 约束即文档：`message` 文案就是给用户看的提示  
+
+> "代码量减少 60%+" 一类量化收益没有实测出处，本文不给数字。
 
 ---
 

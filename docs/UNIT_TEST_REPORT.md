@@ -1,17 +1,28 @@
 # 后端单元测试报告
 
 > ⚠️ **口径声明（本文是早期快照，规模与结论均已过期，现状如下）**：
-> - 现状规模：后端 `mvn -B test` **297 项全绿（Failures 0 / Errors 0 / Skipped 0）**（v2.0.0 时 249 项，
->   本文成文时的 141/142 项及 16 个空壳用例均已不存在）；前端另有 24 例（用户端 13 + 管理端 11）。
->   数字以 [CHANGELOG.md](../CHANGELOG.md) v3.0.0「验证」节为准。
+> - 现状规模：后端 **298 个用例**、33 个测试类，无 `@Disabled`；前端另有 24 例（用户端 13 + 管理端 11）。
+>   298 的核算口径：225 个 `@Test` + 5 个 `@ParameterizedTest` 展开的 73 项
+>   （`AdminWriteAuthMatrixTest` 22 条 admin 端点 × 2 身份 + 11 条 consumer 专属端点 × 2 身份 = 66，
+>   `CommentControllerTest` 7 条非法评论 = 7）。
+>   注意 `grep -c "@Test"` 会把 19 个 `@TestMethodOrder` 一起算进去得到错误的 244，
+>   核算须用 `grep -cE "^\s*@Test\s*$"` 再加参数化数据源条目数。
+> - **297 与 298 的差异出处**：[CHANGELOG.md](../CHANGELOG.md) v3.0.0「验证」节记录的 297 项全绿是定版当时的实测；
+>   其后提交 `d2ce646`（冷启动召回异常降级）新增了 1 个用例 `coldStartWithFailingPopularStrategyDegradesToEmpty`，
+>   故当前用例数为 298，`.github/workflows/ci.yml` 的注释也已写 298。
+>   本文与 README 的用例数按静态核算给出；**通过与否以 CI 为准**——本机若无 Redis（localhost:6379，口令 admin）
+>   则无法复跑后端测试，不要据用例数宣称"全绿"。
+> - 本文成文时的 141/142 项及 16 个空壳用例均已不存在（v2.0.0 时 249 项）。
 > - 本文当时指出的问题已全部修复：上下文统一后全量可跑（约 1 分 20 秒）；空壳用例 10 个补真实断言、
 >   6 个删除（测的是不存在的功能）；“只断 HTTP 200”的假绿约 50 项已改造为断 `data` 内容/回查数据库/越权后行仍在。
 > - 新增两类结构性防线：**管理接口鉴权矩阵**（端点 × 匿名 401/消费者 403/管理员越权）与
 >   **端点角色声明守卫**（`EndpointRoleGuardTest` 扫描全部业务端点，漏标 `@RequireUserType` 即变红）。
-> - 测试隔离已机制化：`BaseTest` 每用例前清 `music:*` 缓存并预置令牌；H2 补 schema、
->   `spring.sql.init.encoding: UTF-8`、测试 profile 补 `map-underscore-to-camel-case`。
+> - 测试隔离已机制化：`BaseTest` 每用例前清 `music:*` 与 `rate:*` 并预置令牌（**绝不清 `jwt:blacklist:*`**）；
+>   H2 补 schema、`spring.sql.init.encoding: UTF-8`、测试 profile 补 `map-underscore-to-camel-case`。
 >   遗留：测试类间仍共享同一 H2 实例与 Redis 库，类间顺序独立性靠约定而非机制。
+> - 测试配置只有 `src/test/resources/application-test.yml` 生效，`src/main/resources/` 下的同名文件被 classpath 优先级遮蔽。
 > - 覆盖率门禁现状：CLASS 90% / METHOD 80% / LINE 70% / BRANCH 50%（实测水位见 [06-CODE-COVERAGE.md](06-CODE-COVERAGE.md)）。
+> - 跑法、前置条件与覆盖边界见 [DEVELOPMENT.md](DEVELOPMENT.md) 第 5 节。
 >
 > 以下正文保留为改造当时的历史记录，其中的用例数、类清单与结论不再作为质量依据。
 

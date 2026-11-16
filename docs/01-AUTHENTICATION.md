@@ -129,7 +129,8 @@ username=testuser&password=***
 
 ### 2. 携带 Token 访问接口
 
-令牌**只能通过 `Authorization` 头**传递，不支持 `?token=` 查询参数：
+令牌**只能通过 `Authorization` 头**传递，且是**裸 JWT，不带 `Bearer ` 前缀**
+（后端不解析该前缀，加了会 401；两个前端工程也都直接放原值）。不支持 `?token=` 查询参数：
 早期文档曾示范 URL 形式，实际后果是查询串会随 INFO 日志留档 30 天，
 等于把完整 JWT 写进磁盘；该回落已连同日志脱敏一并关闭（见 `TokenTransportTest`）。
 
@@ -195,8 +196,12 @@ jwt:
 jwt:
   # 不提供默认值：漏配 JWT_SECRET 直接启动失败，而不是静默带着占位密钥上线
   secret: ${JWT_SECRET}
-  expiration: ${JWT_EXPIRATION:86400000}
+  expiration: 86400000  # 24小时，硬编码；不存在 JWT_EXPIRATION 环境变量
 ```
+
+> 过期时间目前**不可通过环境变量调整**：dev 与 prod 的 `jwt.expiration` 都是硬编码 `86400000`。
+> 早期文档此处写过 `${JWT_EXPIRATION:86400000}`，代码里并无该占位符，已更正。
+> 出参 `expiresIn` 由 `jwtUtils.getExpirationSeconds()` 从同一个键派生，不存在第二来源。
 
 > 历史背景：早期版本的 dev 配置里写死过真实密钥形态的明文，且已进入公开仓库与
 > git 历史——对任何能读源码的人那串密钥永久有效，可用它自签任意角色（含 admin）
